@@ -1,0 +1,28 @@
+services:
+  mariadb:
+    image: 'mariadb:10.11'
+    environment:
+      - MYSQL_ROOT_PASSWORD=testlink
+      - MYSQL_DATABASE=testlink
+    volumes:
+      - 'mariadb_data:/var/lib/mysql'
+    restart: always
+
+  testlink:
+    build: .
+    ports:
+      - '8090:80'
+    volumes:
+      - 'testlink_uploads:/var/testlink/upload_area'
+      - 'testlink_logs:/var/testlink/logs'
+    depends_on:
+      - mariadb
+    restart: always
+
+volumes:
+  mariadb_data:
+    driver: local
+  testlink_uploads:
+    driver: local
+  testlink_logs:
+    driver: local
