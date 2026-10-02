@@ -1,4 +1,13 @@
 package co.edu.uco.sigra.profesores.dto;
 
-public class ProfesorResponseDTO {
+import java.util.UUID;
+
+public record ProfesorResponseDTO(
+        UUID id,
+        String tipoDocumentoNombre,
+        String numeroDocumento,
+        String nombreCompleto,
+        String correoInstitucional,
+        String estado
+) {
 }

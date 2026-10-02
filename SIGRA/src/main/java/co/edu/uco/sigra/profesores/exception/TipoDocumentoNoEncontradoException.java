@@ -1,7 +1,9 @@
 package co.edu.uco.sigra.profesores.exception;
 
-public class CorreoDuplicadoException extends RuntimeException {
-    public CorreoDuplicadoException(String correoInstitucional) {
-        super("Ya existe un profesor registrado con el correo institucional proporcionado: " + correoInstitucional);
+import java.util.UUID;
+
+public class TipoDocumentoNoEncontradoException extends RuntimeException {
+    public TipoDocumentoNoEncontradoException(UUID id) {
+        super("No se encontró el tipo de documento con id " + id);
     }
 }

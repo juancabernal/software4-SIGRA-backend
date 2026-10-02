@@ -1,7 +1,7 @@
 package co.edu.uco.sigra.profesores.exception;
 
-public class DocumentoDuplicadoException extends RuntimeException {
-    public DocumentoDuplicadoException(String numeroDocumento) {
-        super("Ya existe un profesor registrado con el documento" + numeroDocumento);
+public class CorreoDuplicadoException extends RuntimeException {
+    public CorreoDuplicadoException(String correo) {
+        super("Ya existe un profesor registrado con el correo " + correo);
     }
 }
