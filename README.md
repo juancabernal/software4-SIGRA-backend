@@ -345,7 +345,7 @@ Al momento de escribir este README, el repositorio está en fase de esqueleto. Q
 
 1. **Paquete de `SigraApplication.java`.** La clase declara `package com.sigra.SIGRA;` pero el archivo vive en `src/main/java/co/edu/uco/sigra/`. Spring Boot no arrancará hasta que el paquete declarado coincida con la ruta; además, el escaneo de componentes debe partir de `co.edu.uco.sigra` para que encuentre los módulos. Lo mismo aplica a la clase de prueba, que está bajo `com/sigra/SIGRA/`.
 2. **Gradle Wrapper incompleto.** Faltan `gradle/wrapper/gradle-wrapper.jar` y `gradle-wrapper.properties`. Sin ellos `./gradlew` falla; regenéralos con `gradle wrapper` y haz commit de la carpeta `gradle/`.
-3. **Configuración de base de datos.** `application.yaml` solo declara el nombre de la aplicación. Falta el bloque `spring.datasource`, la configuración de JPA y la de Redis.
+3. **Redis.** Redis se ejecuta como servicio externo al backend. Desde `software4-SIGRA-backend/` puede iniciarse con `docker compose up -d redis`; el backend usa `REDIS_HOST` y `REDIS_PORT`, con valores predeterminados `localhost` y `6379`.
 4. **Dependencia de JWT.** `build.gradle` aún no incluye una librería JWT (por ejemplo `io.jsonwebtoken:jjwt`) ni el starter de OpenAPI para Swagger.
 5. **JaCoCo.** El plugin de cobertura todavía no está declarado, aunque el plan de pruebas exige un 70 % mínimo.
 6. **Inconsistencia documental pendiente.** El diagrama de clases dice que la cédula del profesor no se puede modificar una vez registrada, pero el criterio de aceptación de RF-01c valida la cédula al modificarla. Debe unificarse antes de implementar el módulo de profesores.
