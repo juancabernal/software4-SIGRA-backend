@@ -1,4 +1,4 @@
-package com.sigra.SIGRA;
+package co.edu.uco.sigra;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
