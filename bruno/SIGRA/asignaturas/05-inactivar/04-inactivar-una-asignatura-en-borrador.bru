@@ -1,0 +1,32 @@
+meta {
+  name: 04 Inactivar una asignatura en BORRADOR
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU00}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No se puede inactivar");
+    expect(res.body.mensaje).to.include("BORRADOR");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,17 @@
+meta {
+  name: 07 Activar con 7 RA
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU07}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+  res.body.cantidadRa: eq 7
+}

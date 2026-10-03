@@ -1,0 +1,22 @@
+meta {
+  name: 01 Obtener por id
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU05}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{idBRU05}}
+  res.body.codigo: eq BRU05
+  res.body.nombre: eq Bruno Cinco RA
+  res.body.programaId: eq {{programaActivoId}}
+  res.body.programaNombre: eq Programa Bruno Activo
+  res.body.estado: eq BORRADOR
+  res.body.cantidadRa: eq 5
+}

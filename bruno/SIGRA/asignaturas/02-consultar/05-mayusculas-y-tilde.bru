@@ -1,0 +1,30 @@
+meta {
+  name: 05 Mayusculas y tilde
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?texto=PROGRAMACIÓN
+  body: none
+  auth: none
+}
+
+params:query {
+  texto: PROGRAMACIÓN
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("codigos esperados", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    expect(codigos).to.include("BRU13");
+  });
+}

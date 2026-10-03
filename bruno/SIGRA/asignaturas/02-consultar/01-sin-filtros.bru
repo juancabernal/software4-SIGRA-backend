@@ -1,0 +1,44 @@
+meta {
+  name: 01 Sin filtros
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("cada elemento tiene los campos esperados", function () {
+    res.body.forEach((a) => {
+      ["id", "codigo", "nombre", "programaId", "programaNombre", "estado", "cantidadRa"].forEach((campo) => {
+        expect(a).to.have.property(campo);
+      });
+    });
+  });
+
+  test("ordenado por nombre sin distinguir mayusculas", function () {
+    const nombres = res.body.map((a) => a.nombre.toUpperCase().toLowerCase());
+    for (let i = 1; i < nombres.length; i++) {
+      expect(nombres[i - 1] <= nombres[i], nombres[i - 1] + " antes de " + nombres[i]).to.equal(true);
+    }
+  });
+
+  test("cuenta solo los RA activos", function () {
+    const porCodigo = {};
+    res.body.forEach((a) => { porCodigo[a.codigo] = a; });
+    expect(porCodigo["BRU00"].cantidadRa).to.equal(0);
+    expect(porCodigo["BRU05"].cantidadRa).to.equal(5);
+    expect(porCodigo["BRU4I"].cantidadRa).to.equal(4);
+  });
+}

@@ -1,0 +1,35 @@
+meta {
+  name: 09 Por estado ACTIVA
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?estado=ACTIVA
+  body: none
+  auth: none
+}
+
+params:query {
+  estado: ACTIVA
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("todas ACTIVA", function () {
+    res.body.forEach((a) => expect(a.estado).to.equal("ACTIVA"));
+  });
+
+  test("codigos esperados", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    expect(codigos).to.include("BRU10");
+    expect(codigos).to.not.include("BRU00");
+  });
+}

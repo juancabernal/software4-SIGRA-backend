@@ -1,0 +1,18 @@
+meta {
+  name: 02 La asignatura inactivada sigue existiendo
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU10}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq BRU10
+  res.body.estado: eq INACTIVA
+  res.body.cantidadRa: eq 0
+}

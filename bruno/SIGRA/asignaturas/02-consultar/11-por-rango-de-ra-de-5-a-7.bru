@@ -1,0 +1,38 @@
+meta {
+  name: 11 Por rango de RA de 5 a 7
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?programaId={{programaActivoId}}&raMin=5&raMax=7
+  body: none
+  auth: none
+}
+
+params:query {
+  programaId: {{programaActivoId}}
+  raMin: 5
+  raMax: 7
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("codigos esperados", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    expect(codigos).to.include("BRU05");
+    expect(codigos).to.include("BRU07");
+    expect(codigos).to.include("BRU10");
+    expect(codigos).to.not.include("BRU00");
+    expect(codigos).to.not.include("BRU04");
+    expect(codigos).to.not.include("BRU4I");
+    expect(codigos).to.not.include("BRU08");
+  });
+}
