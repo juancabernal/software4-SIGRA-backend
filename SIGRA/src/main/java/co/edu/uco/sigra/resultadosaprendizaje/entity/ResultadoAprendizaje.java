@@ -8,10 +8,7 @@ import lombok.Setter;
 
 import java.util.UUID;
 
-/**
- * Contrato mínimo del resultado de aprendizaje (RF-06). El módulo de resultados de aprendizaje
- * lo completará sin cambiar los nombres ni los tipos de estos campos.
- */
+
 @Entity
 @Table(name = "resultado_aprendizaje",
         uniqueConstraints = @UniqueConstraint(name = "uk_ra_asignatura_codigo",
