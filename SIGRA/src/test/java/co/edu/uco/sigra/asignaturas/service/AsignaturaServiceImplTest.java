@@ -306,40 +306,55 @@ class AsignaturaServiceImplTest {
     class Inactivar {
 
         @Test
-        @DisplayName("Desde ACTIVA queda INACTIVA sin eliminar la asignatura")
+        @DisplayName("Desde ACTIVA queda INACTIVA, inactiva en cascada sus RA activos y no elimina nada")
         void desdeActiva() {
             existe(EstadoAsignatura.ACTIVA);
-            raActivos(5);
+            raActivos(0);
             saveDevuelveArgumento();
 
             AsignaturaResponseDTO respuesta = service.inactivar(ID_ASIGNATURA);
 
             assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.INACTIVA);
+            assertThat(respuesta.cantidadRa()).isZero();
+            verify(resultadoAprendizajeRepository, times(1))
+                    .cambiarEstadoPorAsignatura(ID_ASIGNATURA, EstadoRegistro.ACTIVO, EstadoRegistro.INACTIVO);
             verify(asignaturaRepository, never()).delete(any());
             verify(asignaturaRepository, never()).deleteById(any());
+            verify(resultadoAprendizajeRepository, never()).delete(any());
+            verify(resultadoAprendizajeRepository, never()).deleteById(any());
+            verifyNoInteractions(programaAcademicoRepository);
         }
 
         @Test
-        @DisplayName("No modifica los resultados de aprendizaje: solo los cuenta")
-        void noModificaDatosRelacionados() {
-            existe(EstadoAsignatura.ACTIVA);
-            raActivos(5);
-            saveDevuelveArgumento();
-
-            service.inactivar(ID_ASIGNATURA);
-
-            verify(resultadoAprendizajeRepository).countByAsignatura_IdAndEstado(ID_ASIGNATURA, EstadoRegistro.ACTIVO);
-            verifyNoMoreInteractions(resultadoAprendizajeRepository);
-        }
-
-        @Test
-        @DisplayName("Desde BORRADOR lanza excepción y no guarda")
+        @DisplayName("Desde BORRADOR lanza excepción, no guarda y no toca los RA")
         void desdeBorrador() {
             existe(EstadoAsignatura.BORRADOR);
 
             assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
                     .isInstanceOf(TransicionEstadoInvalidaException.class);
             verify(asignaturaRepository, never()).save(any());
+            verify(resultadoAprendizajeRepository, never()).cambiarEstadoPorAsignatura(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Desde INACTIVA lanza excepción, no guarda y no toca los RA")
+        void desdeInactiva() {
+            existe(EstadoAsignatura.INACTIVA);
+
+            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
+                    .isInstanceOf(TransicionEstadoInvalidaException.class);
+            verify(asignaturaRepository, never()).save(any());
+            verify(resultadoAprendizajeRepository, never()).cambiarEstadoPorAsignatura(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Con una asignatura inexistente lanza excepción y no toca los RA")
+        void inexistente() {
+            noExiste();
+
+            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
+                    .isInstanceOf(AsignaturaNoEncontradaException.class);
+            verifyNoInteractions(resultadoAprendizajeRepository);
         }
     }
 }
