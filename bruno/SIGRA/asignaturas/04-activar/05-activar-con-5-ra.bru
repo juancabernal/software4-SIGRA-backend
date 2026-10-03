@@ -1,0 +1,17 @@
+meta {
+  name: 05 Activar con 5 RA
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU05}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+  res.body.cantidadRa: eq 5
+}

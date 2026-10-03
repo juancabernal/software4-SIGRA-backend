@@ -1,0 +1,34 @@
+meta {
+  name: 07 Por programa activo
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?programaId={{programaActivoId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  programaId: {{programaActivoId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("todas del programa", function () {
+    res.body.forEach((a) => expect(a.programaId).to.equal(bru.getEnvVar("programaActivoId")));
+  });
+
+  test("codigos esperados", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    expect(codigos).to.include("BRU00");
+  });
+}

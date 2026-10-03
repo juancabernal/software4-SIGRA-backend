@@ -321,6 +321,10 @@ La API queda disponible en **http://localhost:8080**.
 
 El reporte de cobertura quedará en `build/reports/jacoco/test/html/index.html` cuando se agregue el plugin de JaCoCo.
 
+#### Pruebas de la API con Bruno
+
+Además de las pruebas unitarias, el repositorio incluye una colección de pruebas de la API para [Bruno](https://www.usebruno.com) en `bruno/SIGRA/`, con datos de prueba reproducibles. Cómo cargar los datos y ejecutarla: [bruno/README.md](bruno/README.md).
+
 ### 6. Compilar y ejecutar el JAR
 
 ```bash

@@ -1,0 +1,35 @@
+meta {
+  name: 17 ProgramaId que no es UUID
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?programaId=no-es-uuid
+  body: none
+  auth: none
+}
+
+params:query {
+  programaId: no-es-uuid
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("El valor del parámetro 'programaId' no es válido.");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,34 @@
+meta {
+  name: 02 Registrar con codigo con guion
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "{{codigoGuion}}",
+    "nombre": "Asignatura con guion",
+    "programaId": "{{programaActivoId}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("codigoGuion", "bru-" + Date.now());
+}
+
+assert {
+  res.status: eq 201
+  res.body.estado: eq BORRADOR
+}
+
+tests {
+  test("conserva el guion y queda en mayusculas", function () {
+    expect(res.body.codigo).to.equal(bru.getVar("codigoGuion").toUpperCase());
+  });
+}

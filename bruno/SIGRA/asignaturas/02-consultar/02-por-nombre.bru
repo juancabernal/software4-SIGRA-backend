@@ -1,0 +1,34 @@
+meta {
+  name: 02 Por nombre
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?texto=bruno cinco
+  body: none
+  auth: none
+}
+
+params:query {
+  texto: bruno cinco
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("todos los nombres contienen el texto", function () {
+    res.body.forEach((a) => expect(a.nombre.toLowerCase()).to.include("bruno cinco"));
+  });
+
+  test("codigos esperados", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    expect(codigos).to.include("BRU05");
+  });
+}
