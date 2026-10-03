@@ -2,12 +2,14 @@ package co.edu.uco.sigra.common.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -34,6 +36,20 @@ public class GlobalExceptionHandler {
                 .toList();
         return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
                 "Los datos de entrada no cumplen con las validaciones requeridas", errores);
+    }
+
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> manejarCuerpoIlegible(HttpMessageNotReadableException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
+                "El cuerpo de la petición no es válido o está mal formado", null);
+    }
+
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> manejarTipoDeParametroInvalido(MethodArgumentTypeMismatchException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
+                "El valor del parámetro '" + ex.getName() + "' no es válido", null);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
