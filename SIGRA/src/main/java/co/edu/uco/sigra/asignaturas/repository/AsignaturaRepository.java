@@ -2,7 +2,7 @@ package co.edu.uco.sigra.asignaturas.repository;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
-import co.edu.uco.sigra.shared.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

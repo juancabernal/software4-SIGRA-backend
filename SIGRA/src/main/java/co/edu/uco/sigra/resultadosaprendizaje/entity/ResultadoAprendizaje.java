@@ -1,7 +1,7 @@
 package co.edu.uco.sigra.resultadosaprendizaje.entity;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
-import co.edu.uco.sigra.shared.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

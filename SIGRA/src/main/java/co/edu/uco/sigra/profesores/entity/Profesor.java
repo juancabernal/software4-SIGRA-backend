@@ -1,12 +1,11 @@
 package co.edu.uco.sigra.profesores.entity;
 
 
-import co.edu.uco.sigra.shared.entity.TipoDocumento;
-import co.edu.uco.sigra.shared.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.entity.TipoDocumento;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.query.common.FetchClauseType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

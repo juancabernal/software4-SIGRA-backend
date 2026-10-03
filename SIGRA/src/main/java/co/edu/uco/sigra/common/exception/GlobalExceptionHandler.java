@@ -1,0 +1,54 @@
+package co.edu.uco.sigra.common.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.util.List;
+import java.util.Map;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> manejarAccesoDenegado(AccessDeniedException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.FORBIDDEN, "FORBIDDEN",
+                "No tiene permisos suficientes para realizar esta acción", null);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AuthenticationException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED",
+                "Debe iniciar sesión para acceder a este recurso", null);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> manejarValidacionesDTO(MethodArgumentNotValidException ex) {
+        List<String> errores = ex.getBindingResult().getFieldErrors().stream()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .toList();
+        return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
+                "Los datos de entrada no cumplen con las validaciones requeridas", errores);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> manejarMetodoNoSoportado(HttpRequestMethodNotSupportedException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> manejarRutaNoEncontrada(NoResourceFoundException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.NOT_FOUND, "NOT_FOUND", "El recurso solicitado no existe", null);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> manejarErrorGenerico(Exception ex) {
+        return ErrorResponseBuilder.build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
+                "Ocurrió un error inesperado en el servidor", ex.getMessage());
+    }
+}
