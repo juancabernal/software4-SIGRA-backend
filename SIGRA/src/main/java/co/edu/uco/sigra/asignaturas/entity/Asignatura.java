@@ -15,8 +15,9 @@ import java.util.UUID;
  * <p>
  * El código y el programa son inmutables; solo el nombre puede modificarse. El ciclo de vida es
  * BORRADOR → ACTIVA → INACTIVA: activar exige entre {@value #MIN_RA_ACTIVOS} y {@value #MAX_RA_ACTIVOS}
- * resultados de aprendizaje activos, e inactivar solo cambia el estado, sin afectar RA, matrículas
- * ni calificaciones. Una asignatura INACTIVA no se reactiva, pues el SRS solo define Borrador → Activa.
+ * resultados de aprendizaje activos. Al inactivar, la entidad solo cambia su propio estado; el servicio
+ * inactiva en cascada los RA activos, y matrículas, evaluaciones y calificaciones no se tocan.
+ * Una asignatura INACTIVA no se reactiva, pues el SRS solo define Borrador → Activa.
  */
 @Entity
 @Table(name = "asignatura",

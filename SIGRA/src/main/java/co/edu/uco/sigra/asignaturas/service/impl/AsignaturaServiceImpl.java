@@ -77,7 +77,11 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     public AsignaturaResponseDTO inactivar(UUID id) {
         Asignatura asignatura = buscar(id);
         asignatura.inactivar();
-        return asignaturaMapper.toResponseDTO(asignaturaRepository.save(asignatura), contarRaActivos(id));
+        Asignatura guardada = asignaturaRepository.save(asignatura);
+        // Cascada: el SRS (RF-06c) exime del mínimo de RA a la asignatura que se inactiva y esta no se reactiva,
+        // así que sus RA activos pasan a INACTIVO en la misma transacción. No se borra nada.
+        resultadoAprendizajeRepository.cambiarEstadoPorAsignatura(id, EstadoRegistro.ACTIVO, EstadoRegistro.INACTIVO);
+        return asignaturaMapper.toResponseDTO(guardada, contarRaActivos(id));
     }
 
     private Asignatura buscar(UUID id) {

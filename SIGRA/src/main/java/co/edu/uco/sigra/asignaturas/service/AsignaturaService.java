@@ -11,5 +11,10 @@ public interface AsignaturaService {
     AsignaturaResponseDTO obtenerAsignatura(UUID id);
     AsignaturaResponseDTO modificarAsignatura(UUID id, AsignaturaUpdateDTO dto);
     AsignaturaResponseDTO activar(UUID id);
+
+    /**
+     * Inactiva una asignatura ACTIVA e inactiva en cascada sus resultados de aprendizaje activos.
+     * No afecta matrículas, evaluaciones ni calificaciones.
+     */
     AsignaturaResponseDTO inactivar(UUID id);
 }
