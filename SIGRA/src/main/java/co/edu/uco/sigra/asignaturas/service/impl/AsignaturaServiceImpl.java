@@ -1,15 +1,18 @@
 package co.edu.uco.sigra.asignaturas.service.impl;
 
+import co.edu.uco.sigra.asignaturas.dto.AsignaturaFiltroDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaRequestDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaResponseDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaUpdateDTO;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.exception.CodigoAsignaturaDuplicadoException;
+import co.edu.uco.sigra.asignaturas.exception.FiltroInvalidoException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaInactivoException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaNoEncontradoException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
@@ -19,8 +22,13 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.text.Normalizer;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +55,33 @@ public class AsignaturaServiceImpl implements AsignaturaService {
 
         Asignatura asignatura = new Asignatura(codigo, dto.nombre().trim(), programa);
         return asignaturaMapper.toResponseDTO(asignaturaRepository.saveAndFlush(asignatura), 0);
+    }
+
+    @Override
+    @Transactional
+    public List<AsignaturaResponseDTO> consultar(AsignaturaFiltroDTO filtro) {
+        validarRangoRa(filtro.raMin(), filtro.raMax());
+
+        Map<UUID, Long> raActivosPorAsignatura = asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)
+                .stream()
+                .collect(Collectors.toMap(ConteoRaPorAsignatura::getAsignaturaId, ConteoRaPorAsignatura::getCantidad));
+        String texto = filtro.texto() == null || filtro.texto().isBlank() ? null : normalizar(filtro.texto().trim());
+
+        // El catálogo de asignaturas es pequeño, así que se filtra en memoria.
+        return asignaturaRepository.findAll().stream()
+                .filter(a -> filtro.programaId() == null || filtro.programaId().equals(a.getPrograma().getId()))
+                .filter(a -> filtro.estado() == null || filtro.estado() == a.getEstado())
+                .filter(a -> texto == null
+                        || normalizar(a.getNombre()).contains(texto)
+                        || normalizar(a.getCodigo()).contains(texto))
+                .filter(a -> {
+                    long cantidadRa = raActivosPorAsignatura.getOrDefault(a.getId(), 0L);
+                    return (filtro.raMin() == null || cantidadRa >= filtro.raMin())
+                            && (filtro.raMax() == null || cantidadRa <= filtro.raMax());
+                })
+                .sorted(Comparator.comparing(Asignatura::getNombre, String.CASE_INSENSITIVE_ORDER))
+                .map(a -> asignaturaMapper.toResponseDTO(a, raActivosPorAsignatura.getOrDefault(a.getId(), 0L)))
+                .toList();
     }
 
     @Override
@@ -82,6 +117,21 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         // así que sus RA activos pasan a INACTIVO en la misma transacción. No se borra nada.
         resultadoAprendizajeRepository.cambiarEstadoPorAsignatura(id, EstadoRegistro.ACTIVO, EstadoRegistro.INACTIVO);
         return asignaturaMapper.toResponseDTO(guardada, contarRaActivos(id));
+    }
+
+    private void validarRangoRa(Integer raMin, Integer raMax) {
+        if ((raMin != null && raMin < 0) || (raMax != null && raMax < 0)) {
+            throw new FiltroInvalidoException("La cantidad de RA no puede ser negativa.");
+        }
+        if (raMin != null && raMax != null && raMin > raMax) {
+            throw new FiltroInvalidoException("La cantidad mínima de RA no puede ser mayor que la máxima.");
+        }
+    }
+
+    private static String normalizar(String valor) {
+        return Normalizer.normalize(valor, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private Asignatura buscar(UUID id) {
