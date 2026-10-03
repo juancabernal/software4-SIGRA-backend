@@ -1,4 +1,4 @@
-package co.edu.uco.sigra.shared.enums;
+package co.edu.uco.sigra.common.enums;
 
 public enum EstadoRegistro {
     ACTIVO,

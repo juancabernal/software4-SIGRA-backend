@@ -1,7 +1,7 @@
 package co.edu.uco.sigra.resultadosaprendizaje.repository;
 
 import co.edu.uco.sigra.resultadosaprendizaje.entity.ResultadoAprendizaje;
-import co.edu.uco.sigra.shared.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

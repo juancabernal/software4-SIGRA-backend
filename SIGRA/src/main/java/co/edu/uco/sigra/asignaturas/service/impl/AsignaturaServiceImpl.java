@@ -17,7 +17,7 @@ import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
-import co.edu.uco.sigra.shared.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

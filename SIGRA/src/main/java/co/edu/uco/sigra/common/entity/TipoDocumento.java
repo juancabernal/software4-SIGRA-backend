@@ -1,4 +1,4 @@
-package co.edu.uco.sigra.shared.entity;
+package co.edu.uco.sigra.common.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
