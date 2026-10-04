@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -439,13 +439,13 @@ class AsignaturaControllerTest {
     }
 
     @Test
-    @DisplayName("Un error inesperado devuelve 500 sin exponer el mensaje original")
-    void errorInesperado() throws Exception {
-        when(service.obtenerAsignatura(ID)).thenThrow(new RuntimeException("detalle técnico: tabla asignatura"));
+    @DisplayName("Un error inesperado no lo convierte este manejador: lo atiende el manejador global")
+    void errorInesperadoLoAtiendeElManejadorGlobal() {
+        RuntimeException original = new RuntimeException("error inesperado");
+        when(service.obtenerAsignatura(ID)).thenThrow(original);
 
-        mockMvc.perform(get(URL_ID))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath(JSON_MENSAJE).value("Ocurrió un error inesperado en el servidor"))
-                .andExpect(content().string(not(containsString("tabla asignatura"))));
+        assertThatThrownBy(() -> mockMvc.perform(get(URL_ID)))
+                .rootCause()
+                .isSameAs(original);
     }
 }
