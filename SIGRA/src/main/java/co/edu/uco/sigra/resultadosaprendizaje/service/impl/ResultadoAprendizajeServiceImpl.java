@@ -33,7 +33,6 @@ public class ResultadoAprendizajeServiceImpl implements ResultadoAprendizajeServ
     private final AsignaturaRepository asignaturaRepository;
     private final ResultadoAprendizajeMapper resultadoAprendizajeMapper;
 
-    // ------------------------------------------------------------------ RF-06a: registrar
 
     @Override
     @Transactional
