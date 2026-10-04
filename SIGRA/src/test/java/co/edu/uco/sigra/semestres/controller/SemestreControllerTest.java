@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.semestres.controller;
 
+import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
 import co.edu.uco.sigra.semestres.dto.SemestreFechaFinRequestDTO;
 import co.edu.uco.sigra.semestres.dto.SemestreRequestDTO;
 import co.edu.uco.sigra.semestres.dto.SemestreResponseDTO;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -32,7 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Pruebas de la capa web en modo standalone: no levanta contexto Spring, base de datos ni seguridad.
- * Verifica rutas, códigos HTTP, validaciones del DTO y el formato de error del módulo.
+ * Verifica rutas, códigos HTTP, validaciones del DTO y el formato de error. Se registran el
+ * manejador del módulo y el global de common, en el mismo orden de prioridad que en ejecución.
  */
 @ExtendWith(MockitoExtension.class)
 class SemestreControllerTest {
@@ -64,7 +67,7 @@ class SemestreControllerTest {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
         mockMvc = MockMvcBuilders.standaloneSetup(new SemestreController(service))
-                .setControllerAdvice(new SemestreExceptionHandler())
+                .setControllerAdvice(new SemestreExceptionHandler(), new GlobalExceptionHandler())
                 .setValidator(validator)
                 .build();
     }
@@ -197,12 +200,23 @@ class SemestreControllerTest {
     }
 
     @Test
-    void errorInesperadoDevuelve500SinDetallesTecnicos() throws Exception {
-        when(service.listar()).thenThrow(new IllegalStateException("detalle interno SQL"));
+    void errorInesperadoLoResuelveElManejadorGlobalCon500() throws Exception {
+        when(service.listar()).thenThrow(new IllegalStateException("fallo inesperado"));
 
         mockMvc.perform(get(URL))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.detalles").doesNotExist())
+                .andExpect(jsonPath("$.error").value("INTERNAL_SERVER_ERROR"))
                 .andExpect(jsonPath(JSON_MENSAJE).value("Ocurrió un error inesperado en el servidor"));
+    }
+
+    @Test
+    void accesoDenegadoLoResuelveElManejadorGlobalCon403() throws Exception {
+        when(service.crear(any())).thenThrow(new AccessDeniedException("Access Denied"));
+
+        mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON).content(CUERPO_CREACION_VALIDO))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath(JSON_STATUS).value(403))
+                .andExpect(jsonPath("$.error").value("FORBIDDEN"))
+                .andExpect(jsonPath(JSON_MENSAJE).value("No tiene permisos suficientes para realizar esta acción"));
     }
 }

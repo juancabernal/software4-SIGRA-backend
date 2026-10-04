@@ -19,9 +19,12 @@ import java.util.Map;
 
 /**
  * Manejo de errores exclusivo del módulo de asignaturas.
+ * - Atiende solo los errores propios de asignaturas y los de petición mal formada (validación,
+ *   JSON ilegible, parámetro con formato inválido, conflicto de base de datos).
+ * - Los errores inesperados y el 403 por permisos los atiende el manejador global de common/exception,
+ *   por eso aquí no hay un método para Exception.class.
  * - Solo aplica a AsignaturaController (assignableTypes), así no afecta a otros módulos.
- * - Tiene la máxima prioridad para que el manejador genérico de otros módulos no convierta
- *   estas excepciones en 500.
+ * - Tiene la máxima prioridad para que el manejador global no reemplace estas respuestas.
  * - Usa la misma estructura JSON que el resto del equipo (timestamp, status, error, mensaje, detalles).
  * - Nunca expone trazas ni mensajes técnicos (RNF-17).
  */
@@ -81,11 +84,5 @@ public class AsignaturaExceptionHandler {
     public ResponseEntity<Map<String, Object>> manejarIntegridad(DataIntegrityViolationException ex) {
         return construirRespuestaError(HttpStatus.CONFLICT,
                 "La operación entra en conflicto con una asignatura existente", null);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> manejarErrorGenerico(Exception ex) {
-        return construirRespuestaError(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Ocurrió un error inesperado en el servidor", null);
     }
 }

@@ -1,0 +1,29 @@
+meta {
+  name: 01 Extender fecha de fin
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/semestres/2090-1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "fechaFin": "2090-06-30"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("datos del semestre", function () {
+    expect(res.body.codigo).to.equal("2090-1");
+    expect(res.body.fechaInicio).to.equal("2090-01-20");
+    expect(res.body.fechaFin).to.equal("2090-06-30");
+  });
+}

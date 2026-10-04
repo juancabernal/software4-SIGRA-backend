@@ -1,0 +1,43 @@
+meta {
+  name: 07 Codigo con periodo invalido
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/semestres
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "2090-3",
+    "fechaInicio": "2090-07-20",
+    "fechaFin": "2090-12-01"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Los datos de entrada no cumplen con las validaciones requeridas");
+  });
+
+  test("el detalle senala el campo codigo", function () {
+    expect(res.body.detalles[0]).to.include("codigo");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}
