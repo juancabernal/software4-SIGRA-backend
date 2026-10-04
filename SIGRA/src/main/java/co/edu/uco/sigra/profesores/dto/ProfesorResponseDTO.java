@@ -8,6 +8,7 @@ public record ProfesorResponseDTO(
         String numeroDocumento,
         String nombreCompleto,
         String correoInstitucional,
-        String estado
+        String estado,
+        boolean tieneAsignacionesActivas
 ) {
 }
