@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.common.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
@@ -64,7 +66,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> manejarErrorGenerico(Exception ex) {
+        // El detalle técnico (SQL, Hibernate, trazas) va solo al log del servidor, nunca a la respuesta (RNF-17).
+        log.error("Error inesperado no controlado", ex);
         return ErrorResponseBuilder.build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
-                "Ocurrió un error inesperado en el servidor", ex.getMessage());
+                "Ocurrió un error inesperado en el servidor", null);
     }
 }
