@@ -1,0 +1,35 @@
+meta {
+  name: 04 Consultar inexistente
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/semestres/2097-2
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("tipo de error", function () {
+    expect(res.body.error).to.equal("NOT_FOUND");
+  });
+
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No se encontró el semestre con código 2097-2");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

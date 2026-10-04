@@ -1,0 +1,30 @@
+meta {
+  name: 01 Listar semestres
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/semestres
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve una lista con los semestres de prueba", function () {
+    expect(res.body).to.be.an("array");
+    const codigos = res.body.map(s => s.codigo);
+    expect(codigos).to.include.members(["1990-1", "2090-1", "2091-1", "2098-1"]);
+  });
+
+  test("ordenados por fecha de inicio descendente", function () {
+    const codigos = res.body.map(s => s.codigo);
+    expect(codigos.indexOf("2098-1")).to.be.below(codigos.indexOf("2091-1"));
+    expect(codigos.indexOf("2091-1")).to.be.below(codigos.indexOf("2090-1"));
+    expect(codigos.indexOf("2090-1")).to.be.below(codigos.indexOf("1990-1"));
+  });
+}
