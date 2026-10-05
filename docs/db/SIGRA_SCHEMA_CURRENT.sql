@@ -12,7 +12,8 @@
 --   - No es una migración. Para bases existentes con el esquema antiguo de
 --     'profesor' usa docs/db/RF04_usuario_migration.sql (legacy, ya aplicada en la
 --     base local de referencia).
---   - No contiene tablas futuras (administrador, matrícula, etc.).
+--   - No contiene tablas de requisitos futuros: solo las de entidades que ya existen en el
+--     código; las demás se agregan cuando se implementen.
 --   - "sigra" es un SCHEMA dentro de la base "postgres", no una base de datos.
 --
 -- Uso (base vacía, PostgreSQL local, puerto según tu máquina):
@@ -161,22 +162,43 @@ CREATE INDEX IF NOT EXISTS idx_asignacion_docente_profesor ON sigra.asignacion_d
 CREATE INDEX IF NOT EXISTS idx_asignacion_docente_asignatura ON sigra.asignacion_docente (asignatura_id);
 
 -- -----------------------------------------------------------------------------
--- Estudiante (RF-09a)
+-- Administrador (RF-04): subtipo de usuario, sin atributos propios
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.administrador (
+    id UUID NOT NULL,
+    CONSTRAINT administrador_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_administrador_usuario FOREIGN KEY (id) REFERENCES sigra.usuario (id)
+);
+
+-- -----------------------------------------------------------------------------
+-- Estudiante (RF-09a): subtipo de usuario. Tipo de documento, nombre, correo y estado
+-- viven en sigra.usuario; aquí solo lo propio del estudiante.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sigra.estudiante (
-    id                   UUID         NOT NULL DEFAULT gen_random_uuid(),
-    tipo_documento_id    UUID         NOT NULL,
-    numero_documento     VARCHAR(10)  NOT NULL,
-    nombre_completo      VARCHAR(255) NOT NULL,
-    correo_institucional VARCHAR(255) NOT NULL,
-    estado               VARCHAR(255) NOT NULL DEFAULT 'ACTIVO',
+    id               UUID        NOT NULL,
+    numero_documento VARCHAR(10) NOT NULL,
     CONSTRAINT estudiante_pkey PRIMARY KEY (id),
-    CONSTRAINT uk_estudiante_correo UNIQUE (correo_institucional),
-    CONSTRAINT uk_estudiante_documento UNIQUE (tipo_documento_id, numero_documento),
-    CONSTRAINT fk_estudiante_tipo_documento FOREIGN KEY (tipo_documento_id)
-        REFERENCES sigra.tipo_documento (id),
-    CONSTRAINT chk_estudiante_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
+    CONSTRAINT fk_estudiante_usuario FOREIGN KEY (id) REFERENCES sigra.usuario (id)
 );
-CREATE INDEX IF NOT EXISTS idx_estudiante_tipo_documento ON sigra.estudiante (tipo_documento_id);
+
+-- -----------------------------------------------------------------------------
+-- Matrícula (RF-08, RF-09): vínculo estudiante - asignatura - semestre.
+-- La terna es única sin importar el estado: desvincular pasa el registro a INACTIVO.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.matricula (
+    id            UUID         NOT NULL DEFAULT gen_random_uuid(),
+    estudiante_id UUID         NOT NULL,
+    asignatura_id UUID         NOT NULL,
+    semestre_id   UUID         NOT NULL,
+    estado        VARCHAR(255) NOT NULL DEFAULT 'ACTIVO',
+    CONSTRAINT matricula_pkey PRIMARY KEY (id),
+    CONSTRAINT uk_matricula_terna UNIQUE (estudiante_id, asignatura_id, semestre_id),
+    CONSTRAINT fk_matricula_estudiante FOREIGN KEY (estudiante_id) REFERENCES sigra.estudiante (id),
+    CONSTRAINT fk_matricula_asignatura FOREIGN KEY (asignatura_id) REFERENCES sigra.asignatura (id),
+    CONSTRAINT fk_matricula_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT chk_matricula_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
+);
+CREATE INDEX IF NOT EXISTS idx_matricula_asignatura ON sigra.matricula (asignatura_id);
+CREATE INDEX IF NOT EXISTS idx_matricula_semestre ON sigra.matricula (semestre_id);
 
 COMMIT;

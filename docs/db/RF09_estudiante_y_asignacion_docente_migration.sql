@@ -34,7 +34,16 @@ CREATE TABLE IF NOT EXISTS sigra.estudiante (
         REFERENCES sigra.tipo_documento (id),
     CONSTRAINT chk_estudiante_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
 );
-CREATE INDEX IF NOT EXISTS idx_estudiante_tipo_documento ON sigra.estudiante (tipo_documento_id);
+-- El índice solo aplica al diseño independiente de estudiante; si ya es subtipo de usuario
+-- (RF04_administrador_y_estudiante_subtipos_migration.sql) la columna no existe y se omite.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'sigra' AND table_name = 'estudiante'
+                  AND column_name = 'tipo_documento_id') THEN
+        CREATE INDEX IF NOT EXISTS idx_estudiante_tipo_documento ON sigra.estudiante (tipo_documento_id);
+    END IF;
+END $$;
 
 -- 2) AsignacionDocente -> Asignatura
 ALTER TABLE sigra.asignacion_docente ADD COLUMN IF NOT EXISTS asignatura_id UUID;

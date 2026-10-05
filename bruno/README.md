@@ -90,6 +90,8 @@ El seed de auth opera solo sobre el schema `sigra` (define su propio `search_pat
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -p <PUERTO> -d postgres -v ON_ERROR_STOP=1 -f bruno/SIGRA/seed/seed-auth.sql
 ```
 
+Para los logins de administrador y estudiante (`auth/01-login/13` y `14`), ejecuta también `bruno/SIGRA/seed/seed-roles.sql`: crea un administrador y un estudiante de prueba con la misma contraseña de `seed-auth.sql`.
+
 Después ejecuta la colección de `auth/` (sección 4).
 
 ### Flujo de RF-04 en Bruno
