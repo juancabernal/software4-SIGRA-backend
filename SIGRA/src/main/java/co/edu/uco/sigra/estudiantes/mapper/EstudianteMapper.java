@@ -13,6 +13,9 @@ public interface EstudianteMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tipoDocumento", ignore = true)
     @Mapping(target = "estado", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "intentosFallidos", ignore = true)
+    @Mapping(target = "fechaBloqueo", ignore = true)
     Estudiante toEntity(EstudianteRequestDTO dto);
 
     @Mapping(target = "tipoDocumentoNombre", source = "tipoDocumento.nombre")
@@ -21,5 +24,8 @@ public interface EstudianteMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tipoDocumento", ignore = true)
     @Mapping(target = "estado", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "intentosFallidos", ignore = true)
+    @Mapping(target = "fechaBloqueo", ignore = true)
     void updateEntityFromDTO(EstudianteRequestDTO dto, @MappingTarget Estudiante entity);
 }
