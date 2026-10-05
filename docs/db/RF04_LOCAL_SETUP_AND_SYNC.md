@@ -137,6 +137,8 @@ sigra.asignacion_docente
 
 Si tu base ya aplicó el esquema antes de RF-07/RF-09, ejecuta `docs/db/RF09_estudiante_y_asignacion_docente_migration.sql` (es idempotente y no borra datos).
 
+Si tu base tiene `estudiante` con el diseño anterior (columnas propias), ejecuta `docs/db/RF04_administrador_y_estudiante_subtipos_migration.sql`; luego, para tener un administrador y un estudiante de prueba, ejecuta `bruno/SIGRA/seed/seed-roles.sql`.
+
 ## 4. Si tus tablas antiguas están en `public`
 
 No muevas ni elimines `public` automáticamente.
