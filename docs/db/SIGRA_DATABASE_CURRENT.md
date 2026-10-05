@@ -172,5 +172,5 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | Código | Estado | Descripción |
 | --- | --- | --- |
 | `FAILED_ATTEMPTS_CONCURRENCY` | DEFERRED | Dos intentos fallidos simultáneos pueden perder un incremento del contador |
-| `PASSWORD_PROVISIONING_FLOW` | PENDING PRODUCT/TEAM DECISION | `POST /api/v1/profesores` no recibe contraseña; un profesor creado así no puede iniciar sesión. Lo mismo aplica a los estudiantes migrados desde el diseño anterior |
-| `AUTH_RUNTIME_ROLES` | RESUELTA | `Administrador`, `Profesor` y `Estudiante` extienden `Usuario` y pueden autenticarse si tienen contraseña |
+| `PASSWORD_PROVISIONING_FLOW` | DECIDIDA, PENDIENTE DE IMPLEMENTAR | `POST /api/v1/profesores` y `POST /api/v1/estudiantes` no reciben contraseña; un profesor o estudiante registrado por la API (o un estudiante migrado desde el diseño anterior) no puede iniciar sesión. Decisión: el administrador asigna la contraseña mediante un endpoint propio, `PUT /api/v1/usuarios/{id}/contrasena` (RNF-10: nunca se devuelve ni se registra); pendiente de implementar |
+| `AUTH_RUNTIME_ROLES` | RESUELTA | `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04) y pueden autenticarse si tienen contraseña |
