@@ -25,18 +25,20 @@ import java.util.Map;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ManejadorErroresEstudiantes {
 
-    @ExceptionHandler({EstudianteNoEncontradoException.class, ReferenciaNoEncontradaException.class})
+    @ExceptionHandler({EstudianteNoEncontradoException.class, ReferenciaNoEncontradaException.class,
+            MatriculaNoEncontradaException.class})
     public ResponseEntity<Map<String, Object>> manejarNoEncontrado(RuntimeException ex) {
         return ConstructorRespuestaError.construir(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler({EstudianteYaRegistradoException.class, CorreoEstudianteDuplicadoException.class})
+    @ExceptionHandler({EstudianteYaRegistradoException.class, CorreoEstudianteDuplicadoException.class,
+            MatriculaDuplicadaException.class, MatriculaYaInactivaException.class})
     public ResponseEntity<Map<String, Object>> manejarDuplicado(RuntimeException ex) {
         return ConstructorRespuestaError.construir(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(DocumentoNoModificableException.class)
-    public ResponseEntity<Map<String, Object>> manejarDocumentoNoModificable(DocumentoNoModificableException ex) {
+    @ExceptionHandler({DocumentoNoModificableException.class, ReglaDeMatriculaException.class})
+    public ResponseEntity<Map<String, Object>> manejarReglaDeNegocio(RuntimeException ex) {
         return ConstructorRespuestaError.construir(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
