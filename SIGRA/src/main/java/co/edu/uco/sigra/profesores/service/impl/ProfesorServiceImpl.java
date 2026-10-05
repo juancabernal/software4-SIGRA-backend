@@ -2,6 +2,10 @@ package co.edu.uco.sigra.profesores.service.impl;
 
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
+import co.edu.uco.sigra.auth.repository.UsuarioRepository;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
+import co.edu.uco.sigra.common.util.Correos;
 import co.edu.uco.sigra.profesores.dto.AsignaturaProfesorResponseDTO;
 import co.edu.uco.sigra.profesores.dto.ProfesorRequestDTO;
 import co.edu.uco.sigra.profesores.dto.ProfesorResponseDTO;
@@ -10,8 +14,6 @@ import co.edu.uco.sigra.profesores.exception.*;
 import co.edu.uco.sigra.profesores.mapper.ProfesorMapper;
 import co.edu.uco.sigra.profesores.repository.ProfesorRepository;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
-import co.edu.uco.sigra.common.enums.EstadoRegistro;
-import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class ProfesorServiceImpl implements ProfesorService {
 
     private final ProfesorRepository profesorRepository;
+    private final UsuarioRepository usuarioRepository;
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final ProfesorMapper profesorMapper;
@@ -31,16 +34,18 @@ public class ProfesorServiceImpl implements ProfesorService {
     @Override
     @Transactional
     public ProfesorResponseDTO registrarProfesor(ProfesorRequestDTO dto) {
-        if (profesorRepository.existsByTipoDocumentoIdAndNumeroDocumento(dto.tipoDocumentoId(), dto.numeroDocumento())) {
+        if (profesorRepository.existsByTipoDocumento_IdAndNumeroDocumento(dto.tipoDocumentoId(), dto.numeroDocumento())) {
             throw new DocumentoDuplicadoException(dto.numeroDocumento());
         }
-        if (profesorRepository.findByCorreoInstitucional(dto.correoInstitucional()).isPresent()) {
-            throw new CorreoDuplicadoException(dto.correoInstitucional());
+        String correo = Correos.normalizar(dto.correoInstitucional());
+        if (usuarioRepository.existsByCorreoInstitucionalIgnoreCase(correo)) {
+            throw new CorreoDuplicadoException(correo);
         }
         var tipoDocumento = tipoDocumentoRepository.findById(dto.tipoDocumentoId())
                 .orElseThrow(() -> new TipoDocumentoNoEncontradoException(dto.tipoDocumentoId()));
 
         Profesor profesor = profesorMapper.toEntity(dto);
+        profesor.setCorreoInstitucional(correo);
         profesor.setTipoDocumento(tipoDocumento);
 
         Profesor guardado = profesorRepository.save(profesor);
@@ -94,14 +99,16 @@ public class ProfesorServiceImpl implements ProfesorService {
                 dto.tipoDocumentoId(), dto.numeroDocumento(), id)) {
             throw new DocumentoDuplicadoException(dto.numeroDocumento());
         }
-        if (profesorRepository.existsByCorreoInstitucionalAndIdNot(dto.correoInstitucional(), id)) {
-            throw new CorreoDuplicadoException(dto.correoInstitucional());
+        String correo = Correos.normalizar(dto.correoInstitucional());
+        if (usuarioRepository.existsByCorreoInstitucionalIgnoreCaseAndIdNot(correo, id)) {
+            throw new CorreoDuplicadoException(correo);
         }
 
         var tipoDocumento = tipoDocumentoRepository.findById(dto.tipoDocumentoId())
                 .orElseThrow(() -> new TipoDocumentoNoEncontradoException(dto.tipoDocumentoId()));
 
         profesorMapper.updateEntityFromDTO(dto, profesor);
+        profesor.setCorreoInstitucional(correo);
         profesor.setTipoDocumento(tipoDocumento);
         return profesorMapper.toResponseDTO(profesorRepository.save(profesor));
     }

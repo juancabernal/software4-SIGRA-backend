@@ -16,7 +16,12 @@ public record ProfesorRequestDTO(
         @NotBlank
         String nombreCompleto,
 
+        // Mismo criterio que LoginRequestDTO: el dominio no distingue mayúsculas; el servicio normaliza el correo.
         @NotBlank
-        @Pattern(regexp = "^[\\w.-]+@uco\\.net\\.co$", message = "El correo debe tener formato usuario@uco.net.co")
+        @Pattern(
+                regexp = "^\\s*[\\w.-]+@uco\\.net\\.co\\s*$",
+                flags = Pattern.Flag.CASE_INSENSITIVE,
+                message = "El correo debe tener formato usuario@uco.net.co"
+        )
         String correoInstitucional
 ) {}

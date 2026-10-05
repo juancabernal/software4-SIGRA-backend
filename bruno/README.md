@@ -18,8 +18,9 @@ bruno/
 └── SIGRA/                          La colección (ábrela desde Bruno)
     ├── bruno.json                  Definición de la colección
     ├── environments/local.bru      Variables del entorno local (URL e ids de prueba)
-    ├── seed/seed-asignaturas.sql   Datos de prueba reproducibles
-    └── asignaturas/                Pruebas de RF-03, en orden
+    ├── seed/seed-asignaturas.sql   Datos de prueba de RF-03 (asignaturas)
+    ├── seed/seed-auth.sql          Datos de prueba de RF-04 (login)
+    ├── asignaturas/                Pruebas de RF-03, en orden
         ├── 00-salud/               El backend responde (1)
         ├── 01-registrar/           RF-03a: registro y validaciones (14)
         ├── 02-consultar/           RF-03b: consulta con filtros (17)
@@ -27,6 +28,10 @@ bruno/
         ├── 04-activar/             RF-03d: activación con 5 a 7 RA activos (10)
         ├── 05-inactivar/           RF-03d: inactivación y cascada de RA (6)
         └── 06-cors/                CORS para el frontend en http://localhost:4200 (2)
+    └── auth/                       Pruebas de RF-04, en orden
+        ├── 01-login/               Login correcto y validaciones de entrada
+        ├── 02-intentos-fallidos/   Bloqueo tras 5 intentos fallidos (423)
+        └── 03-seguridad-respuestas/ Respuestas de error sin detalles técnicos (RNF-17)
 ```
 
 Cada carpeta tiene un `folder.bru` con su `seq`, que fija el orden de ejecución, y cada petición lleva un prefijo numérico (`01-...`, `02-...`) con su `seq` dentro de la carpeta. **El orden importa**: algunas pruebas cambian el estado de las asignaturas de prueba (por ejemplo, `04-activar` deja `BRU05` en ACTIVA y `05-inactivar` la inactiva después).
@@ -43,30 +48,84 @@ Cada carpeta tiene un `folder.bru` con su `seq`, que fija el orden de ejecución
 ## Requisitos
 
 - El backend corriendo en `http://localhost:8080` (ver el README de la raíz).
-- PostgreSQL con la base de datos `sigra` creada. Las tablas las crea el backend al arrancar (`ddl-auto: update`), así que arranca el backend al menos una vez antes de cargar los datos de prueba.
+- `SIGRA/.env` creado a partir de `SIGRA/.env.example`, con `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` y `JWT_SECRET`.
+- PostgreSQL con la base `postgres` y el **schema** `sigra` creado (`sigra` es un schema, no una base de datos). Para una base vacía, ejecuta `docs/db/SIGRA_SCHEMA_CURRENT.sql`. Hibernate solo valida el esquema (`ddl-auto=validate`): no crea tablas.
+- Todos los comandos `psql` de esta guía usan `-d postgres`. Para que las consultas sin prefijo resuelvan dentro de `sigra`, se pasa `PGOPTIONS='-c search_path=sigra,public'`. Así el seed de RF-03 funciona sin cambiar su SQL.
 
 ## Cómo ejecutar las pruebas
 
 ### 1. Cargar los datos de prueba
 
-Desde la **raíz del repositorio**, en PowerShell (ajusta la ruta de `psql.exe` a tu versión de PostgreSQL):
+Desde la **raíz del repositorio**, en PowerShell. Ajusta la ruta de `psql.exe` a tu versión de PostgreSQL y `-p` al puerto de tu servidor local:
 
 ```powershell
-& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -p 5432 -d sigra -f bruno/SIGRA/seed/seed-asignaturas.sql
+$env:PGOPTIONS = "-c search_path=sigra,public"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -p <PUERTO> -d postgres -f bruno/SIGRA/seed/seed-asignaturas.sql
 ```
 
 El script crea dos programas (uno activo y uno inactivo), diez asignaturas con el prefijo `BRU` y sus resultados de aprendizaje, y al final muestra un resumen con los RA activos de cada una. Es **idempotente**: borra los datos `BRU` anteriores y los vuelve a crear.
 
 > **Vuelve a ejecutar el seed antes de cada corrida completa de la colección.** Las pruebas cambian el estado de algunas asignaturas y, sin el seed, la segunda corrida fallaría (por ejemplo, `BRU05` ya no estaría en BORRADOR).
 
-### 2. Arrancar el backend
+### 2. Cargar los datos de RF-04 (autenticación)
+
+El seed de auth opera solo sobre el schema `sigra` (define su propio `search_path` y no toca `public`). Es idempotente.
+
+**Base nueva (vacía):**
+
+1. Crea el esquema actual: `docs/db/SIGRA_SCHEMA_CURRENT.sql`.
+2. Arranca el backend (`.\gradlew.bat bootRun` dentro de `SIGRA/`). Con `ddl-auto=validate` debe arrancar sin errores de esquema.
+3. Ejecuta el seed de auth (paso siguiente).
+
+**Base existente con el modelo antiguo de `profesor`:**
+
+1. Haz un backup completo de la base.
+2. Ejecuta `docs/db/RF04_schema_preflight.sql` (solo lectura) y revisa su resultado.
+3. Si el preflight lo permite, ejecuta `docs/db/RF04_usuario_migration.sql`. Contiene cambios de esquema: se ejecuta a mano y con supervisión. En la base de referencia ya está aplicada.
+4. Arranca el backend.
+
+**Seed de auth (en ambos casos, y antes de cada corrida de `auth/`):**
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -p <PUERTO> -d postgres -v ON_ERROR_STOP=1 -f bruno/SIGRA/seed/seed-auth.sql
+```
+
+Después ejecuta la colección de `auth/` (sección 4).
+
+### Flujo de RF-04 en Bruno
+
+1. PostgreSQL debe estar activo en el puerto de tu `DB_URL`.
+2. El backend debe conectar a `postgres` con `currentSchema=sigra`.
+3. El schema `sigra` debe existir y tener las tablas (baseline o migración).
+4. Ejecuta el seed de auth si necesitas reiniciar los usuarios de prueba (`profesor.bruno@uco.net.co` y `profesor.bloqueo@uco.net.co`).
+5. Arranca el backend.
+6. Ejecuta la colección `auth/` (desde Bruno, o con `bru run auth -r --env local`).
+
+### Estados esperados
+
+| Código | Caso |
+| --- | --- |
+| 200 | Login correcto. Devuelve `token` (JWT), `tipo`, `expiraEn` y `usuario` |
+| 400 | Validación de entrada (correo o contraseña vacíos, o dominio distinto de `@uco.net.co`) |
+| 401 | Credenciales incorrectas. El mensaje es el mismo aunque el correo no exista |
+| 423 | Bloqueo temporal de 15 minutos tras 5 intentos fallidos |
+
+Secuencia de bloqueo (`auth/02-intentos-fallidos/`), sobre `profesor.bloqueo@uco.net.co`:
+
+1. Se envían **5 contraseñas incorrectas** consecutivas → cada una responde 401.
+2. El contador se **persiste** en `sigra.usuario.intentos_fallidos` (los fallos se guardan aunque la respuesta sea un error).
+3. El **siguiente intento, durante el bloqueo**, responde 423, incluso con la contraseña correcta. No se evalúa la contraseña.
+
+> **Estado de la validación:** esta colección y su flujo **ya fueron ejecutados manualmente** con Bruno. Todos los códigos y mensajes coincidieron con esta guía. Esa validación es manual: no hay una ejecución automatizada de la colección en el repositorio.
+
+### 3. Arrancar el backend
 
 ```powershell
 cd SIGRA
 .\gradlew.bat bootRun
 ```
 
-### 3. Ejecutar la colección
+### 4. Ejecutar la colección
 
 **Desde Bruno:**
 
@@ -84,7 +143,8 @@ bru run . -r --env local
 
 ## Qué se verifica
 
-- Los códigos HTTP de cada caso (201, 200, 400, 404, 409).
+- Los códigos HTTP de cada caso (201, 200, 400, 401, 404, 409, 423).
+- En `auth/`: el login devuelve 200 con token o el código de error que corresponde, y ninguna respuesta de error revela trazas, SQL ni nombres internos de clases (RNF-17).
 - Los mensajes reales del backend (por ejemplo, «al menos 5» o «máximo 7» al activar).
 - En todas las respuestas de error, que el cuerpo tenga `timestamp`, `status`, `error` y `mensaje`, y que **no** exponga trazas ni detalles técnicos (RNF-17).
 - Que la consulta cuente solo los RA **activos** (la asignatura `BRU4I` tiene 4 activos y 3 inactivos, y cuenta 4).

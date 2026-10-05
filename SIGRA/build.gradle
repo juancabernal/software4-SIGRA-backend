@@ -38,9 +38,28 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
-	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
 }
 
+// Pruebas unitarias y de capa web (sin PostgreSQL). Se ejecutan con: .\gradlew.bat test
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'integration'
+	}
+}
+
+// Pruebas de integración: levantan el contexto completo y requieren PostgreSQL y .env.
+// Se ejecutan con: .\gradlew.bat integrationTest
+tasks.register('integrationTest', Test) {
+	description = 'Pruebas de integración (requieren PostgreSQL local y SIGRA/.env).'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	shouldRunAfter tasks.named('test')
+	useJUnitPlatform {
+		includeTags 'integration'
+	}
 }

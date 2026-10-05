@@ -36,8 +36,16 @@ out/
 ### VS Code ###
 .vscode/
 
-### .env ###
+### Variables locales y secretos (SIGRA/.env) ###
+.env
 *.env
+!.env.example
+
+### Logs y temporales del SO/IDE ###
+logs/
+*.log
+Thumbs.db
+.DS_Store
 
 ### carpetas y archivo ignorados por Andres ####
 /openspec/

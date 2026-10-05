@@ -1,29 +1,38 @@
 spring:
   application:
     name: sigra-backend
+
+  # Carga SIGRA/.env si existe (cuando Gradle o el jar se ejecutan desde SIGRA/).
+  # Las variables de entorno del sistema tienen prioridad sobre este archivo.
+  config:
+    import: "optional:file:.env[.properties]"
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+
   jpa:
+    # El esquema lo controlan los scripts SQL (docs/db/SIGRA_SCHEMA_CURRENT.sql); Hibernate solo lo valida.
     hibernate:
-      ddl-auto: update   # En desarrollo crea/actualiza las tablas automáticamente
-    show-sql: true        # Muestra las consultas SQL en consola
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    show-sql: ${JPA_SHOW_SQL:false}
+    # Sin carga perezosa en la vista: las consultas se resuelven dentro de la capa de servicio.
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
-  #data:
-  #  redis:
-  #    host: ${REDIS_HOST:localhost}
-  #    port: ${REDIS_PORT:6379}
 
 server:
-  port: ${SERVER_PORT}
+  port: ${SERVER_PORT:8080}
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration-ms: ${JWT_EXPIRATION_MS}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
 
 springdoc:
   swagger-ui:

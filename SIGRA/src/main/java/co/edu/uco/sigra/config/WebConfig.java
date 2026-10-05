@@ -8,8 +8,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * CORS para que el frontend Angular consuma la API. Los orígenes se configuran con
  * {@code cors.allowed-origins} (separados por comas) y por defecto es http://localhost:4200.
- * Cuando el módulo de seguridad (RF-05) active Spring Security, hay que habilitar también
- * {@code http.cors(...)} en SecurityConfig para que las peticiones preflight no sean bloqueadas.
+ * SecurityConfig activa {@code http.cors(...)}, que toma esta misma configuración para las
+ * peticiones preflight.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {

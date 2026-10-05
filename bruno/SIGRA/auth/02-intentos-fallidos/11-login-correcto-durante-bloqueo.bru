@@ -1,0 +1,32 @@
+meta {
+  name: 11 Login correcto durante bloqueo
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "correoInstitucional": "{{authCorreoBloqueo}}",
+    "contrasena": "{{authPasswordCorrecto}}"
+  }
+}
+
+assert {
+  res.status: eq 423
+  res.body.error: eq LOCKED
+}
+
+tests {
+  test("rechazado por bloqueo temporal con mensaje amigable", function () {
+    expect(res.body.mensaje).to.equal("El usuario está temporalmente bloqueado. Intente nuevamente más tarde.");
+    expect(res.body).to.have.property("timestamp");
+    const raw = JSON.stringify(res.body);
+    expect(raw).to.not.include("Exception");
+  });
+}
