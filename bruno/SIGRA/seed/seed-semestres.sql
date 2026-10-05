@@ -14,12 +14,15 @@
 --
 -- Si mas adelante otras tablas referencian semestre (matricula, evaluaciones...),
 -- agrega aqui el DELETE correspondiente ANTES de borrar semestre.
+--
+-- Todas las referencias son explicitas (sigra.semestre): no depende del
+-- search_path de la sesion y nunca escribe en public.
 -- =============================================================================
 BEGIN;
 
-DELETE FROM semestre WHERE codigo IN ('1990-1', '2090-1', '2090-2', '2091-1', '2097-1', '2098-1', '2099-1');
+DELETE FROM sigra.semestre WHERE codigo IN ('1990-1', '2090-1', '2090-2', '2091-1', '2097-1', '2098-1', '2099-1');
 
-INSERT INTO semestre (id, codigo, fecha_inicio, fecha_fin, estado) VALUES
+INSERT INTO sigra.semestre (id, codigo, fecha_inicio, fecha_fin, estado) VALUES
   ('00000000-0000-4000-c000-000000000001', '1990-1', '1990-01-20', '1990-06-10', 'INACTIVO'),
   ('00000000-0000-4000-c000-000000000002', '2090-1', '2090-01-20', '2090-06-10', 'INACTIVO'),
   ('00000000-0000-4000-c000-000000000003', '2091-1', '2091-01-20', '2091-06-10', 'INACTIVO');
@@ -28,6 +31,6 @@ COMMIT;
 
 -- Resumen
 SELECT codigo, fecha_inicio, fecha_fin, estado
-  FROM semestre
+  FROM sigra.semestre
  WHERE codigo IN ('1990-1', '2090-1', '2091-1')
  ORDER BY fecha_inicio;
