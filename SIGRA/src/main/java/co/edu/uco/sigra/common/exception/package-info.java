@@ -181,5 +181,34 @@
  * ninguna respuesta que hoy sea correcta. Si declarara {@code Exception}, con el orden {@code 0} le
  * ganaría a {@code ProfesorExceptionHandler} y convertiría sus 404 y 409 en 500: rompería el módulo
  * de un compañero para arreglar un contrato.
+ *
+ * <h2>6. Deuda documentada: tres implementaciones del cuerpo de error (H-05)</h2>
+ *
+ * <p>El contrato de este paquete lo cumplen hoy <strong>tres</strong> implementaciones distintas del
+ * mismo cuerpo JSON, y no hay nada que impida que aparezca una cuarta:
+ *
+ * <ul>
+ *   <li>{@link ErrorResponseBuilder}, con {@link java.util.HashMap} — <strong>no garantiza el orden
+ *       de las claves</strong> — y que recibe {@code error} como string literal, lo que permite
+ *       incoherencias como un 404 con {@code error: "BAD_REQUEST"}. La usan
+ *       {@code GlobalExceptionHandler}, {@code ProfesorExceptionHandler},
+ *       {@code ResultadoAprendizajeExceptionHandler} y {@code SemestreExceptionHandler}.</li>
+ *   <li>Un método privado {@code construirRespuestaError}, con {@link java.util.LinkedHashMap}, en
+ *       {@code AsignaturaExceptionHandler}. Ya no es la única copia de este patrón: hasta el
+ *       2026-10-03 {@code SemestreExceptionHandler} tenía la suya, consolidada en ese módulo hacia
+ *       {@code ErrorResponseBuilder} — la prueba de que acercar estas implementaciones es viable sin
+ *       romper nada.</li>
+ *   <li>{@link ConstructorRespuestaError}, de este paquete, que corrige las dos fallas de
+ *       {@code ErrorResponseBuilder}: orden de claves garantizado y {@code error} derivado de
+ *       {@code status}. Es la que deben usar los módulos nuevos (§4); no sustituye a las otras dos en
+ *       los módulos que ya las adoptaron, porque hacerlo exigiría editar sus archivos.</li>
+ * </ul>
+ *
+ * <p>Ninguna de las tres es, hoy, un defecto observable desde fuera: las tres producen un cuerpo que
+ * cumple el contrato cuando se usan correctamente. El riesgo es de mantenimiento, no de
+ * comportamiento — tres lugares donde corregir el mismo bug, y la posibilidad real de que diverjan
+ * más de lo que ya divergieron. La consolidación hacia {@code ConstructorRespuestaError} queda
+ * propuesta como cambio futuro, cuando los módulos de los Sprints 2 y 3 estén cerrados y el refactor
+ * no choque con nadie en paralelo.
  */
 package co.edu.uco.sigra.common.exception;
