@@ -107,6 +107,22 @@ En bases anteriores a este cambio, `asignatura_id` se agrega con
 `RF09_estudiante_y_asignacion_docente_migration.sql`; si había asignaciones antiguas sin
 asignatura, la columna queda sin `NOT NULL` hasta que se corrijan esas filas.
 
+## Tabla `sigra.matricula` (RF-08, RF-09)
+
+Vínculo entre un estudiante, una asignatura y un semestre.
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `id` | UUID | no | PK |
+| `estudiante_id` | UUID | no | FK a `sigra.estudiante(id)` |
+| `asignatura_id` | UUID | no | FK a `sigra.asignatura(id)` |
+| `semestre_id` | UUID | no | FK a `sigra.semestre(id)` |
+| `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK), por defecto `ACTIVO` |
+
+La terna `(estudiante_id, asignatura_id, semestre_id)` es **única sin importar el estado**
+(`uk_matricula_terna`). Desvincular no borra el registro: lo deja en `INACTIVO`, y volver a
+matricular la misma terna reactiva ese registro en lugar de crear otro.
+
 ## Correo institucional
 
 - `correo_institucional` es **global a `Usuario`**: la unicidad se garantiza sobre la tabla base,
@@ -147,6 +163,7 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | `docs/db/RF04_usuario_migration.sql` | Legacy | Pasa `profesor` del modelo antiguo a `usuario` + `profesor` (ya aplicada) |
 | `docs/db/RF09_estudiante_y_asignacion_docente_migration.sql` | Migración idempotente | Crea `sigra.estudiante` (diseño anterior, independiente) y agrega `asignacion_docente.asignatura_id` en bases creadas antes de RF-07/RF-09 |
 | `docs/db/RF04_administrador_y_estudiante_subtipos_migration.sql` | Migración idempotente | Crea `sigra.administrador` y convierte `sigra.estudiante` en subtipo de `usuario` (mueve los datos, no los borra) |
+| `docs/db/RF08_matricula_migration.sql` | Migración idempotente | Crea `sigra.matricula` en bases creadas antes de RF-08/RF-09 |
 | `bruno/SIGRA/seed/seed-roles.sql` | Datos de prueba | Un administrador y un estudiante de Bruno para RF-04, idempotente |
 | `bruno/SIGRA/seed/seed-auth.sql` | Datos de prueba | Usuarios de Bruno para RF-04, idempotente |
 
