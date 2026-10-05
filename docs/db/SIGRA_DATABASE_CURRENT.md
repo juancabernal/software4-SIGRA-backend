@@ -39,7 +39,7 @@ Estrategia:            el esquema lo controla SQL/migraciones.
 | Elemento | Decisión |
 | --- | --- |
 | Creación del esquema | `docs/db/SIGRA_SCHEMA_CURRENT.sql` (base vacía) |
-| Cambios sobre una base existente | Scripts SQL revisados y ejecutados a mano (por ahora, `RF04_usuario_migration.sql`, ya aplicada) |
+| Cambios sobre una base existente | Scripts SQL revisados y ejecutados a mano (`RF04_usuario_migration.sql`, ya aplicada, y `RF09_estudiante_y_asignacion_docente_migration.sql`) |
 | Validación en el arranque | Hibernate `ddl-auto=validate`: si una entidad no coincide con la tabla, el backend no arranca |
 | Hibernate modifica tablas | **No.** Ni `update`, ni `create`, ni `create-drop` |
 
@@ -75,9 +75,39 @@ tiene su propia tabla, enlazada por la misma clave primaria.
 
 ### Subtipos futuros
 
-`Estudiante` y `Administrador` podrán heredar de `Usuario` de la misma forma: una tabla propia
-con `id` PK/FK a `usuario.id` y solo sus atributos específicos. **Hoy no existen en la base ni
-en el código**; ver «Deudas».
+`Administrador` podrá heredar de `Usuario` de la misma forma: una tabla propia con `id` PK/FK a
+`usuario.id` y solo sus atributos específicos. **Hoy no existe en la base ni en el código**; ver
+«Deudas».
+
+`Estudiante` ya existe, pero **hoy no hereda de `Usuario`**: es una tabla independiente (ver
+«Tabla `sigra.estudiante`»).
+
+## Tabla `sigra.estudiante` (RF-09a)
+
+Entidad `Estudiante`, independiente de `Usuario`: guarda en su propia tabla el documento, el
+nombre, el correo y el estado.
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `id` | UUID | no | PK |
+| `tipo_documento_id` | UUID | no | FK a `sigra.tipo_documento(id)` |
+| `numero_documento` | VARCHAR(10) | no | UNIQUE junto con `tipo_documento_id` (`uk_estudiante_documento`) |
+| `nombre_completo` | VARCHAR(255) | no | |
+| `correo_institucional` | VARCHAR(255) | no | UNIQUE dentro de `estudiante` (`uk_estudiante_correo`) |
+| `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK), por defecto `ACTIVO` |
+
+## Tabla `sigra.asignacion_docente` (RF-07)
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `id` | UUID | no | PK |
+| `profesor_id` | UUID | no | FK a `sigra.profesor(id)` |
+| `asignatura_id` | UUID | no | FK a `sigra.asignatura(id)` |
+| `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK) |
+
+En bases anteriores a este cambio, `asignatura_id` se agrega con
+`RF09_estudiante_y_asignacion_docente_migration.sql`; si había asignaciones antiguas sin
+asignatura, la columna queda sin `NOT NULL` hasta que se corrijan esas filas.
 
 ## Correo institucional
 
@@ -86,6 +116,8 @@ en el código**; ver «Deudas».
 - Se **normaliza** (sin espacios laterales, en minúsculas con `Locale.ROOT`) antes de persistir,
   en la entidad (`@PrePersist`/`@PreUpdate`) y en la autenticación.
 - Como defensa adicional, la base tiene un índice único sobre `lower(trim(correo_institucional))`.
+- Como `Estudiante` aún no hereda de `Usuario`, su correo solo es único dentro de
+  `sigra.estudiante`: la base no impide que un estudiante y un profesor compartan correo.
 
 ## Identidad documental
 
@@ -115,6 +147,7 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | `docs/db/SIGRA_SCHEMA_CURRENT.sql` | Baseline | Crea el schema actual en una base vacía |
 | `docs/db/RF04_schema_preflight.sql` | Solo lectura | Describe el estado antes de cualquier cambio |
 | `docs/db/RF04_usuario_migration.sql` | Legacy | Pasa `profesor` del modelo antiguo a `usuario` + `profesor` (ya aplicada) |
+| `docs/db/RF09_estudiante_y_asignacion_docente_migration.sql` | Migración idempotente | Crea `sigra.estudiante` y agrega `asignacion_docente.asignatura_id` en bases creadas antes de RF-07/RF-09 |
 | `bruno/SIGRA/seed/seed-auth.sql` | Datos de prueba | Usuarios de Bruno para RF-04, idempotente |
 
 ## Deudas conocidas (no bloquean RF-04 backend)

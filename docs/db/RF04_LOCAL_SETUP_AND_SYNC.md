@@ -135,6 +135,8 @@ sigra.asignacion_docente
 
 `profesor` ya no debe repetir `correo_institucional`, `nombre_completo`, `tipo_documento_id`, `estado`, `intentos_fallidos` ni `fecha_bloqueo`.
 
+Si tu base ya aplicó el esquema antes de RF-07/RF-09, ejecuta `docs/db/RF09_estudiante_y_asignacion_docente_migration.sql` (es idempotente y no borra datos).
+
 ## 4. Si tus tablas antiguas están en `public`
 
 No muevas ni elimines `public` automáticamente.
