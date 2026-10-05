@@ -39,7 +39,7 @@ Estrategia:            el esquema lo controla SQL/migraciones.
 | Elemento | Decisión |
 | --- | --- |
 | Creación del esquema | `docs/db/SIGRA_SCHEMA_CURRENT.sql` (base vacía) |
-| Cambios sobre una base existente | Scripts SQL revisados y ejecutados a mano (`RF04_usuario_migration.sql`, ya aplicada, y `RF09_estudiante_y_asignacion_docente_migration.sql`) |
+| Cambios sobre una base existente | Scripts SQL revisados y ejecutados a mano (`RF04_usuario_migration.sql`, ya aplicada; `RF09_estudiante_y_asignacion_docente_migration.sql`; y `RF04_administrador_y_estudiante_subtipos_migration.sql`) |
 | Validación en el arranque | Hibernate `ddl-auto=validate`: si una entidad no coincide con la tabla, el backend no arranca |
 | Hibernate modifica tablas | **No.** Ni `update`, ni `create`, ni `create-drop` |
 
@@ -73,28 +73,26 @@ tiene su propia tabla, enlazada por la misma clave primaria.
 
 `Profesor extends Usuario`. Los atributos comunes **no** se repiten en `profesor`.
 
-### Subtipos futuros
-
-`Administrador` podrá heredar de `Usuario` de la misma forma: una tabla propia con `id` PK/FK a
-`usuario.id` y solo sus atributos específicos. **Hoy no existe en la base ni en el código**; ver
-«Deudas».
-
-`Estudiante` ya existe, pero **hoy no hereda de `Usuario`**: es una tabla independiente (ver
-«Tabla `sigra.estudiante`»).
-
-## Tabla `sigra.estudiante` (RF-09a)
-
-Entidad `Estudiante`, independiente de `Usuario`: guarda en su propia tabla el documento, el
-nombre, el correo y el estado.
+### Tabla `sigra.administrador` (subtipo, RF-04)
 
 | Columna | Tipo | Nulo | Notas |
 | --- | --- | --- | --- |
-| `id` | UUID | no | PK |
-| `tipo_documento_id` | UUID | no | FK a `sigra.tipo_documento(id)` |
-| `numero_documento` | VARCHAR(10) | no | UNIQUE junto con `tipo_documento_id` (`uk_estudiante_documento`) |
-| `nombre_completo` | VARCHAR(255) | no | |
-| `correo_institucional` | VARCHAR(255) | no | UNIQUE dentro de `estudiante` (`uk_estudiante_correo`) |
-| `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK), por defecto `ACTIVO` |
+| `id` | UUID | no | PK **y** FK a `sigra.usuario(id)` |
+
+`Administrador extends Usuario` y no tiene atributos propios: todo lo suyo vive en `usuario`.
+
+### Tabla `sigra.estudiante` (subtipo, RF-09a)
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `id` | UUID | no | PK **y** FK a `sigra.usuario(id)` |
+| `numero_documento` | VARCHAR(10) | no | Parte de la identidad documental |
+
+`Estudiante extends Usuario`. Tipo de documento, nombre, correo y estado viven en `usuario`.
+En bases que tenían `estudiante` con el diseño anterior (columnas propias),
+`RF04_administrador_y_estudiante_subtipos_migration.sql` mueve esos datos a `usuario` con el
+mismo `id`. **Los estudiantes migrados quedan sin contraseña** (`password_hash` nulo) y no pueden
+iniciar sesión hasta que se les asigne una.
 
 ## Tabla `sigra.asignacion_docente` (RF-07)
 
@@ -109,20 +107,36 @@ En bases anteriores a este cambio, `asignatura_id` se agrega con
 `RF09_estudiante_y_asignacion_docente_migration.sql`; si había asignaciones antiguas sin
 asignatura, la columna queda sin `NOT NULL` hasta que se corrijan esas filas.
 
+## Tabla `sigra.matricula` (RF-08, RF-09)
+
+Vínculo entre un estudiante, una asignatura y un semestre.
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `id` | UUID | no | PK |
+| `estudiante_id` | UUID | no | FK a `sigra.estudiante(id)` |
+| `asignatura_id` | UUID | no | FK a `sigra.asignatura(id)` |
+| `semestre_id` | UUID | no | FK a `sigra.semestre(id)` |
+| `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK), por defecto `ACTIVO` |
+
+La terna `(estudiante_id, asignatura_id, semestre_id)` es **única sin importar el estado**
+(`uk_matricula_terna`). Desvincular no borra el registro: lo deja en `INACTIVO`, y volver a
+matricular la misma terna reactiva ese registro en lugar de crear otro.
+
 ## Correo institucional
 
 - `correo_institucional` es **global a `Usuario`**: la unicidad se garantiza sobre la tabla base,
-  así que un correo no puede repetirse entre profesores, estudiantes o administradores.
+  así que un correo no puede repetirse entre **todos los roles** (administradores, profesores y
+  estudiantes).
 - Se **normaliza** (sin espacios laterales, en minúsculas con `Locale.ROOT`) antes de persistir,
   en la entidad (`@PrePersist`/`@PreUpdate`) y en la autenticación.
 - Como defensa adicional, la base tiene un índice único sobre `lower(trim(correo_institucional))`.
-- Como `Estudiante` aún no hereda de `Usuario`, su correo solo es único dentro de
-  `sigra.estudiante`: la base no impide que un estudiante y un profesor compartan correo.
 
 ## Identidad documental
 
 `(tipoDocumento, numeroDocumento)` debe ser única. Como `tipo_documento_id` vive en `usuario` y
-`numero_documento` en `profesor`, **el UNIQUE compuesto no se puede declarar en una sola tabla**.
+`numero_documento` en cada subtipo (`profesor`, `estudiante`), **el UNIQUE compuesto no se puede
+declarar en una sola tabla**.
 Se verifica en el servicio (`ProfesorServiceImpl`) y en la migración, pero no es una restricción
 de base de datos.
 
@@ -147,7 +161,10 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | `docs/db/SIGRA_SCHEMA_CURRENT.sql` | Baseline | Crea el schema actual en una base vacía |
 | `docs/db/RF04_schema_preflight.sql` | Solo lectura | Describe el estado antes de cualquier cambio |
 | `docs/db/RF04_usuario_migration.sql` | Legacy | Pasa `profesor` del modelo antiguo a `usuario` + `profesor` (ya aplicada) |
-| `docs/db/RF09_estudiante_y_asignacion_docente_migration.sql` | Migración idempotente | Crea `sigra.estudiante` y agrega `asignacion_docente.asignatura_id` en bases creadas antes de RF-07/RF-09 |
+| `docs/db/RF09_estudiante_y_asignacion_docente_migration.sql` | Migración idempotente | Crea `sigra.estudiante` (diseño anterior, independiente) y agrega `asignacion_docente.asignatura_id` en bases creadas antes de RF-07/RF-09 |
+| `docs/db/RF04_administrador_y_estudiante_subtipos_migration.sql` | Migración idempotente | Crea `sigra.administrador` y convierte `sigra.estudiante` en subtipo de `usuario` (mueve los datos, no los borra) |
+| `docs/db/RF08_matricula_migration.sql` | Migración idempotente | Crea `sigra.matricula` en bases creadas antes de RF-08/RF-09 |
+| `bruno/SIGRA/seed/seed-roles.sql` | Datos de prueba | Un administrador y un estudiante de Bruno para RF-04, idempotente |
 | `bruno/SIGRA/seed/seed-auth.sql` | Datos de prueba | Usuarios de Bruno para RF-04, idempotente |
 
 ## Deudas conocidas (no bloquean RF-04 backend)
@@ -155,5 +172,5 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | Código | Estado | Descripción |
 | --- | --- | --- |
 | `FAILED_ATTEMPTS_CONCURRENCY` | DEFERRED | Dos intentos fallidos simultáneos pueden perder un incremento del contador |
-| `PASSWORD_PROVISIONING_FLOW` | PENDING PRODUCT/TEAM DECISION | `POST /api/v1/profesores` no recibe contraseña; un profesor creado así no puede iniciar sesión |
-| `AUTH_RUNTIME_ROLES` | solo subtipos implementados | Solo `Profesor` extiende `Usuario`; `Estudiante` y `Administrador` no pueden autenticarse aún |
+| `PASSWORD_PROVISIONING_FLOW` | DECIDIDA, PENDIENTE DE IMPLEMENTAR | `POST /api/v1/profesores` y `POST /api/v1/estudiantes` no reciben contraseña; un profesor o estudiante registrado por la API (o un estudiante migrado desde el diseño anterior) no puede iniciar sesión. Decisión: el administrador asigna la contraseña mediante un endpoint propio, `PUT /api/v1/usuarios/{id}/contrasena` (RNF-10: nunca se devuelve ni se registra); pendiente de implementar |
+| `AUTH_RUNTIME_ROLES` | RESUELTA | `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04) y pueden autenticarse si tienen contraseña |

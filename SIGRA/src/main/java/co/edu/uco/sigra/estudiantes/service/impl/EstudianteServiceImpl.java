@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.service.impl;
 
+import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.common.util.Correos;
@@ -28,6 +29,7 @@ public class EstudianteServiceImpl implements EstudianteService {
     private final EstudianteRepository estudianteRepository;
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final EstudianteMapper estudianteMapper;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     @Transactional
@@ -37,7 +39,7 @@ public class EstudianteServiceImpl implements EstudianteService {
         }
 
         String correo = Correos.normalizar(dto.correoInstitucional());
-        if (estudianteRepository.existsByCorreoInstitucional(correo)) {
+        if (usuarioRepository.existsByCorreoInstitucionalIgnoreCase(correo)) {
             throw CorreoEstudianteDuplicadoException.porCorreo(correo);
         }
 
@@ -85,7 +87,7 @@ public class EstudianteServiceImpl implements EstudianteService {
 
         String correo = Correos.normalizar(dto.correoInstitucional());
         if (!correo.equals(estudiante.getCorreoInstitucional())
-                && estudianteRepository.existsByCorreoInstitucionalAndIdNot(correo, id)) {
+                && usuarioRepository.existsByCorreoInstitucionalIgnoreCaseAndIdNot(correo, id)) {
             throw CorreoEstudianteDuplicadoException.porCorreo(correo);
         }
 

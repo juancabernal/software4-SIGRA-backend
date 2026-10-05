@@ -442,7 +442,7 @@ Códigos de respuesta: 200 (login correcto), 400 (validación), 401 (credenciale
 - Al arrancar, Spring puede mostrar `Using generated security password`. Es un aviso inocuo: SIGRA no usa `UserDetailsService`; la autenticación real es `AuthService` + `PasswordEncoder` + JWT.
 - Mientras RF-05 no esté implementado, `SecurityConfig` deja pasar el resto de rutas (`anyRequest().permitAll()`). No hay filtro JWT ni `@PreAuthorize` activos.
 
-**Deudas que no bloquean RF-04** (ver «Pendientes conocidos» más abajo): `FAILED_ATTEMPTS_CONCURRENCY` (DEFERRED), `PASSWORD_PROVISIONING_FLOW` (PENDING PRODUCT/TEAM DECISION) y `AUTH_RUNTIME_ROLES` (solo subtipos implementados).
+**Deudas que no bloquean RF-04** (ver «Pendientes conocidos» más abajo): `FAILED_ATTEMPTS_CONCURRENCY` (DEFERRED), y `PASSWORD_PROVISIONING_FLOW` (decidido, pendiente de implementar). `AUTH_RUNTIME_ROLES` quedó resuelta: `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04).
 
 ---
 
@@ -452,8 +452,8 @@ Estado de RF-04 (autenticación) y lo que sigue abierto:
 
 1. **Cédula modificable: contradicción documental.** El diagrama de clases indica que `(tipoDocumento, numeroDocumento)` es una identidad no modificable, pero el criterio de aceptación de RF-01c valida la cédula al modificarla. Mientras el equipo no lo unifique, `modificarProfesor` conserva el comportamiento actual: el número de documento no cambia y el tipo de documento sí.
 2. **Concurrencia de intentos fallidos (`FAILED_ATTEMPTS_CONCURRENCY: DEFERRED`).** Dos inicios de sesión incorrectos simultáneos pueden perder un incremento del contador. Es deuda técnica de seguridad: requiere bloqueo pesimista o versionado, probado contra PostgreSQL con herencia JOINED.
-3. **Aprovisionamiento de contraseñas (`PASSWORD_PROVISIONING_FLOW: NOT_DEFINED_BY_CURRENT_REQUIREMENTS`).** `POST /api/v1/profesores` no recibe contraseña, así que un profesor creado así no puede iniciar sesión hasta definir cómo se le asigna su credencial. Para desarrollo se usa el seed de Bruno.
-4. **Roles en tiempo de ejecución.** Solo `Profesor` extiende `Usuario`. `Estudiante` y `Administrador` no tienen entidad, por lo que no pueden autenticarse todavía (`ESTUDIANTE_RUNTIME_AUTH` y `ADMINISTRADOR_RUNTIME_AUTH: NOT_YET_MAPPED`).
+3. **Aprovisionamiento de contraseñas (`PASSWORD_PROVISIONING_FLOW`).** `POST /api/v1/profesores` y `POST /api/v1/estudiantes` no reciben contraseña, así que un profesor o un estudiante registrado por la API no puede iniciar sesión todavía (lo mismo aplica a los estudiantes migrados desde el diseño anterior). Decisión: el administrador asigna la contraseña mediante un endpoint propio, `PUT /api/v1/usuarios/{id}/contrasena` (RNF-10: nunca se devuelve ni se registra); pendiente de implementar. Para desarrollo se usan los seeds de Bruno.
+4. **Roles en tiempo de ejecución (resuelto).** `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04), así que los tres pueden autenticarse si tienen contraseña (ver el punto 3).
 5. **Alineación de esquema.** Si una base tiene `profesor_asignatura` (modelo antiguo) en lugar de `asignacion_docente`, el preflight lo marca como `ALINEACION_ASIGNACIONES_REQUERIDA`. No se renombra ninguna tabla sin revisión del módulo de asignaciones. La base de referencia no lo tiene. Ver `docs/db/RF04_schema_preflight.sql`.
 6. **Unicidad de (tipoDocumento, numeroDocumento).** El UNIQUE compuesto del diagrama no puede declararse solo en `profesor`, porque `tipo_documento_id` vive en `usuario`. Se verifica en la migración y en el servicio, pero no como restricción de base de datos.
 7. **JaCoCo.** El plugin de cobertura todavía no está declarado, aunque el plan de pruebas exige un 70 % mínimo.

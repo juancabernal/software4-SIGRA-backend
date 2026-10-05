@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.service;
 
+import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
@@ -53,13 +54,16 @@ class EstudianteServiceImplTest {
     @Mock
     private TipoDocumentoRepository tipoDocumentoRepository;
 
+    @Mock
+    private UsuarioRepository usuarioRepository;
+
     private final EstudianteMapper mapper = Mappers.getMapper(EstudianteMapper.class);
 
     private EstudianteServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new EstudianteServiceImpl(estudianteRepository, tipoDocumentoRepository, mapper);
+        service = new EstudianteServiceImpl(estudianteRepository, tipoDocumentoRepository, mapper, usuarioRepository);
     }
 
     private static TipoDocumento tipoDocumento() {
@@ -118,7 +122,7 @@ class EstudianteServiceImplTest {
         void datosValidos() {
             when(estudianteRepository.existsByTipoDocumento_IdAndNumeroDocumento(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO))
                     .thenReturn(false);
-            when(estudianteRepository.existsByCorreoInstitucional(CORREO_NORMALIZADO)).thenReturn(false);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(false);
             when(tipoDocumentoRepository.findById(ID_TIPO_DOCUMENTO)).thenReturn(Optional.of(tipoDocumento()));
             saveDevuelveArgumentoConId();
 
@@ -153,7 +157,7 @@ class EstudianteServiceImplTest {
 
             verify(estudianteRepository, never()).save(any());
             verify(tipoDocumentoRepository, never()).findById(any());
-            verify(estudianteRepository, never()).existsByCorreoInstitucional(any());
+            verify(usuarioRepository, never()).existsByCorreoInstitucionalIgnoreCase(any());
         }
 
         @Test
@@ -161,7 +165,7 @@ class EstudianteServiceImplTest {
         void correoDuplicado() {
             when(estudianteRepository.existsByTipoDocumento_IdAndNumeroDocumento(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO))
                     .thenReturn(false);
-            when(estudianteRepository.existsByCorreoInstitucional(CORREO_NORMALIZADO)).thenReturn(true);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
                     ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
@@ -175,11 +179,29 @@ class EstudianteServiceImplTest {
         }
 
         @Test
+        @DisplayName("Con un correo que ya pertenece a otro rol (un profesor) lanza excepción y no guarda")
+        void correoDeOtroRol() {
+            String correoProfesor = "profesor.bruno@uco.net.co";
+            when(estudianteRepository.existsByTipoDocumento_IdAndNumeroDocumento(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO))
+                    .thenReturn(false);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(correoProfesor)).thenReturn(true);
+
+            EstudianteRequestDTO dto = new EstudianteRequestDTO(
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, correoProfesor);
+
+            assertThatThrownBy(() -> service.registrar(dto))
+                    .isInstanceOf(CorreoEstudianteDuplicadoException.class)
+                    .hasMessageContaining(correoProfesor);
+
+            verify(estudianteRepository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("Con un tipo de documento inexistente lanza excepción y no guarda")
         void tipoDocumentoInexistente() {
             when(estudianteRepository.existsByTipoDocumento_IdAndNumeroDocumento(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO))
                     .thenReturn(false);
-            when(estudianteRepository.existsByCorreoInstitucional(CORREO_NORMALIZADO)).thenReturn(false);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(false);
             when(tipoDocumentoRepository.findById(ID_TIPO_DOCUMENTO)).thenReturn(Optional.empty());
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
@@ -203,7 +225,7 @@ class EstudianteServiceImplTest {
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(EstudianteYaRegistradoException.class);
 
-            verify(estudianteRepository, never()).existsByCorreoInstitucional(any());
+            verify(usuarioRepository, never()).existsByCorreoInstitucionalIgnoreCase(any());
         }
 
         @Test
@@ -211,7 +233,7 @@ class EstudianteServiceImplTest {
         void correoDuplicadoYTipoDocumentoInexistente() {
             when(estudianteRepository.existsByTipoDocumento_IdAndNumeroDocumento(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO))
                     .thenReturn(false);
-            when(estudianteRepository.existsByCorreoInstitucional(CORREO_NORMALIZADO)).thenReturn(true);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
                     ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
@@ -227,7 +249,7 @@ class EstudianteServiceImplTest {
         void mismoNumeroDocumentoTipoDocumentoDistinto() {
             when(estudianteRepository.existsByTipoDocumento_IdAndNumeroDocumento(ID_TIPO_DOCUMENTO_OTRO, NUMERO_DOCUMENTO))
                     .thenReturn(false);
-            when(estudianteRepository.existsByCorreoInstitucional(CORREO_NORMALIZADO)).thenReturn(false);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(false);
             when(tipoDocumentoRepository.findById(ID_TIPO_DOCUMENTO_OTRO)).thenReturn(Optional.of(tipoDocumentoOtro()));
             saveDevuelveArgumentoConId();
 
@@ -246,7 +268,7 @@ class EstudianteServiceImplTest {
         void correoConDistintaCapitalizacionYaExistente() {
             when(estudianteRepository.existsByTipoDocumento_IdAndNumeroDocumento(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO))
                     .thenReturn(false);
-            when(estudianteRepository.existsByCorreoInstitucional(CORREO_NORMALIZADO)).thenReturn(true);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
                     ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "JUAN.PEREZ@UCO.NET.CO");
@@ -254,7 +276,7 @@ class EstudianteServiceImplTest {
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class);
 
-            verify(estudianteRepository).existsByCorreoInstitucional(CORREO_NORMALIZADO);
+            verify(usuarioRepository).existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO);
         }
     }
 
@@ -402,7 +424,7 @@ class EstudianteServiceImplTest {
         @DisplayName("Actualiza nombre y correo, deja el documento intacto, sin tocar el catálogo ni la unicidad de documento")
         void actualizaNombreYCorreoMismoDocumento() {
             existe(EstadoRegistro.ACTIVO);
-            when(estudianteRepository.existsByCorreoInstitucionalAndIdNot("nuevo.correo@uco.net.co", ID_ESTUDIANTE))
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCaseAndIdNot("nuevo.correo@uco.net.co", ID_ESTUDIANTE))
                     .thenReturn(false);
             saveDevuelveArgumento();
 
@@ -465,7 +487,7 @@ class EstudianteServiceImplTest {
         @DisplayName("Con el correo ya usado por otro estudiante lanza excepción y no guarda")
         void correoYaUsadoPorOtro() {
             existe(EstadoRegistro.ACTIVO);
-            when(estudianteRepository.existsByCorreoInstitucionalAndIdNot("otro@uco.net.co", ID_ESTUDIANTE))
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCaseAndIdNot("otro@uco.net.co", ID_ESTUDIANTE))
                     .thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
@@ -473,6 +495,24 @@ class EstudianteServiceImplTest {
 
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class);
+
+            verify(estudianteRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Con un correo que ya pertenece a otro rol (un profesor) lanza excepción y no guarda")
+        void correoDeOtroRol() {
+            String correoProfesor = "profesor.bruno@uco.net.co";
+            existe(EstadoRegistro.ACTIVO);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCaseAndIdNot(correoProfesor, ID_ESTUDIANTE))
+                    .thenReturn(true);
+
+            EstudianteRequestDTO dto = new EstudianteRequestDTO(
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, correoProfesor);
+
+            assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
+                    .isInstanceOf(CorreoEstudianteDuplicadoException.class)
+                    .hasMessageContaining(correoProfesor);
 
             verify(estudianteRepository, never()).save(any());
         }
@@ -489,7 +529,7 @@ class EstudianteServiceImplTest {
             EstudianteResponseDTO respuesta = service.modificar(ID_ESTUDIANTE, dto);
 
             assertThat(respuesta.correoInstitucional()).isEqualTo(CORREO_NORMALIZADO);
-            verify(estudianteRepository, never()).existsByCorreoInstitucionalAndIdNot(any(), any());
+            verify(usuarioRepository, never()).existsByCorreoInstitucionalIgnoreCaseAndIdNot(any(), any());
         }
 
         @Test
@@ -503,7 +543,7 @@ class EstudianteServiceImplTest {
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(EstudianteNoEncontradoException.class);
 
-            verify(estudianteRepository, never()).existsByCorreoInstitucionalAndIdNot(any(), any());
+            verify(usuarioRepository, never()).existsByCorreoInstitucionalIgnoreCaseAndIdNot(any(), any());
             verify(estudianteRepository, never()).save(any());
         }
     }
