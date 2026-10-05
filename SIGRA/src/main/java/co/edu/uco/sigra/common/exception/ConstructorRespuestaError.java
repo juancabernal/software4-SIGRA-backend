@@ -36,8 +36,9 @@ import java.util.Map;
  * }</pre>
  *
  * <p>Esta clase no reemplaza a {@link ErrorResponseBuilder}, que sigue en uso en los advices que ya
- * lo adoptaron. Es la implementación a la que deben apuntar los módulos nuevos; la consolidación de
- * las dos queda como deuda documentada.
+ * lo adoptaron. Es la implementación a la que deben apuntar los módulos nuevos; la deuda de tener
+ * varias implementaciones del mismo contrato está documentada en el {@code package-info.java} de
+ * este paquete (§6, H-05).
  */
 public final class ConstructorRespuestaError {
 
