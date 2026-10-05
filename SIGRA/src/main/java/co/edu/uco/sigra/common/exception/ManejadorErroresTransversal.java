@@ -82,6 +82,18 @@ public class ManejadorErroresTransversal {
     /**
      * 406 cuando el encabezado {@code Accept} de la petición no se puede satisfacer con ninguna de
      * las representaciones que el endpoint produce.
+     *
+     * <p><strong>Este es el único manejador que fija el {@code Content-Type} a mano</strong>, y hay
+     * una razón precisa. En los demás casos Spring negocia el tipo de la respuesta con el encabezado
+     * {@code Accept} del cliente; aquí ese encabezado es justamente el problema. Si el cliente pidió
+     * {@code application/xml}, la negociación concluye que no puede escribir el cuerpo JSON y la
+     * respuesta sale con el 406 correcto pero <strong>vacía</strong>, lo que incumple el contrato:
+     * toda respuesta de error entrega un cuerpo.
+     *
+     * <p>Se resuelve declarando el tipo explícitamente, que es lo que hace a Spring omitir la
+     * negociación para esta respuesta. Mandar JSON a un cliente que dijo no aceptarlo es deliberado:
+     * la alternativa es un error sin explicación, y un 406 que no dice qué representaciones hay
+     * tampoco le sirve a nadie. Los tipos que el recurso sí produce van en {@code detalles}.
      */
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
     public ResponseEntity<Map<String, Object>> manejarRepresentacionNoAceptable(
@@ -89,10 +101,13 @@ public class ManejadorErroresTransversal {
         List<String> producidos = ex.getSupportedMediaTypes().stream()
                 .map(MediaType::toString)
                 .toList();
-        return ConstructorRespuestaError.construir(HttpStatus.NOT_ACCEPTABLE,
+        Map<String, Object> cuerpo = ConstructorRespuestaError.construir(HttpStatus.NOT_ACCEPTABLE,
                 "Este recurso no puede entregar una representación compatible con el encabezado "
                         + "Accept de la petición",
-                producidos);
+                producidos).getBody();
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(cuerpo);
     }
 
     /**
