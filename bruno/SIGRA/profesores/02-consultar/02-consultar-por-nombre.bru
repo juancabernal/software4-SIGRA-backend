@@ -1,0 +1,15 @@
+meta {
+  name: 02-consultar-por-nombre
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/profesores?filtro=Carlos
+  body: none
+  auth: inherit
+}
+
+params:query {
+  filtro: Carlos
+}

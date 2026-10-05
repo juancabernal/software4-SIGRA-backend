@@ -24,6 +24,10 @@ public class AsignacionDocente {
     @JoinColumn(name = "profesor_id", nullable = false)
     private Profesor profesor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "asignatura_id", nullable = false)
+    private Asignatura asignatura;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoRegistro estado;
