@@ -1,0 +1,32 @@
+meta {
+  name: 04 Listado de matriculados sin inactivas
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/matriculas?asignaturaId={{idAsigBruEstActiva}}&semestreId={{idSemBruEstActivo}}
+  body: none
+  auth: none
+}
+
+params:query {
+  asignaturaId: {{idAsigBruEstActiva}}
+  semestreId: {{idSemBruEstActivo}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("solo incluye la matricula activa", function () {
+    const documentos = res.body.map(m => m.numeroDocumento);
+    expect(documentos).to.include("1000000005");
+    expect(documentos).to.not.include("1000000007");
+  });
+
+  test("todas las filas devueltas estan activas", function () {
+    res.body.forEach((m) => expect(m.estado).to.equal("ACTIVO"));
+  });
+}

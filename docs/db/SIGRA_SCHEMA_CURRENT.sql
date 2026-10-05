@@ -12,7 +12,7 @@
 --   - No es una migración. Para bases existentes con el esquema antiguo de
 --     'profesor' usa docs/db/RF04_usuario_migration.sql (legacy, ya aplicada en la
 --     base local de referencia).
---   - No contiene tablas futuras (administrador, matrícula, etc.).
+--   - No contiene tablas futuras (administrador, etc.).
 --   - "sigra" es un SCHEMA dentro de la base "postgres", no una base de datos.
 --
 -- Uso (base vacía, PostgreSQL local, puerto según tu máquina):
@@ -178,5 +178,27 @@ CREATE TABLE IF NOT EXISTS sigra.estudiante (
     CONSTRAINT chk_estudiante_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
 );
 CREATE INDEX IF NOT EXISTS idx_estudiante_tipo_documento ON sigra.estudiante (tipo_documento_id);
+
+-- -----------------------------------------------------------------------------
+-- Matricula (RF-08, RF-09)
+-- La terna (estudiante, asignatura, semestre) es única SIEMPRE, sin importar el
+-- estado: desvincular no borra el registro, lo pasa a INACTIVO.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.matricula (
+    id             UUID         NOT NULL DEFAULT gen_random_uuid(),
+    estudiante_id  UUID         NOT NULL,
+    asignatura_id  UUID         NOT NULL,
+    semestre_id    UUID         NOT NULL,
+    estado         VARCHAR(255) NOT NULL DEFAULT 'ACTIVO',
+    CONSTRAINT matricula_pkey PRIMARY KEY (id),
+    CONSTRAINT uk_matricula_terna UNIQUE (estudiante_id, asignatura_id, semestre_id),
+    CONSTRAINT fk_matricula_estudiante FOREIGN KEY (estudiante_id) REFERENCES sigra.estudiante (id),
+    CONSTRAINT fk_matricula_asignatura FOREIGN KEY (asignatura_id) REFERENCES sigra.asignatura (id),
+    CONSTRAINT fk_matricula_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT chk_matricula_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_matricula_estudiante ON sigra.matricula (estudiante_id);
+CREATE INDEX IF NOT EXISTS idx_matricula_asignatura_semestre ON sigra.matricula (asignatura_id, semestre_id);
 
 COMMIT;

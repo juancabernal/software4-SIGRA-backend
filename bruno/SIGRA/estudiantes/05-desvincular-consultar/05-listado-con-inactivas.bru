@@ -1,0 +1,34 @@
+meta {
+  name: 05 Listado de matriculados con inactivas
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/matriculas?asignaturaId={{idAsigBruEstActiva}}&semestreId={{idSemBruEstActivo}}&incluirInactivas=true
+  body: none
+  auth: none
+}
+
+params:query {
+  asignaturaId: {{idAsigBruEstActiva}}
+  semestreId: {{idSemBruEstActivo}}
+  incluirInactivas: true
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("incluye la activa y la inactiva", function () {
+    const documentos = res.body.map(m => m.numeroDocumento);
+    expect(documentos).to.include("1000000005");
+    expect(documentos).to.include("1000000007");
+  });
+
+  test("la matricula sembrada como inactiva conserva su estado", function () {
+    const inactiva = res.body.find(m => m.numeroDocumento === "1000000007");
+    expect(inactiva.estado).to.equal("INACTIVO");
+  });
+}

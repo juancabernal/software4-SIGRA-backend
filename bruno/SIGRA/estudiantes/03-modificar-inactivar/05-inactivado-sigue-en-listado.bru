@@ -1,0 +1,27 @@
+meta {
+  name: 05 El estudiante inactivado sigue en el listado
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/estudiantes?filtro=1000000003
+  body: none
+  auth: none
+}
+
+params:query {
+  filtro: 1000000003
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("el estudiante sigue existiendo, ahora inactivo", function () {
+    expect(res.body).to.be.an("array").with.lengthOf(1);
+    expect(res.body[0].id).to.equal(bru.getEnvVar("idEstudianteModificar"));
+    expect(res.body[0].estado).to.equal("INACTIVO");
+  });
+}
