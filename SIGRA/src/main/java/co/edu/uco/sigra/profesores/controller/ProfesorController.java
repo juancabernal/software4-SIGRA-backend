@@ -1,5 +1,7 @@
 package co.edu.uco.sigra.profesores.controller;
 
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.profesores.dto.AsignaturaProfesorResponseDTO;
 import co.edu.uco.sigra.profesores.dto.ProfesorRequestDTO;
 import co.edu.uco.sigra.profesores.dto.ProfesorResponseDTO;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
@@ -31,6 +33,14 @@ public class ProfesorController {
     //@PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<ProfesorResponseDTO>> consultarProfesores(@RequestParam(required = false) String filtro) {
         return ResponseEntity.ok(profesorService.consultar(filtro));
+    }
+
+    @GetMapping("/{id}/asignaturas")
+    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<List<AsignaturaProfesorResponseDTO>> consultarAsignaturasProfesor(
+            @PathVariable UUID id,
+            @RequestParam(required = false) EstadoRegistro estado) {
+        return ResponseEntity.ok(profesorService.consultarAsignaturas(id, estado));
     }
 
     @PutMapping("/{id}")

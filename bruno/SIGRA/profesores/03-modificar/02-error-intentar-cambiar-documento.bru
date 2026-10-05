@@ -1,0 +1,24 @@
+meta {
+  name: 02-error-intentar-cambiar-documento
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/profesores/{{idProfesorPrueba}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "tipoDocumentoId": "{{tipoDocCc}}",
+    "numeroDocumento": "9999999999",
+    "nombreCompleto": "Carlos Alberto Zapata Gómez",
+    "correoInstitucional": "carlos.zapata@uco.net.co"
+  }
+}
