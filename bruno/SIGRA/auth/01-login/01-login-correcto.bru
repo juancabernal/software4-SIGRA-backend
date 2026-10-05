@@ -1,0 +1,38 @@
+meta {
+  name: 01 Login correcto
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "correoInstitucional": "{{authCorreoNormal}}",
+    "contrasena": "{{authPasswordCorrecto}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.tipo: eq Bearer
+  res.body.expiraEn: eq 3600
+  res.body.usuario.rol: eq PROFESOR
+}
+
+tests {
+  test("token emitido no esta vacio", function () {
+    expect(res.body.token).to.be.a('string');
+    expect(res.body.token.length).to.be.greaterThan(20);
+  });
+
+  test("usuario coincide con credenciales", function () {
+    expect(res.body.usuario.correoInstitucional).to.equal("profesor.bruno@uco.net.co");
+    expect(res.body.usuario.nombreCompleto).to.equal("Profesor Bruno");
+    expect(res.body.usuario).to.not.have.property("passwordHash");
+  });
+}

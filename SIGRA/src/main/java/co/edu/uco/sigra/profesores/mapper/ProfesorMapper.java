@@ -10,6 +10,7 @@ public interface ProfesorMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tipoDocumento", ignore = true)
     @Mapping(target = "estado", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "intentosFallidos", ignore = true)
     @Mapping(target = "fechaBloqueo", ignore = true)
     Profesor toEntity(ProfesorRequestDTO dto);
@@ -20,6 +21,7 @@ public interface ProfesorMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tipoDocumento", ignore = true)
     @Mapping(target = "estado", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "intentosFallidos", ignore = true)
     @Mapping(target = "fechaBloqueo", ignore = true)
     void updateEntityFromDTO(ProfesorRequestDTO dto, @MappingTarget Profesor entity);
