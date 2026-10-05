@@ -71,6 +71,16 @@ DELETE FROM sigra.estudiante WHERE id IN (
     '00000000-0000-4000-f300-000000000007'
 );
 
+DELETE FROM sigra.usuario WHERE id IN (
+    '00000000-0000-4000-f300-000000000001',
+    '00000000-0000-4000-f300-000000000002',
+    '00000000-0000-4000-f300-000000000003',
+    '00000000-0000-4000-f300-000000000004',
+    '00000000-0000-4000-f300-000000000005',
+    '00000000-0000-4000-f300-000000000006',
+    '00000000-0000-4000-f300-000000000007'
+);
+
 DELETE FROM sigra.asignatura WHERE codigo LIKE 'BRUEST%';
 DELETE FROM sigra.programa_academico WHERE codigo = 'BRU-EST';
 DELETE FROM sigra.semestre WHERE codigo LIKE 'BRUEST-%';
@@ -90,11 +100,14 @@ INSERT INTO sigra.semestre (id, codigo, fecha_inicio, fecha_fin, estado) VALUES
   ('00000000-0000-4000-f200-000000000002', 'BRUEST-A2', '2081-01-20', '2081-06-10', 'ACTIVO'),
   ('00000000-0000-4000-f200-000000000003', 'BRUEST-IN', '1980-01-20', '1980-06-10', 'INACTIVO');
 
--- 4. Estudiantes de prueba. Todos usan el mismo tipo de documento real del
--- catalogo compartido (el mismo que usa environments/local.bru en tipoDocCc, y
--- que ya reutiliza el modulo de profesores); documentos y correos son unicos
--- entre si. Se valida antes que el id exista, para fallar con un mensaje claro
--- en vez de un error de FK si el catalogo de este entorno es distinto.
+-- 4. Estudiantes de prueba. Desde RF-04, Estudiante es subtipo de Usuario: tipo
+-- de documento, nombre, correo y estado viven en sigra.usuario; sigra.estudiante
+-- solo guarda su id (FK a usuario) y el numero de documento. Todos usan el mismo
+-- tipo de documento real del catalogo compartido (el mismo que usa
+-- environments/local.bru en tipoDocCc, y que ya reutiliza el modulo de
+-- profesores); documentos y correos son unicos entre si. Se valida antes que el
+-- id exista, para fallar con un mensaje claro en vez de un error de FK si el
+-- catalogo de este entorno es distinto.
 DO $$
 DECLARE
     v_tipo_doc_id UUID := '07219e8d-126d-44cb-9d22-0f57afebec90';
@@ -103,14 +116,23 @@ BEGIN
         RAISE EXCEPTION 'Seed abortado: no existe el tipo de documento % (el mismo id que environments/local.bru usa en tipoDocCc). Ajuste v_tipo_doc_id en este script al id real de "Cedula de Ciudadania" en su base.', v_tipo_doc_id;
     END IF;
 
-    INSERT INTO sigra.estudiante (id, tipo_documento_id, numero_documento, nombre_completo, correo_institucional, estado) VALUES
-      ('00000000-0000-4000-f300-000000000001', v_tipo_doc_id, '1000000001', 'Bruno Registrado Original',          'bruno.registrado@uco.net.co',       'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000002', v_tipo_doc_id, '1000000002', 'Bruno Esperanza Quintero Consulta',  'bruno.consulta@uco.net.co',         'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000003', v_tipo_doc_id, '1000000003', 'Bruno Modificar Original',           'bruno.modificar@uco.net.co',        'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000004', v_tipo_doc_id, '1000000004', 'Bruno Otro Correo',                  'bruno.otrocorreo@uco.net.co',       'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000005', v_tipo_doc_id, '1000000005', 'Bruno Matricula Valida',             'bruno.matricula@uco.net.co',        'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000006', v_tipo_doc_id, '1000000006', 'Bruno Matricula Inactivo',           'bruno.inactivo@uco.net.co',         'INACTIVO'),
-      ('00000000-0000-4000-f300-000000000007', v_tipo_doc_id, '1000000007', 'Bruno Listado Matriculados',         'bruno.listado@uco.net.co',          'ACTIVO');
+    INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
+      ('00000000-0000-4000-f300-000000000001', v_tipo_doc_id, 'Bruno Registrado Original',          'bruno.registrado@uco.net.co',       'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000002', v_tipo_doc_id, 'Bruno Esperanza Quintero Consulta',  'bruno.consulta@uco.net.co',         'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000003', v_tipo_doc_id, 'Bruno Modificar Original',           'bruno.modificar@uco.net.co',        'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000004', v_tipo_doc_id, 'Bruno Otro Correo',                  'bruno.otrocorreo@uco.net.co',       'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000005', v_tipo_doc_id, 'Bruno Matricula Valida',             'bruno.matricula@uco.net.co',        'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000006', v_tipo_doc_id, 'Bruno Matricula Inactivo',           'bruno.inactivo@uco.net.co',         'INACTIVO'),
+      ('00000000-0000-4000-f300-000000000007', v_tipo_doc_id, 'Bruno Listado Matriculados',         'bruno.listado@uco.net.co',          'ACTIVO');
+
+    INSERT INTO sigra.estudiante (id, numero_documento) VALUES
+      ('00000000-0000-4000-f300-000000000001', '1000000001'),
+      ('00000000-0000-4000-f300-000000000002', '1000000002'),
+      ('00000000-0000-4000-f300-000000000003', '1000000003'),
+      ('00000000-0000-4000-f300-000000000004', '1000000004'),
+      ('00000000-0000-4000-f300-000000000005', '1000000005'),
+      ('00000000-0000-4000-f300-000000000006', '1000000006'),
+      ('00000000-0000-4000-f300-000000000007', '1000000007');
 END $$;
 
 -- 5. Matricula pre-sembrada e INACTIVA, para que el listado de matriculados de
@@ -126,7 +148,8 @@ INSERT INTO sigra.matricula (id, estudiante_id, asignatura_id, semestre_id, esta
 COMMIT;
 
 -- Resumen
-SELECT e.numero_documento, e.nombre_completo, e.correo_institucional, e.estado
+SELECT e.numero_documento, u.nombre_completo, u.correo_institucional, u.estado
   FROM sigra.estudiante e
+  JOIN sigra.usuario u ON u.id = e.id
  WHERE e.id::text LIKE '00000000-0000-4000-f300-%'
  ORDER BY e.numero_documento;

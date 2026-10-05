@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS sigra.matricula (
     CONSTRAINT fk_matricula_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
     CONSTRAINT chk_matricula_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
 );
-CREATE INDEX IF NOT EXISTS idx_matricula_asignatura ON sigra.matricula (asignatura_id);
-CREATE INDEX IF NOT EXISTS idx_matricula_semestre ON sigra.matricula (semestre_id);
+CREATE INDEX IF NOT EXISTS idx_matricula_estudiante ON sigra.matricula (estudiante_id);
+CREATE INDEX IF NOT EXISTS idx_matricula_asignatura_semestre ON sigra.matricula (asignatura_id, semestre_id);
 
 COMMIT;
