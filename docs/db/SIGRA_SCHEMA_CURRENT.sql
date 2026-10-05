@@ -12,7 +12,8 @@
 --   - No es una migración. Para bases existentes con el esquema antiguo de
 --     'profesor' usa docs/db/RF04_usuario_migration.sql (legacy, ya aplicada en la
 --     base local de referencia).
---   - No contiene tablas futuras (matrícula, etc.).
+--   - No contiene tablas de requisitos futuros: solo las de entidades que ya existen en el
+--     código; las demás se agregan cuando se implementen.
 --   - "sigra" es un SCHEMA dentro de la base "postgres", no una base de datos.
 --
 -- Uso (base vacía, PostgreSQL local, puerto según tu máquina):
