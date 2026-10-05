@@ -12,6 +12,8 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
 
     boolean existsByTipoDocumento_IdAndNumeroDocumento(UUID tipoDocumentoId, String numeroDocumento);
 
+    // Solo revisa estudiantes. La unicidad del correo entre todos los roles se valida con
+    // UsuarioRepository.existsByCorreoInstitucionalIgnoreCase.
     boolean existsByCorreoInstitucional(String correoInstitucional);
 
     boolean existsByCorreoInstitucionalAndIdNot(String correoInstitucional, UUID id);
