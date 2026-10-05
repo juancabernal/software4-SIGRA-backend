@@ -1,11 +1,15 @@
 package co.edu.uco.sigra.estudiantes.controller;
 
+import co.edu.uco.sigra.estudiantes.dto.AsignaturaDeEstudianteDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
+import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.exception.DocumentoNoModificableException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteYaRegistradoException;
+import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
 import co.edu.uco.sigra.estudiantes.service.EstudianteService;
+import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import co.edu.uco.sigra.common.exception.AsercionesContratoError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -70,6 +74,12 @@ class EstudianteControllerTest {
 
     @MockitoBean
     private EstudianteService estudianteService;
+
+    @MockitoBean
+    private MatriculaService matriculaService;
+
+    @MockitoBean
+    private MatriculaMapper matriculaMapper;
 
     private static EstudianteResponseDTO respuestaDeAna(UUID id) {
         return new EstudianteResponseDTO(
@@ -268,6 +278,66 @@ class EstudianteControllerTest {
             mockMvc.perform(delete(RUTA + "/" + id))
                     .andExpect(status().isNoContent())
                     .andExpect(content().string(""));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/estudiantes/{id}/asignaturas")
+    class ConsultarAsignaturas {
+
+        @Test
+        @DisplayName("Historial de matrículas de un estudiante devuelve 200 con una entrada por matrícula")
+        void historialDeMatriculasDevuelve200ConUnaEntradaPorMatricula() throws Exception {
+            UUID id = UUID.fromString("8b9c0d1e-2f3a-4b4c-5d6e-7f8091223344");
+            List<Matricula> matriculas = List.of(new Matricula(), new Matricula());
+            List<AsignaturaDeEstudianteDTO> asignaturas = List.of(
+                    new AsignaturaDeEstudianteDTO(
+                            UUID.fromString("9c0d1e2f-3a4b-4c5d-6e7f-809122334455"),
+                            "Cálculo I", "2026-1", "ACTIVO"),
+                    new AsignaturaDeEstudianteDTO(
+                            UUID.fromString("0d1e2f3a-4b5c-4d6e-7f80-912233445566"),
+                            "Álgebra Lineal", "2025-2", "INACTIVO"));
+
+            given(matriculaService.listarAsignaturasDeEstudiante(id)).willReturn(matriculas);
+            given(matriculaMapper.toAsignaturaDeEstudianteDTOList(matriculas)).willReturn(asignaturas);
+
+            mockMvc.perform(get(RUTA + "/" + id + "/asignaturas"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].matriculaId").value("9c0d1e2f-3a4b-4c5d-6e7f-809122334455"))
+                    .andExpect(jsonPath("$[0].asignaturaNombre").value("Cálculo I"))
+                    .andExpect(jsonPath("$[0].semestreCodigo").value("2026-1"))
+                    .andExpect(jsonPath("$[0].estado").value("ACTIVO"))
+                    .andExpect(jsonPath("$[1].matriculaId").value("0d1e2f3a-4b5c-4d6e-7f80-912233445566"))
+                    .andExpect(jsonPath("$[1].asignaturaNombre").value("Álgebra Lineal"))
+                    .andExpect(jsonPath("$[1].semestreCodigo").value("2025-2"))
+                    .andExpect(jsonPath("$[1].estado").value("INACTIVO"));
+        }
+
+        @Test
+        @DisplayName("Estudiante sin matrículas devuelve 200 con lista vacía")
+        void estudianteSinMatriculasDevuelve200ConListaVacia() throws Exception {
+            UUID id = UUID.fromString("1e2f3a4b-5c6d-4e7f-8091-223344556677");
+
+            given(matriculaService.listarAsignaturasDeEstudiante(id)).willReturn(List.of());
+            given(matriculaMapper.toAsignaturaDeEstudianteDTOList(List.of())).willReturn(List.of());
+
+            mockMvc.perform(get(RUTA + "/" + id + "/asignaturas"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+        }
+
+        @Test
+        @DisplayName("Consulta sobre un estudiante inexistente devuelve 404 sin detalles")
+        void estudianteInexistenteDevuelve404() throws Exception {
+            UUID id = UUID.fromString("2f3a4b5c-6d7e-4f80-9122-334455667788");
+
+            given(matriculaService.listarAsignaturasDeEstudiante(id))
+                    .willThrow(EstudianteNoEncontradoException.porId(id));
+
+            MvcResult resultado = mockMvc.perform(get(RUTA + "/" + id + "/asignaturas")).andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.NOT_FOUND);
         }
     }
 }
