@@ -1,6 +1,8 @@
 package co.edu.uco.sigra.asignaturas.controller;
 
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaFiltroDTO;
+import co.edu.uco.sigra.asignaturas.dto.MiAsignaturaDTO;
+import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaExceptionHandler;
 import co.edu.uco.sigra.asignaturas.seguridad.ControlAccesoAsignaturasInterceptor;
 import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
@@ -146,6 +148,35 @@ class AsignaturaControllerRolesTest {
             verify(service, times(2)).consultar(any(AsignaturaFiltroDTO.class));
             verify(service, never()).consultar(any(), any());
             verifyNoInteractions(resolvedor);
+        }
+
+        @Test
+        @DisplayName("«Mis asignaturas» exige token aun apagado: sin token 401 y administrador 403")
+        void misAsignaturasSiempreExigeToken() throws Exception {
+            mvc.perform(get(URL + "/mias"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
+            mvc.perform(get(URL + "/mias").header("Authorization", "Bearer admin"))
+                    .andExpect(status().isForbidden());
+            verify(service, never()).misAsignaturas(any());
+        }
+
+        @Test
+        @DisplayName("«Mis asignaturas» del profesor y del estudiante usan su propia identidad")
+        void misAsignaturasPorUsuario() throws Exception {
+            MiAsignaturaDTO bru10 = new MiAsignaturaDTO(UUID.randomUUID(), "BRU10", "Bruno Activa", UUID.randomUUID(),
+                    "Programa Bruno Activo", EstadoAsignatura.ACTIVA, 5, 1, List.of("Profesor Bruno"));
+            when(service.misAsignaturas(TOKENS.get("profesor"))).thenReturn(List.of(bru10));
+            when(service.misAsignaturas(TOKENS.get("estudiante"))).thenReturn(List.of(bru10));
+
+            mvc.perform(get(URL + "/mias").header("Authorization", "Bearer profesor"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].codigo").value("BRU10"))
+                    .andExpect(jsonPath("$[0].cantidadRa").value(5))
+                    .andExpect(jsonPath("$[0].cantidadEstudiantes").value(1))
+                    .andExpect(jsonPath("$[0].profesores[0]").value("Profesor Bruno"));
+            mvc.perform(get(URL + "/mias").header("Authorization", "Bearer estudiante"))
+                    .andExpect(status().isOk());
         }
     }
 }

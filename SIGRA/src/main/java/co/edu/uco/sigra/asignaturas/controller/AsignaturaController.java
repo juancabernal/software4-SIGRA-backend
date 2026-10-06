@@ -4,8 +4,10 @@ import co.edu.uco.sigra.asignaturas.dto.AsignaturaFiltroDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaRequestDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaResponseDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaUpdateDTO;
+import co.edu.uco.sigra.asignaturas.dto.MiAsignaturaDTO;
 import co.edu.uco.sigra.asignaturas.dto.ReglasEntrada;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
+import co.edu.uco.sigra.asignaturas.exception.AutenticacionRequeridaException;
 import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
 import co.edu.uco.sigra.asignaturas.seguridad.RolesPermitidos;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
@@ -68,6 +70,21 @@ public class AsignaturaController {
         return ResponseEntity.ok(identidad == null
                 ? asignaturaService.consultar(filtro)
                 : asignaturaService.consultar(filtro, identidad));
+    }
+
+    /**
+     * «Mis asignaturas» del PROFESOR (asignación docente ACTIVA) o del ESTUDIANTE (matrícula ACTIVA).
+     * Siempre exige un token válido, aunque el control por rol esté apagado, porque depende de quién pregunta.
+     */
+    @GetMapping("/mias")
+    //@PreAuthorize("hasAnyRole('PROFESOR', 'ESTUDIANTE')")
+    @RolesPermitidos(value = {RolUsuario.PROFESOR, RolUsuario.ESTUDIANTE}, siempre = true)
+    public ResponseEntity<List<MiAsignaturaDTO>> misAsignaturas(
+            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
+        if (identidad == null) {
+            throw new AutenticacionRequeridaException();
+        }
+        return ResponseEntity.ok(asignaturaService.misAsignaturas(identidad));
     }
 
     @GetMapping("/{id}")

@@ -4,6 +4,7 @@ import co.edu.uco.sigra.asignaturas.dto.AsignaturaFiltroDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaRequestDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaResponseDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaUpdateDTO;
+import co.edu.uco.sigra.asignaturas.dto.MiAsignaturaDTO;
 import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
 
 import java.util.List;
@@ -32,4 +33,10 @@ public interface AsignaturaService {
      * No afecta matrículas, evaluaciones ni calificaciones.
      */
     AsignaturaResponseDTO inactivar(UUID id);
+
+    /**
+     * Asignaturas de quien pregunta, ordenadas por nombre: las del PROFESOR con asignación docente
+     * ACTIVA, o las del ESTUDIANTE con matrícula ACTIVA. Otro rol recibe 403.
+     */
+    List<MiAsignaturaDTO> misAsignaturas(IdentidadActual identidad);
 }

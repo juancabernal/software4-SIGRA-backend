@@ -34,14 +34,18 @@ class ControlAccesoAsignaturasInterceptorTest {
 
     private static final AsignaturaController CONTROLADOR = new AsignaturaController(mock(AsignaturaService.class));
 
-    /** Matriz: ruta (método del controlador) → verbo HTTP y roles permitidos con el interruptor encendido. */
+    /**
+     * Matriz: ruta (método del controlador) → verbo HTTP, roles permitidos y si exige identidad aunque el
+     * interruptor esté apagado («mis asignaturas» depende de quién pregunta).
+     */
     private static final List<Object[]> MATRIZ = List.of(
-            new Object[]{"registrarAsignatura", "POST", Set.of(RolUsuario.ADMINISTRADOR)},
-            new Object[]{"modificarAsignatura", "PUT", Set.of(RolUsuario.ADMINISTRADOR)},
-            new Object[]{"activarAsignatura", "PATCH", Set.of(RolUsuario.ADMINISTRADOR)},
-            new Object[]{"inactivarAsignatura", "PATCH", Set.of(RolUsuario.ADMINISTRADOR)},
-            new Object[]{"consultarAsignaturas", "GET", Set.of(RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR)},
-            new Object[]{"obtenerAsignatura", "GET", Set.of(RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR)});
+            new Object[]{"registrarAsignatura", "POST", Set.of(RolUsuario.ADMINISTRADOR), false},
+            new Object[]{"modificarAsignatura", "PUT", Set.of(RolUsuario.ADMINISTRADOR), false},
+            new Object[]{"activarAsignatura", "PATCH", Set.of(RolUsuario.ADMINISTRADOR), false},
+            new Object[]{"inactivarAsignatura", "PATCH", Set.of(RolUsuario.ADMINISTRADOR), false},
+            new Object[]{"consultarAsignaturas", "GET", Set.of(RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR), false},
+            new Object[]{"obtenerAsignatura", "GET", Set.of(RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR), false},
+            new Object[]{"misAsignaturas", "GET", Set.of(RolUsuario.PROFESOR, RolUsuario.ESTUDIANTE), true});
 
     private enum Resultado { PASA, NO_AUTENTICADO, SIN_PERMISO }
 
@@ -52,17 +56,18 @@ class ControlAccesoAsignaturasInterceptorTest {
         for (Object[] fila : MATRIZ) {
             @SuppressWarnings("unchecked")
             Set<RolUsuario> permitidos = (Set<RolUsuario>) fila[2];
+            boolean siempre = (boolean) fila[3];
             for (RolUsuario rol : identidades) {
                 for (boolean encendido : new boolean[]{true, false}) {
                     Resultado esperado;
-                    if (!encendido) {
+                    if (!encendido && !siempre) {
                         esperado = Resultado.PASA;
                     } else if (rol == null) {
                         esperado = Resultado.NO_AUTENTICADO;
                     } else {
                         esperado = permitidos.contains(rol) ? Resultado.PASA : Resultado.SIN_PERMISO;
                     }
-                    casos.add(Arguments.of(fila[0], fila[1], rol, encendido, esperado));
+                    casos.add(Arguments.of(fila[0], fila[1], rol, encendido, siempre, esperado));
                 }
             }
         }
@@ -85,10 +90,11 @@ class ControlAccesoAsignaturasInterceptorTest {
         return new ControlAccesoAsignaturasInterceptor(proveedor, encendido);
     }
 
-    @ParameterizedTest(name = "{1} {0} con rol {2}, interruptor encendido={3} → {4}")
+    @ParameterizedTest(name = "{1} {0} con rol {2}, interruptor encendido={3} → {5}")
     @MethodSource("combinaciones")
     @DisplayName("Matriz completa: método × ruta × rol × interruptor")
-    void matriz(String metodo, String verbo, RolUsuario rol, boolean encendido, Resultado esperado) throws Exception {
+    void matriz(String metodo, String verbo, RolUsuario rol, boolean encendido, boolean siempre,
+                Resultado esperado) throws Exception {
         ResolvedorIdentidad resolvedor = mock(ResolvedorIdentidad.class);
         ControlAccesoAsignaturasInterceptor control = interceptor(rol, encendido, resolvedor);
         MockHttpServletRequest peticion = new MockHttpServletRequest(verbo, "/api/v1/asignaturas");
@@ -96,7 +102,7 @@ class ControlAccesoAsignaturasInterceptorTest {
         switch (esperado) {
             case PASA -> {
                 assertThat(control.preHandle(peticion, new MockHttpServletResponse(), manejador(metodo))).isTrue();
-                if (encendido) {
+                if (encendido || siempre) {
                     IdentidadActual dejada = (IdentidadActual) peticion.getAttribute(IdentidadActual.ATRIBUTO);
                     assertThat(dejada).isNotNull();
                     assertThat(dejada.rol()).isEqualTo(rol);

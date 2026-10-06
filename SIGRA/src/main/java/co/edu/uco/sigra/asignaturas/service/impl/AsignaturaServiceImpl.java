@@ -4,6 +4,7 @@ import co.edu.uco.sigra.asignaturas.dto.AsignaturaFiltroDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaRequestDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaResponseDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaUpdateDTO;
+import co.edu.uco.sigra.asignaturas.dto.MiAsignaturaDTO;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
@@ -15,7 +16,9 @@ import co.edu.uco.sigra.asignaturas.exception.ProgramaNoEncontradoException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.asignaturas.repository.ConteoPorAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
+import co.edu.uco.sigra.asignaturas.repository.ProfesorDeAsignatura;
 import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
@@ -181,6 +184,41 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         return Normalizer.normalize(valor, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT);
+    }
+
+    @Override
+    @Transactional
+    public List<MiAsignaturaDTO> misAsignaturas(IdentidadActual identidad) {
+        List<Asignatura> asignaturas = switch (identidad.rol()) {
+            case PROFESOR -> asignaturaRepository.findAsignadasAProfesor(identidad.id(), EstadoRegistro.ACTIVO);
+            case ESTUDIANTE -> asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoRegistro.ACTIVO);
+            default -> throw new PermisoInsuficienteException();
+        };
+        if (asignaturas.isEmpty()) {
+            return List.of();
+        }
+
+        // Tres consultas agrupadas para todas las asignaturas a la vez (sin N+1).
+        Set<UUID> ids = asignaturas.stream().map(Asignatura::getId).collect(Collectors.toSet());
+        Map<UUID, Long> ra = porAsignatura(asignaturaRepository.contarRaDe(ids, EstadoRegistro.ACTIVO));
+        Map<UUID, Long> estudiantes = porAsignatura(asignaturaRepository.contarMatriculasDe(ids, EstadoRegistro.ACTIVO));
+        Map<UUID, List<String>> profesores = asignaturaRepository.profesoresDe(ids, EstadoRegistro.ACTIVO).stream()
+                .collect(Collectors.groupingBy(ProfesorDeAsignatura::getAsignaturaId,
+                        Collectors.mapping(ProfesorDeAsignatura::getNombre, Collectors.toList())));
+
+        return asignaturas.stream()
+                .sorted(Comparator.comparing(Asignatura::getNombre, String.CASE_INSENSITIVE_ORDER))
+                .map(a -> new MiAsignaturaDTO(a.getId(), a.getCodigo(), a.getNombre(), a.getPrograma().getId(),
+                        a.getPrograma().getNombre(), a.getEstado(), ra.getOrDefault(a.getId(), 0L),
+                        estudiantes.getOrDefault(a.getId(), 0L),
+                        profesores.getOrDefault(a.getId(), List.of()).stream()
+                                .sorted(String.CASE_INSENSITIVE_ORDER).toList()))
+                .toList();
+    }
+
+    private static Map<UUID, Long> porAsignatura(List<ConteoPorAsignatura> conteos) {
+        return conteos.stream()
+                .collect(Collectors.toMap(ConteoPorAsignatura::getAsignaturaId, ConteoPorAsignatura::getCantidad));
     }
 
     private Asignatura buscar(UUID id) {
