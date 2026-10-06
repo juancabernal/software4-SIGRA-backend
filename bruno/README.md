@@ -67,6 +67,12 @@ El script crea dos programas (uno activo y uno inactivo), diez asignaturas con e
 
 > **Vuelve a ejecutar el seed antes de cada corrida completa de la colección.** Las pruebas cambian el estado de algunas asignaturas y, sin el seed, la segunda corrida fallaría (por ejemplo, `BRU05` ya no estaría en BORRADOR).
 
+**Datos de demostración (`seed-demo.sql`, no es para Bruno).** `bruno/SIGRA/seed/seed-demo.sql` carga un catálogo realista para probar a mano la pantalla Materias: 4 programas (uno inactivo) y 13 asignaturas en todos los casos (activas, en borrador listas o no para activar, e inactivas reactivables). No toca los datos `BRU` de Bruno y es idempotente. Requiere la columna `resultado_aprendizaje.inactivado_con_asignatura`. Uso:
+
+```powershell
+psql -U postgres -h localhost -p <PUERTO> -d <BASE> -v ON_ERROR_STOP=1 -f bruno/SIGRA/seed/seed-demo.sql
+```
+
 ### 2. Cargar los datos de RF-04 (autenticación)
 
 El seed de auth opera solo sobre el schema `sigra` (define su propio `search_path` y no toca `public`). Es idempotente.
