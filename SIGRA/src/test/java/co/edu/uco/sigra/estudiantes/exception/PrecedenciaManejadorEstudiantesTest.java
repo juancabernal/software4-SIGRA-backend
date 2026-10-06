@@ -2,7 +2,9 @@ package co.edu.uco.sigra.estudiantes.exception;
 
 import co.edu.uco.sigra.common.exception.AsercionesContratoError;
 import co.edu.uco.sigra.estudiantes.controller.EstudianteController;
+import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
 import co.edu.uco.sigra.estudiantes.service.EstudianteService;
+import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,12 @@ class PrecedenciaManejadorEstudiantesTest {
 
     @MockitoBean
     private EstudianteService estudianteService;
+
+    @MockitoBean
+    private MatriculaService matriculaService;
+
+    @MockitoBean
+    private MatriculaMapper matriculaMapper;
 
     @Test
     @DisplayName("EstudianteNoEncontradoException sigue dando 404, no el 500 del advice global")

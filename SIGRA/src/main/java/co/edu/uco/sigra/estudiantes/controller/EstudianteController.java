@@ -1,8 +1,11 @@
 package co.edu.uco.sigra.estudiantes.controller;
 
+import co.edu.uco.sigra.estudiantes.dto.AsignaturaDeEstudianteDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
+import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
 import co.edu.uco.sigra.estudiantes.service.EstudianteService;
+import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +22,8 @@ import java.util.UUID;
 public class EstudianteController {
 
     private final EstudianteService estudianteService;
+    private final MatriculaService matriculaService;
+    private final MatriculaMapper matriculaMapper;
 
     @PostMapping
     //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
@@ -50,6 +55,13 @@ public class EstudianteController {
     public ResponseEntity<Void> inactivar(@PathVariable UUID id) {
         estudianteService.inactivar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/asignaturas")
+    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    public ResponseEntity<List<AsignaturaDeEstudianteDTO>> consultarAsignaturas(@PathVariable UUID id) {
+        var matriculas = matriculaService.listarAsignaturasDeEstudiante(id);
+        return ResponseEntity.ok(matriculaMapper.toAsignaturaDeEstudianteDTOList(matriculas));
     }
 
 }

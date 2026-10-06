@@ -1,0 +1,35 @@
+meta {
+  name: 01 Modificar nombre y correo
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/api/v1/estudiantes/{{idEstudianteModificar}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "tipoDocumentoId": "{{tipoDocCc}}",
+    "numeroDocumento": "1000000003",
+    "nombreCompleto": "Bruno Modificar Actualizado",
+    "correoInstitucional": "bruno.modificar.nuevo@uco.net.co"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("datos actualizados", function () {
+    expect(res.body.nombreCompleto).to.equal("Bruno Modificar Actualizado");
+    expect(res.body.correoInstitucional).to.equal("bruno.modificar.nuevo@uco.net.co");
+  });
+
+  test("el documento no cambia", function () {
+    expect(res.body.numeroDocumento).to.equal("1000000003");
+  });
+}

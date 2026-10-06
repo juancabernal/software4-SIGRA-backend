@@ -23,15 +23,14 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
      * sin distinguir mayusculas de minusculas. El filtro se resuelve en la base de datos
      * con LOWER() y LIKE, no trayendo la tabla a memoria.
      *
-     * <p>Cuando el criterio es nulo o viene vacio la consulta devuelve todos los
-     * estudiantes, activos e inactivos, para que el listado sin filtro no necesite
-     * una rama aparte en el servicio.</p>
+     * <p>Este metodo nunca debe invocarse con criterio nulo: Hibernate no logra inferir
+     * el tipo del parametro cuando el valor real es null y PostgreSQL termina rechazando
+     * el bind (lower(bytea) no existe). El listado sin filtro lo resuelve el servicio
+     * con {@link org.springframework.data.jpa.repository.JpaRepository#findAll()}.</p>
      */
     @Query("""
             select e from Estudiante e
-            where :criterio is null
-               or trim(:criterio) = ''
-               or lower(e.nombreCompleto) like concat('%', lower(:criterio), '%')
+            where lower(e.nombreCompleto) like concat('%', lower(:criterio), '%')
                or lower(e.numeroDocumento) like concat('%', lower(:criterio), '%')
             """)
     List<Estudiante> buscarPorNombreODocumento(@Param("criterio") String criterio);

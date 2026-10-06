@@ -1,0 +1,45 @@
+meta {
+  name: 01 Registrar estudiante valido
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/estudiantes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "tipoDocumentoId": "{{tipoDocCc}}",
+    "numeroDocumento": "{{documentoNuevo}}",
+    "nombreCompleto": "Bruno Estudiante Valido",
+    "correoInstitucional": "bruno.valido.{{documentoNuevo}}@uco.net.co"
+  }
+}
+
+script:pre-request {
+  bru.setVar("documentoNuevo", String(Date.now()).slice(-9));
+}
+
+script:post-response {
+  bru.setVar("estudianteCreadoId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("datos del estudiante", function () {
+    expect(res.body.numeroDocumento).to.equal(bru.getVar("documentoNuevo"));
+    expect(res.body.nombreCompleto).to.equal("Bruno Estudiante Valido");
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+
+  test("devuelve el id generado y el nombre del tipo de documento", function () {
+    expect(res.body.id).to.be.a("string").and.not.be.empty;
+    expect(res.body.tipoDocumentoNombre).to.be.a("string").and.not.be.empty;
+  });
+}

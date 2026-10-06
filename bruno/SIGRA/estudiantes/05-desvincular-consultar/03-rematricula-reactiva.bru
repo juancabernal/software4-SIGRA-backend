@@ -1,0 +1,30 @@
+meta {
+  name: 03 Rematricula reactiva la matricula retirada
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudianteId": "{{idEstudianteMatriculaValida}}",
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstActivo}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("reactiva la misma matricula en vez de crear una nueva", function () {
+    expect(res.body.id).to.equal(bru.getVar("matriculaValidaId"));
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+}

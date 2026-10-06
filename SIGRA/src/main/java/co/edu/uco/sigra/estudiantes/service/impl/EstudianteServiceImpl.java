@@ -57,7 +57,11 @@ public class EstudianteServiceImpl implements EstudianteService {
     @Override
     @Transactional
     public List<EstudianteResponseDTO> consultar(String filtro) {
-        return estudianteRepository.buscarPorNombreODocumento(filtro).stream()
+        String criterio = (filtro == null || filtro.isBlank()) ? null : filtro;
+        List<Estudiante> estudiantes = (criterio == null)
+                ? estudianteRepository.findAll()
+                : estudianteRepository.buscarPorNombreODocumento(criterio);
+        return estudiantes.stream()
                 .map(estudianteMapper::toResponseDTO)
                 .toList();
     }

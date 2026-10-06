@@ -285,16 +285,30 @@ class EstudianteServiceImplTest {
     class Consultar {
 
         @Test
-        @DisplayName("Sin filtro, invoca la consulta con null y mapea los resultados")
+        @DisplayName("Sin filtro, invoca findAll (no la consulta con criterio) y mapea los resultados")
         void sinFiltro() {
-            when(estudianteRepository.buscarPorNombreODocumento(null))
+            when(estudianteRepository.findAll())
                     .thenReturn(List.of(estudiante(EstadoRegistro.ACTIVO)));
 
             List<EstudianteResponseDTO> resultado = service.consultar(null);
 
             assertThat(resultado).hasSize(1);
             assertThat(resultado.get(0).id()).isEqualTo(ID_ESTUDIANTE);
-            verify(estudianteRepository).buscarPorNombreODocumento(null);
+            verify(estudianteRepository).findAll();
+            verify(estudianteRepository, never()).buscarPorNombreODocumento(any());
+        }
+
+        @Test
+        @DisplayName("Con filtro en blanco, lo trata igual que nulo e invoca findAll")
+        void filtroEnBlanco() {
+            when(estudianteRepository.findAll())
+                    .thenReturn(List.of(estudiante(EstadoRegistro.ACTIVO)));
+
+            List<EstudianteResponseDTO> resultado = service.consultar("   ");
+
+            assertThat(resultado).hasSize(1);
+            verify(estudianteRepository).findAll();
+            verify(estudianteRepository, never()).buscarPorNombreODocumento(any());
         }
 
         @Test
@@ -321,7 +335,7 @@ class EstudianteServiceImplTest {
         @Test
         @DisplayName("Con resultado mezclado, activos e inactivos aparecen con su estado correcto")
         void resultadoMezclado() {
-            when(estudianteRepository.buscarPorNombreODocumento(null))
+            when(estudianteRepository.findAll())
                     .thenReturn(List.of(estudiante(EstadoRegistro.ACTIVO), estudiante(EstadoRegistro.INACTIVO)));
 
             List<EstudianteResponseDTO> resultado = service.consultar(null);

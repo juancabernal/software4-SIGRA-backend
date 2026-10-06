@@ -1,0 +1,40 @@
+meta {
+  name: 08 Tipo de documento inexistente
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/estudiantes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "tipoDocumentoId": "{{idInexistente}}",
+    "numeroDocumento": "1000000097",
+    "nombreCompleto": "Bruno Tipo Documento Inexistente",
+    "correoInstitucional": "bruno.tipo.inexistente@uco.net.co"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe un tipo de documento con id " + bru.getEnvVar("idInexistente"));
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}
