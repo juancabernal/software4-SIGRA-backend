@@ -52,8 +52,8 @@ SELECT gen_random_uuid(), a.id, 'RA-0' || g, 'RA de prueba ' || g, 'INACTIVO'
  WHERE a.codigo = 'BRU4I';
 
 -- BRU11 (INACTIVA): sus 5 RA quedaron inactivos por la cascada
-INSERT INTO resultado_aprendizaje (id, asignatura_id, codigo, descripcion, estado)
-SELECT gen_random_uuid(), a.id, 'RA-0' || g, 'RA de prueba ' || g, 'INACTIVO'
+INSERT INTO resultado_aprendizaje (id, asignatura_id, codigo, descripcion, estado, inactivado_con_asignatura)
+SELECT gen_random_uuid(), a.id, 'RA-0' || g, 'RA de prueba ' || g, 'INACTIVO', true
   FROM asignatura a CROSS JOIN generate_series(1, 5) AS g
  WHERE a.codigo = 'BRU11';
 

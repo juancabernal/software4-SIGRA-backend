@@ -25,8 +25,8 @@ bruno/
         ├── 01-registrar/           RF-03a: registro y validaciones (14)
         ├── 02-consultar/           RF-03b: consulta con filtros (17)
         ├── 03-obtener-modificar/   RF-03c: consulta por id y modificación (8)
-        ├── 04-activar/             RF-03d: activación con 5 a 7 RA activos (10)
-        ├── 05-inactivar/           RF-03d: inactivación y cascada de RA (6)
+        ├── 04-activar/             RF-03d: activación con 5 a 7 RA activos y reactivación (10)
+        ├── 05-inactivar/           RF-03d: inactivación, cascada de RA y reactivación (8)
         └── 06-cors/                CORS para el frontend en http://localhost:4200 (2)
     └── auth/                       Pruebas de RF-04, en orden
         ├── 01-login/               Login correcto y validaciones de entrada
@@ -34,7 +34,7 @@ bruno/
         └── 03-seguridad-respuestas/ Respuestas de error sin detalles técnicos (RNF-17)
 ```
 
-Cada carpeta tiene un `folder.bru` con su `seq`, que fija el orden de ejecución, y cada petición lleva un prefijo numérico (`01-...`, `02-...`) con su `seq` dentro de la carpeta. **El orden importa**: algunas pruebas cambian el estado de las asignaturas de prueba (por ejemplo, `04-activar` deja `BRU05` en ACTIVA y `05-inactivar` la inactiva después).
+Cada carpeta tiene un `folder.bru` con su `seq`, que fija el orden de ejecución, y cada petición lleva un prefijo numérico (`01-...`, `02-...`) con su `seq` dentro de la carpeta. **El orden importa**: algunas pruebas cambian el estado de las asignaturas de prueba (por ejemplo, `04-activar` deja `BRU05` en ACTIVA y `05-inactivar` la inactiva después; `04-activar` reactiva `BRU11` y `05-inactivar` reactiva `BRU10` y la vuelve a inactivar).
 
 ## Instalación
 
@@ -152,6 +152,7 @@ bru run . -r --env local
 - Que la consulta cuente solo los RA **activos** (la asignatura `BRU4I` tiene 4 activos y 3 inactivos, y cuenta 4).
 - Que la búsqueda no distinga mayúsculas ni tildes (`programacion bruno` encuentra «Programación Bruno»).
 - Que inactivar no borra la asignatura y deja sus RA activos en INACTIVO (cascada).
+- Que una asignatura INACTIVA se puede reactivar y recupera **solo** los RA inactivados con ella (`BRU11` y `BRU10` vuelven con 5 RA activos). Es una decisión del equipo de asignaturas, distinta del SRS 3.2.3d, que solo define Borrador → Activa.
 - Que CORS permite `http://localhost:4200` y rechaza otros orígenes. La segunda prueba de CORS no revisa el formato de error, porque ese 403 lo genera Spring antes de llegar al manejador de errores del módulo.
 
 ### Por qué no hay una prueba con JSON roto
@@ -160,10 +161,10 @@ Bruno no puede enviar un JSON sintácticamente inválido: si el cuerpo no es JSO
 
 ### Comprobar la cascada en la base de datos
 
-Después de ejecutar la colección, los RA de `BRU10` (inactivada en `05-inactivar`) deben haber quedado todos en INACTIVO:
+Después de ejecutar la colección, los RA de `BRU10` (inactivada en `05-inactivar`, reactivada y vuelta a inactivar) deben haber quedado todos en INACTIVO y marcados con `inactivado_con_asignatura = true`:
 
 ```sql
-SELECT codigo, estado FROM resultado_aprendizaje WHERE asignatura_id = '00000000-0000-4000-b000-000000000007';
+SELECT codigo, estado, inactivado_con_asignatura FROM resultado_aprendizaje WHERE asignatura_id = '00000000-0000-4000-b000-000000000007';
 ```
 
 ## Cómo agregar las pruebas de otro módulo
