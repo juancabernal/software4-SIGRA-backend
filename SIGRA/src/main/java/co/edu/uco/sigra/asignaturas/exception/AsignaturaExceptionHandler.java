@@ -4,6 +4,7 @@ import co.edu.uco.sigra.asignaturas.controller.AsignaturaController;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -77,6 +78,22 @@ public class AsignaturaExceptionHandler {
     @ExceptionHandler({CodigoAsignaturaDuplicadoException.class, TransicionEstadoInvalidaException.class})
     public ResponseEntity<Map<String, Object>> manejarConflicto(RuntimeException ex) {
         return construirRespuestaError(HttpStatus.CONFLICT, ex.getMessage(), null);
+    }
+
+    /** 401 del control por rol del módulo (temporal hasta RF-05). */
+    @ExceptionHandler(AutenticacionRequeridaException.class)
+    public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AutenticacionRequeridaException ex) {
+        ResponseEntity<Map<String, Object>> respuesta =
+                construirRespuestaError(HttpStatus.UNAUTHORIZED, ex.getMessage(), null);
+        return ResponseEntity.status(respuesta.getStatusCode())
+                .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
+                .body(respuesta.getBody());
+    }
+
+    /** 403 del control por rol del módulo y del alcance del profesor (temporal hasta RF-05). */
+    @ExceptionHandler(PermisoInsuficienteException.class)
+    public ResponseEntity<Map<String, Object>> manejarSinPermiso(PermisoInsuficienteException ex) {
+        return construirRespuestaError(HttpStatus.FORBIDDEN, ex.getMessage(), null);
     }
 
     /** Respaldo ante una carrera: dos peticiones simultáneas con el mismo código. */

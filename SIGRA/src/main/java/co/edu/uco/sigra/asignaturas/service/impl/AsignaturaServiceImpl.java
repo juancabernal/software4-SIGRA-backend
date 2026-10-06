@@ -9,16 +9,20 @@ import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.exception.CodigoAsignaturaDuplicadoException;
 import co.edu.uco.sigra.asignaturas.exception.FiltroInvalidoException;
+import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaInactivoException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaNoEncontradoException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
+import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
+import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,6 +43,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     private final AsignaturaRepository asignaturaRepository;
     private final ProgramaAcademicoRepository programaAcademicoRepository;
     private final ResultadoAprendizajeRepository resultadoAprendizajeRepository;
+    private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final AsignaturaMapper asignaturaMapper;
 
     @Override
@@ -62,7 +68,14 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     @Override
     @Transactional
     public List<AsignaturaResponseDTO> consultar(AsignaturaFiltroDTO filtro) {
+        return consultar(filtro, null);
+    }
+
+    @Override
+    @Transactional
+    public List<AsignaturaResponseDTO> consultar(AsignaturaFiltroDTO filtro, IdentidadActual identidad) {
         validarRangoRa(filtro.raMin(), filtro.raMax());
+        Set<UUID> alcance = alcanceDe(identidad);
 
         Map<UUID, Long> raActivosPorAsignatura = asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)
                 .stream()
@@ -71,6 +84,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
 
         // El catálogo de asignaturas es pequeño, así que se filtra en memoria.
         return asignaturaRepository.findAll().stream()
+                .filter(a -> alcance == null || alcance.contains(a.getId()))
                 .filter(a -> filtro.programaId() == null || filtro.programaId().equals(a.getPrograma().getId()))
                 .filter(a -> filtro.estado() == null || filtro.estado() == a.getEstado())
                 .filter(a -> texto == null
@@ -89,6 +103,16 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     @Override
     @Transactional
     public AsignaturaResponseDTO obtenerAsignatura(UUID id) {
+        return obtenerAsignatura(id, null);
+    }
+
+    @Override
+    @Transactional
+    public AsignaturaResponseDTO obtenerAsignatura(UUID id, IdentidadActual identidad) {
+        Set<UUID> alcance = alcanceDe(identidad);
+        if (alcance != null && !alcance.contains(id)) {
+            throw new PermisoInsuficienteException();
+        }
         return asignaturaMapper.toResponseDTO(buscar(id), contarRaActivos(id));
     }
 
@@ -125,6 +149,23 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         // No se borra nada.
         resultadoAprendizajeRepository.inactivarActivosPorAsignatura(id, EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
         return asignaturaMapper.toResponseDTO(guardada, contarRaActivos(id));
+    }
+
+    /**
+     * Asignaturas visibles para la identidad: null significa «todas» (sin identidad, o ADMINISTRADOR).
+     * El PROFESOR solo ve las suyas con asignación docente ACTIVA; un ESTUDIANTE no consulta el catálogo.
+     */
+    private Set<UUID> alcanceDe(IdentidadActual identidad) {
+        if (identidad == null || identidad.rol() == RolUsuario.ADMINISTRADOR) {
+            return null;
+        }
+        if (identidad.rol() == RolUsuario.PROFESOR) {
+            return asignacionDocenteRepository.findByProfesor_IdAndEstado(identidad.id(), EstadoRegistro.ACTIVO)
+                    .stream()
+                    .map(asignacion -> asignacion.getAsignatura().getId())
+                    .collect(Collectors.toSet());
+        }
+        throw new PermisoInsuficienteException();
     }
 
     private void validarRangoRa(Integer raMin, Integer raMax) {

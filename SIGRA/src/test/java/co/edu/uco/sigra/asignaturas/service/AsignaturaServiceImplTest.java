@@ -12,6 +12,7 @@ import co.edu.uco.sigra.asignaturas.exception.ProgramaNoEncontradoException;
 import co.edu.uco.sigra.asignaturas.exception.RangoRaInvalidoException;
 import co.edu.uco.sigra.asignaturas.exception.TransicionEstadoInvalidaException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
+import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
@@ -56,6 +57,9 @@ class AsignaturaServiceImplTest {
     @Mock
     private ResultadoAprendizajeRepository resultadoAprendizajeRepository;
 
+    @Mock
+    private AsignacionDocenteRepository asignacionDocenteRepository;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
 
     private AsignaturaServiceImpl service;
@@ -64,7 +68,7 @@ class AsignaturaServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
-                resultadoAprendizajeRepository, mapper);
+                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
         programa = programa(EstadoRegistro.ACTIVO);
     }
 
