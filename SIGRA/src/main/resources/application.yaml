@@ -16,7 +16,7 @@ spring:
   jpa:
     # El esquema lo controlan los scripts SQL (docs/db/SIGRA_SCHEMA_CURRENT.sql); Hibernate solo lo valida.
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
+      ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: ${JPA_SHOW_SQL:false}
     # Sin carga perezosa en la vista: las consultas se resuelven dentro de la capa de servicio.
     open-in-view: false
