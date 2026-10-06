@@ -1,0 +1,31 @@
+meta {
+  name: 19 raMax mayor que 999
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?raMax=1000
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("detalle esperado", function () {
+    expect(res.body.detalles).to.include("raMax: La cantidad de RA no puede ser mayor que 999");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

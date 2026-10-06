@@ -13,6 +13,8 @@
 BEGIN;
 
 DELETE FROM sigra.administrador WHERE id = '00000000-0000-4000-e000-000000000010';
+-- La matricula de prueba de seed-asignaturas-roles.sql referencia al estudiante: se borra antes.
+DELETE FROM sigra.matricula     WHERE estudiante_id = '00000000-0000-4000-e000-000000000011';
 DELETE FROM sigra.estudiante    WHERE id = '00000000-0000-4000-e000-000000000011';
 DELETE FROM sigra.usuario       WHERE id IN ('00000000-0000-4000-e000-000000000010',
                                              '00000000-0000-4000-e000-000000000011');

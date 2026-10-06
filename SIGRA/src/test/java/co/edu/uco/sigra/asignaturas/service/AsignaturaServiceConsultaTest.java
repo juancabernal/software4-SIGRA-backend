@@ -6,6 +6,7 @@ import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.FiltroInvalidoException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
+import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
@@ -47,6 +48,9 @@ class AsignaturaServiceConsultaTest {
     @Mock
     private ResultadoAprendizajeRepository resultadoAprendizajeRepository;
 
+    @Mock
+    private AsignacionDocenteRepository asignacionDocenteRepository;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
 
     private AsignaturaServiceImpl service;
@@ -59,7 +63,7 @@ class AsignaturaServiceConsultaTest {
     @BeforeEach
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
-                resultadoAprendizajeRepository, mapper);
+                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
 
         ProgramaAcademico sistemas = programa(ID_SISTEMAS, "Ingeniería de Sistemas");
         ProgramaAcademico matematicas = programa(ID_MATEMATICAS, "Matemáticas");

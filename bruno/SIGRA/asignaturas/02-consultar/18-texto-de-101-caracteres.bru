@@ -1,0 +1,44 @@
+meta {
+  name: 18 Texto de 101 caracteres
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?texto={{textoLargo}}
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setVar("textoLargo", "q".repeat(101));
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Los parámetros de la petición no cumplen con las validaciones requeridas");
+  });
+
+  test("detalle esperado", function () {
+    expect(res.body.detalles).to.include("texto: El texto de búsqueda no puede superar los 100 caracteres");
+  });
+
+  test("el error no repite el valor enviado", function () {
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include(bru.getVar("textoLargo"));
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

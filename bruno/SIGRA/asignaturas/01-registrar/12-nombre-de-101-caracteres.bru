@@ -32,7 +32,7 @@ tests {
   });
 
   test("detalle del nombre", function () {
-    expect(res.body.detalles).to.include("nombre: El nombre no puede superar los 100 caracteres");
+    expect(res.body.detalles).to.include("nombre: El nombre debe tener entre 3 y 100 caracteres");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {
