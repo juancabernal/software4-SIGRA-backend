@@ -19,15 +19,19 @@ bruno/
     ├── bruno.json                  Definición de la colección
     ├── environments/local.bru      Variables del entorno local (URL e ids de prueba)
     ├── seed/seed-asignaturas.sql   Datos de prueba de RF-03 (asignaturas)
+    ├── seed/seed-asignaturas-roles.sql Asignación docente y matrícula de prueba (roles y «mis asignaturas»)
     ├── seed/seed-auth.sql          Datos de prueba de RF-04 (login)
     ├── asignaturas/                Pruebas de RF-03, en orden
+        ├── 00-sesiones/            Login de administrador, profesor y estudiante; guarda sus tokens (3)
         ├── 00-salud/               El backend responde (1)
-        ├── 01-registrar/           RF-03a: registro y validaciones (14)
-        ├── 02-consultar/           RF-03b: consulta con filtros (17)
+        ├── 01-registrar/           RF-03a: registro, validaciones y saneamiento (23)
+        ├── 02-consultar/           RF-03b: consulta con filtros y parámetros fuera de rango (19)
         ├── 03-obtener-modificar/   RF-03c: consulta por id y modificación (8)
         ├── 04-activar/             RF-03d: activación con 5 a 7 RA activos y reactivación (10)
         ├── 05-inactivar/           RF-03d: inactivación, cascada de RA y reactivación (8)
-        └── 06-cors/                CORS para el frontend en http://localhost:4200 (2)
+        ├── 06-cors/                CORS para el frontend en http://localhost:4200 (2)
+        ├── 07-roles/               Control por rol; solo corre con controlPorRol=true (11)
+        └── 08-mis-asignaturas/     «Mis asignaturas» del profesor y del estudiante (4)
     └── auth/                       Pruebas de RF-04, en orden
         ├── 01-login/               Login correcto y validaciones de entrada
         ├── 02-intentos-fallidos/   Bloqueo tras 5 intentos fallidos (423)
@@ -149,6 +153,33 @@ bru run . -r --env local
 
 `-r` hace que se ejecuten también las subcarpetas.
 
+### 5. Control de acceso por rol: los dos modos (asignaturas, temporal hasta RF-05)
+
+El backend tiene un interruptor, `sigra.seguridad.roles.habilitado`, **apagado por defecto**. La colección tiene la variable `controlPorRol` en `environments/local.bru`, que debe coincidir con él.
+
+| Modo | Backend | Bruno | Qué pasa |
+| --- | --- | --- | --- |
+| Apagado (por defecto) | sin la propiedad | `controlPorRol: false` | `/api/v1/asignaturas` no pide token, como siempre. `07-roles` aparece como omitida |
+| Encendido | `sigra.seguridad.roles.habilitado=true` en `SIGRA/.env`, o la variable de entorno `SIGRA_SEGURIDAD_ROLES_HABILITADO=true` | `--env-var controlPorRol=true` (o cambiar la variable en el entorno) | Se aplica la matriz y corren también las 11 peticiones de `07-roles` |
+
+En ambos modos, `00-sesiones` inicia sesión con los tres usuarios de prueba y guarda `tokenAdmin`, `tokenProfesor` y `tokenEstudiante`. La carpeta `asignaturas/` envía `Authorization: Bearer {{tokenAdmin}}` en todas sus peticiones, así que las pruebas de siempre funcionan igual con el control encendido. `08-mis-asignaturas` corre siempre, porque ese endpoint exige token aunque el interruptor esté apagado.
+
+Datos necesarios, en este orden: `seed-auth.sql`, `seed-roles.sql`, `seed-asignaturas.sql` (con `SET search_path TO sigra;`) y `seed-asignaturas-roles.sql`. Este último asigna a `profesor.bruno@uco.net.co` las materias `BRU10` y `BRU07`, y matricula a `estudiante.bruno@uco.net.co` en `BRU10`.
+
+```bash
+bru run asignaturas -r --env local                           # interruptor apagado
+bru run asignaturas -r --env local --env-var controlPorRol=true  # interruptor encendido
+```
+
+Matriz con el interruptor encendido (sin token, token inválido o expirado, o usuario inexistente o inactivo: **401**; rol no permitido: **403**; las peticiones OPTIONS siempre pasan):
+
+| Endpoint | ADMINISTRADOR | PROFESOR | ESTUDIANTE |
+| --- | --- | --- | --- |
+| `POST /asignaturas`, `PUT /{id}`, `PATCH /{id}/activar`, `PATCH /{id}/inactivar` | sí | 403 | 403 |
+| `GET /asignaturas` | todas | solo las suyas (asignación docente ACTIVA) | 403 |
+| `GET /asignaturas/{id}` | cualquiera | solo si es suya (si no, 403) | 403 |
+| `GET /asignaturas/mias` (siempre exige token) | 403 | sus asignaturas | sus matrículas ACTIVAS |
+
 ## Qué se verifica
 
 - Los códigos HTTP de cada caso (201, 200, 400, 401, 404, 409, 423).
@@ -159,6 +190,8 @@ bru run . -r --env local
 - Que la búsqueda no distinga mayúsculas ni tildes (`programacion bruno` encuentra «Programación Bruno»).
 - Que inactivar no borra la asignatura y deja sus RA activos en INACTIVO (cascada).
 - Que una asignatura INACTIVA se puede reactivar y recupera **solo** los RA inactivados con ella (`BRU11` y `BRU10` vuelven con 5 RA activos). Es una decisión del equipo de asignaturas, distinta del SRS 3.2.3d, que solo define Borrador → Activa.
+- El saneamiento de la entrada: el código se guarda recortado y en mayúsculas, el nombre reduce los espacios repetidos, y los códigos o nombres inválidos responden 400 **sin repetir el valor enviado**.
+- Con `controlPorRol=true`, la matriz de roles de la sección 5; en ambos modos, «mis asignaturas» del profesor (BRU10 y BRU07, con RA, estudiantes y profesores) y del estudiante (solo BRU10).
 - Que CORS permite `http://localhost:4200` y rechaza otros orígenes. La segunda prueba de CORS no revisa el formato de error, porque ese 403 lo genera Spring antes de llegar al manejador de errores del módulo.
 
 ### Por qué no hay una prueba con JSON roto

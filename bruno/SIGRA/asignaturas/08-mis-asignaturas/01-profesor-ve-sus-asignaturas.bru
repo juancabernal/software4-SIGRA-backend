@@ -1,0 +1,39 @@
+meta {
+  name: 01 Profesor ve sus asignaturas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/mias
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("BRU10 y BRU07 con sus datos", function () {
+    const porCodigo = {};
+    res.body.forEach((a) => { porCodigo[a.codigo] = a; });
+    expect(Object.keys(porCodigo).sort()).to.eql(["BRU07", "BRU10"]);
+    ["cantidadRa", "cantidadEstudiantes", "profesores"].forEach((campo) => {
+      expect(porCodigo["BRU10"]).to.have.property(campo);
+    });
+    expect(porCodigo["BRU07"].cantidadRa).to.equal(7);
+    expect(porCodigo["BRU10"].cantidadEstudiantes).to.equal(1);
+    expect(porCodigo["BRU07"].cantidadEstudiantes).to.equal(0);
+    expect(porCodigo["BRU10"].profesores).to.include("Profesor Bruno");
+  });
+
+  test("ordenadas por nombre", function () {
+    const nombres = res.body.map((a) => a.nombre.toLowerCase());
+    expect(nombres).to.eql([...nombres].sort());
+  });
+}
