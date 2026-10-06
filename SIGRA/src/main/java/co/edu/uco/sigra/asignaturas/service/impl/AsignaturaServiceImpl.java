@@ -5,6 +5,7 @@ import co.edu.uco.sigra.asignaturas.dto.AsignaturaRequestDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaResponseDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaUpdateDTO;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.exception.CodigoAsignaturaDuplicadoException;
 import co.edu.uco.sigra.asignaturas.exception.FiltroInvalidoException;
@@ -102,6 +103,11 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     @Transactional
     public AsignaturaResponseDTO activar(UUID id) {
         Asignatura asignatura = buscar(id);
+        if (asignatura.getEstado() == EstadoAsignatura.INACTIVA) {
+            // Reactivar: primero vuelven a ACTIVO solo los RA inactivados con la asignatura. Si luego el
+            // rango no es válido, activar() lanza la excepción y la transacción revierte la restauración.
+            resultadoAprendizajeRepository.restaurarInactivadosConAsignatura(id, EstadoRegistro.ACTIVO);
+        }
         long cantidadRa = contarRaActivos(id);
         asignatura.activar(cantidadRa);
         return asignaturaMapper.toResponseDTO(asignaturaRepository.save(asignatura), cantidadRa);
@@ -113,9 +119,10 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         Asignatura asignatura = buscar(id);
         asignatura.inactivar();
         Asignatura guardada = asignaturaRepository.save(asignatura);
-        // Cascada: el SRS (RF-06c) exime del mínimo de RA a la asignatura que se inactiva y esta no se reactiva,
-        // así que sus RA activos pasan a INACTIVO en la misma transacción. No se borra nada.
-        resultadoAprendizajeRepository.cambiarEstadoPorAsignatura(id, EstadoRegistro.ACTIVO, EstadoRegistro.INACTIVO);
+        // Cascada: el SRS (RF-06c) exime del mínimo de RA a la asignatura que se inactiva, así que sus RA
+        // activos pasan a INACTIVO en la misma transacción, marcados para restaurarse si se reactiva.
+        // No se borra nada.
+        resultadoAprendizajeRepository.inactivarActivosPorAsignatura(id, EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
         return asignaturaMapper.toResponseDTO(guardada, contarRaActivos(id));
     }
 

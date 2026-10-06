@@ -1,0 +1,24 @@
+meta {
+  name: 08 Reactivar una asignatura INACTIVA
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU11}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+  res.body.cantidadRa: eq 5
+}
+
+tests {
+  test("restaura los RA inactivados con la asignatura", function () {
+    expect(res.body.codigo).to.equal("BRU11");
+    expect(res.body.cantidadRa).to.equal(5);
+  });
+}

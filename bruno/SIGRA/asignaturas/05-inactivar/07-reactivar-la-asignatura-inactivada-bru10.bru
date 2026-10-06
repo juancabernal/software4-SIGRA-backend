@@ -1,0 +1,24 @@
+meta {
+  name: 07 Reactivar la asignatura inactivada (BRU10)
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU10}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+  res.body.cantidadRa: eq 5
+}
+
+tests {
+  test("la cascada se revierte: vuelven los 5 RA inactivados con la asignatura", function () {
+    expect(res.body.codigo).to.equal("BRU10");
+    expect(res.body.cantidadRa).to.equal(5);
+  });
+}

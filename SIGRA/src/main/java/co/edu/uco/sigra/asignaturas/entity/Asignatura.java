@@ -13,11 +13,15 @@ import java.util.UUID;
 /**
  * Asignatura de un programa académico (RF-03).
  * <p>
- * El código y el programa son inmutables; solo el nombre puede modificarse. El ciclo de vida es
- * BORRADOR → ACTIVA → INACTIVA: activar exige entre {@value #MIN_RA_ACTIVOS} y {@value #MAX_RA_ACTIVOS}
- * resultados de aprendizaje activos. Al inactivar, la entidad solo cambia su propio estado; el servicio
- * inactiva en cascada los RA activos, y matrículas, evaluaciones y calificaciones no se tocan.
- * Una asignatura INACTIVA no se reactiva, pues el SRS solo define Borrador → Activa.
+ * El código y el programa son inmutables; solo el nombre puede modificarse. Transiciones válidas:
+ * BORRADOR → ACTIVA, ACTIVA → INACTIVA e INACTIVA → ACTIVA; cualquier otra se rechaza. Activar exige
+ * entre {@value #MIN_RA_ACTIVOS} y {@value #MAX_RA_ACTIVOS} resultados de aprendizaje activos. Al
+ * inactivar, la entidad solo cambia su propio estado; el servicio inactiva en cascada los RA activos,
+ * y matrículas, evaluaciones y calificaciones no se tocan.
+ * <p>
+ * Reactivar una asignatura INACTIVA es una decisión del equipo de asignaturas, distinta del SRS 3.2.3d
+ * (que solo define Borrador → Activa): el servicio restaura primero los RA inactivados con ella y luego
+ * se valida el rango como en cualquier activación.
  */
 @Entity
 @Table(name = "asignatura",
@@ -59,9 +63,9 @@ public class Asignatura {
     }
 
     public void activar(long cantidadRaActivos) {
-        if (estado != EstadoAsignatura.BORRADOR) {
+        if (estado == EstadoAsignatura.ACTIVA) {
             throw new TransicionEstadoInvalidaException(estado, "activar",
-                    "Solo se pueden activar asignaturas en estado BORRADOR.");
+                    "Solo una asignatura en estado BORRADOR o INACTIVA puede activarse.");
         }
         if (cantidadRaActivos < MIN_RA_ACTIVOS) {
             throw RangoRaInvalidoException.pocosRa(MIN_RA_ACTIVOS, cantidadRaActivos);

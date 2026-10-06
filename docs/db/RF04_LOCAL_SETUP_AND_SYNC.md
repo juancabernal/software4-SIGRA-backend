@@ -141,12 +141,15 @@ Si tu base tiene `estudiante` con el diseño anterior (columnas propias), ejecut
 
 Si tu base no tiene la tabla `matricula`, ejecuta `docs/db/RF08_matricula_migration.sql`.
 
+Si tu base no tiene la columna `resultado_aprendizaje.inactivado_con_asignatura` (necesaria para reactivar asignaturas), ejecuta `docs/db/RF03_ra_inactivado_con_asignatura_migration.sql`.
+
 Orden recomendado de migraciones sobre una base existente:
 
 ```text
 1. RF09_estudiante_y_asignacion_docente_migration.sql   (si aplica)
 2. RF04_administrador_y_estudiante_subtipos_migration.sql
 3. RF08_matricula_migration.sql
+4. RF03_ra_inactivado_con_asignatura_migration.sql
 ```
 
 ## 4. Si tus tablas antiguas están en `public`
