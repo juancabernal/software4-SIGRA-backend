@@ -1,0 +1,27 @@
+meta {
+  name: 08 Profesor obtiene una asignatura suya
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU10}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+script:pre-request {
+  // Solo corre con el control por rol encendido (backend y variable controlPorRol=true).
+  if (String(bru.getEnvVar("controlPorRol")) !== "true") {
+    bru.runner.skipRequest();
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq BRU10
+}

@@ -7,20 +7,29 @@
 -- Solo ASCII (con escapes Unicode donde se necesitan tildes) para que psql en
 -- Windows no dane los caracteres.
 --
--- Si mas adelante otras tablas referencian asignatura (asignacion docente,
--- matricula...), agrega aqui el DELETE correspondiente ANTES de borrar asignatura.
+-- Antes de borrar las asignaturas se borran las filas que las referencian (matriculas y
+-- asignaciones docentes, por ejemplo las de seed-asignaturas-roles.sql) y el semestre BRU-ROL,
+-- para que re-ejecutarlo no falle por claves foraneas. Las asignaturas BRUEST* son de
+-- seed-estudiantes.sql y NO se tocan.
 -- =============================================================================
 BEGIN;
 
+DELETE FROM matricula
+ WHERE asignatura_id IN (SELECT id FROM asignatura WHERE codigo LIKE 'BRU%' AND codigo NOT LIKE 'BRUEST%');
+DELETE FROM asignacion_docente
+ WHERE asignatura_id IN (SELECT id FROM asignatura WHERE codigo LIKE 'BRU%' AND codigo NOT LIKE 'BRUEST%');
+DELETE FROM matricula WHERE semestre_id IN (SELECT id FROM semestre WHERE codigo = 'BRU-ROL');
+DELETE FROM semestre WHERE codigo = 'BRU-ROL';
 DELETE FROM resultado_aprendizaje
- WHERE asignatura_id IN (SELECT id FROM asignatura WHERE codigo LIKE 'BRU%');
-DELETE FROM asignatura WHERE codigo LIKE 'BRU%';
-DELETE FROM programa_academico WHERE codigo IN ('BRU-ACT', 'BRU-INA');
-
--- Programas: uno ACTIVO y uno INACTIVO
+ WHERE asignatura_id IN (SELECT id FROM asignatura WHERE codigo LIKE 'BRU%' AND codigo NOT LIKE 'BRUEST%');
+DELETE FROM asignatura WHERE codigo LIKE 'BRU%' AND codigo NOT LIKE 'BRUEST%';
+-- Programas: uno ACTIVO y uno INACTIVO. No se borran: se reinician por id, porque otras
+-- asignaturas (por ejemplo creadas a mano desde el frontend) pueden estar usandolos.
 INSERT INTO programa_academico (id, nombre, codigo, estado) VALUES
   ('00000000-0000-4000-a000-0000000000a1', 'Programa Bruno Activo',   'BRU-ACT', 'ACTIVO'),
-  ('00000000-0000-4000-a000-0000000000a2', 'Programa Bruno Inactivo', 'BRU-INA', 'INACTIVO');
+  ('00000000-0000-4000-a000-0000000000a2', 'Programa Bruno Inactivo', 'BRU-INA', 'INACTIVO')
+ON CONFLICT (id) DO UPDATE
+   SET nombre = EXCLUDED.nombre, codigo = EXCLUDED.codigo, estado = EXCLUDED.estado;
 
 -- Asignaturas (todas en el programa ACTIVO)
 INSERT INTO asignatura (id, codigo, nombre, programa_id, estado) VALUES
