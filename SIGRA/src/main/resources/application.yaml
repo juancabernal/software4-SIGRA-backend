@@ -23,6 +23,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # Hibernate valida y consulta las tablas en el schema sigra, no en public (currentSchema de la URL no basta).
+        default_schema: sigra
 
 server:
   port: ${SERVER_PORT:8080}
