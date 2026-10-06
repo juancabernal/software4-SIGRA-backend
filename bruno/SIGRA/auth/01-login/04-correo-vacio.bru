@@ -1,0 +1,29 @@
+meta {
+  name: 04 Correo vacio
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "correoInstitucional": "",
+    "contrasena": "{{authPasswordCorrecto}}"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("valida presencia de correo", function () {
+    expect(res.body.error).to.equal("BAD_REQUEST");
+    expect(res.body).to.have.property("detalles");
+  });
+}

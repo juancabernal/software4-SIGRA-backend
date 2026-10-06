@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,13 +44,17 @@ public class GlobalExceptionHandler {
                 "Los datos de entrada no cumplen con las validaciones requeridas", errores);
     }
 
-
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> manejarCuerpoIlegible(HttpMessageNotReadableException ex) {
         return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
                 "El cuerpo de la petición no es válido o está mal formado", null);
     }
 
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> manejarTipoDeContenidoNoSoportado(HttpMediaTypeNotSupportedException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE",
+                "El tipo de contenido de la petición no es compatible. Use application/json", null);
+    }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> manejarTipoDeParametroInvalido(MethodArgumentTypeMismatchException ex) {

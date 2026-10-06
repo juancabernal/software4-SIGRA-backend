@@ -1,0 +1,15 @@
+meta {
+  name: 04 Inactivar
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/estudiantes/{{idEstudianteModificar}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 204
+}

@@ -7,16 +7,25 @@ import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
+import static co.edu.uco.sigra.asignaturas.dto.ReglasEntrada.*;
+
+/** El código y el nombre se normalizan aquí, antes de validarse (ver {@link ReglasEntrada}). */
 public record AsignaturaRequestDTO(
-        @NotBlank(message = "El código es obligatorio")
-        @Size(max = 20, message = "El código no puede superar los 20 caracteres")
-        @Pattern(regexp = "^[A-Za-z0-9-]+$", message = "El código solo puede contener letras, números y guion")
+        @NotBlank(message = CODIGO_OBLIGATORIO)
+        @Size(min = CODIGO_MIN, max = CODIGO_MAX, message = CODIGO_LONGITUD)
+        @Pattern(regexp = PATRON_CODIGO, message = CODIGO_FORMATO)
         String codigo,
 
-        @NotBlank(message = "El nombre es obligatorio")
-        @Size(max = 100, message = "El nombre no puede superar los 100 caracteres")
+        @NotBlank(message = NOMBRE_OBLIGATORIO)
+        @Size(min = NOMBRE_MIN, max = NOMBRE_MAX, message = NOMBRE_LONGITUD)
+        @Pattern(regexp = PATRON_NOMBRE, message = NOMBRE_CARACTERES)
         String nombre,
 
         @NotNull(message = "Debe seleccionar un programa académico")
         UUID programaId
-) {}
+) {
+    public AsignaturaRequestDTO {
+        codigo = normalizarCodigo(codigo);
+        nombre = normalizarNombre(nombre);
+    }
+}

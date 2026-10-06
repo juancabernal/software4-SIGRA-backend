@@ -1,0 +1,36 @@
+meta {
+  name: 12 Verificacion RNF17 en errores de auth
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "correoInstitucional": "error.rnf17@uco.net.co",
+    "contrasena": "malaclave"
+  }
+}
+
+assert {
+  res.status: eq 401
+}
+
+tests {
+  test("respuesta cumple RNF-17: sin trazas, SQL, clases ni Hibernate", function () {
+    const raw = JSON.stringify(res.body);
+    expect(raw).to.not.include("Exception");
+    expect(raw).to.not.include("org.hibernate");
+    expect(raw).to.not.include("org.postgresql");
+    expect(raw).to.not.include("co.edu.uco");
+    expect(raw).to.not.include("passwordHash");
+    expect(raw).to.not.include("intentosFallidos");
+    expect(raw).to.not.include("select ");
+    expect(raw).to.not.include("insert ");
+  });
+}

@@ -20,7 +20,8 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("La cantidad de RA no puede ser negativa.");
+    expect(res.body.mensaje).to.include("Los parámetros de la petición no cumplen con las validaciones requeridas");
+    expect(res.body.detalles).to.include("raMin: La cantidad de RA no puede ser negativa");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

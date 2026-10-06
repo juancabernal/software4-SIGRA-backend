@@ -1,0 +1,38 @@
+meta {
+  name: 01 Listar programas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/programas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo con los campos esperados", function () {
+    expect(res.body).to.be.an("array");
+    res.body.forEach((p) => {
+      ["id", "codigo", "nombre", "estado"].forEach((campo) => expect(p).to.have.property(campo));
+    });
+  });
+
+  test("incluye los programas de prueba activo e inactivo", function () {
+    const codigos = res.body.map((p) => p.codigo);
+    expect(codigos).to.include("BRU-ACT");
+    expect(codigos).to.include("BRU-INA");
+  });
+
+  test("ordenado por nombre", function () {
+    const nombres = res.body.map((p) => p.nombre);
+    for (let i = 1; i < nombres.length; i++) {
+      const orden = nombres[i - 1].localeCompare(nombres[i], "es", { sensitivity: "base" });
+      expect(orden <= 0, nombres[i - 1] + " antes de " + nombres[i]).to.equal(true);
+    }
+  });
+}

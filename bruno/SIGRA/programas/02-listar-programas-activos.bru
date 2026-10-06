@@ -1,0 +1,32 @@
+meta {
+  name: 02 Listar programas activos
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/programas?estado=ACTIVO
+  body: none
+  auth: none
+}
+
+params:query {
+  estado: ACTIVO
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("todos los programas estan ACTIVO", function () {
+    expect(res.body).to.be.an("array");
+    res.body.forEach((p) => expect(p.estado).to.equal("ACTIVO"));
+  });
+
+  test("incluye el programa activo y no el inactivo", function () {
+    const codigos = res.body.map((p) => p.codigo);
+    expect(codigos).to.include("BRU-ACT");
+    expect(codigos).to.not.include("BRU-INA");
+  });
+}

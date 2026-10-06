@@ -28,7 +28,7 @@ tests {
   });
 
   test("detalle del codigo", function () {
-    expect(res.body.detalles).to.include("codigo: El código solo puede contener letras, números y guion");
+    expect(res.body.detalles).to.include("codigo: El código solo admite letras sin tilde, números y guiones entre ellos (por ejemplo MAT-401)");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

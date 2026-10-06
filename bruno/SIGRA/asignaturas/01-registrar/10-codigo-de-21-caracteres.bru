@@ -32,7 +32,7 @@ tests {
   });
 
   test("detalle del codigo", function () {
-    expect(res.body.detalles).to.include("codigo: El código no puede superar los 20 caracteres");
+    expect(res.body.detalles).to.include("codigo: El código debe tener entre 3 y 20 caracteres");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

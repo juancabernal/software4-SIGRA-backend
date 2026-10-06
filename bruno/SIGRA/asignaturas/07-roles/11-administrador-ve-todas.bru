@@ -1,0 +1,33 @@
+meta {
+  name: 11 Administrador ve todas
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+script:pre-request {
+  // Solo corre con el control por rol encendido (backend y variable controlPorRol=true).
+  if (String(bru.getEnvVar("controlPorRol")) !== "true") {
+    bru.runner.skipRequest();
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("incluye asignaturas de cualquier profesor", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    ["BRU00", "BRU05", "BRU07", "BRU10"].forEach((c) => expect(codigos).to.include(c));
+  });
+}

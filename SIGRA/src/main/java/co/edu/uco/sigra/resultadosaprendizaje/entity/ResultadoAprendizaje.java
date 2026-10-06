@@ -34,4 +34,7 @@ public class ResultadoAprendizaje {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoRegistro estado = EstadoRegistro.ACTIVO;
+
+    @Column(name = "inactivado_con_asignatura", nullable = false)
+    private boolean inactivadoConAsignatura = false;
 }
