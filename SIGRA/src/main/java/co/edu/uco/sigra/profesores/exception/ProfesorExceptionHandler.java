@@ -1,6 +1,8 @@
 package co.edu.uco.sigra.profesores.exception;
 
 import co.edu.uco.sigra.common.exception.ErrorResponseBuilder;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.Map;
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class ProfesorExceptionHandler {
     @ExceptionHandler({TipoDocumentoNoEncontradoException.class, ProfesorNoEncontradoException.class})
     public ResponseEntity<Map<String, Object>> manejarRecursoNoEncontrado(RuntimeException ex) {
