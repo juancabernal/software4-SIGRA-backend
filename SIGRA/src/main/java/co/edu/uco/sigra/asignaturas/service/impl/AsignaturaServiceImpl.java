@@ -43,7 +43,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     @Override
     @Transactional
     public AsignaturaResponseDTO registrarAsignatura(AsignaturaRequestDTO dto) {
-        String codigo = dto.codigo().trim().toUpperCase(Locale.ROOT);
+        // El DTO ya llega normalizado (código en mayúsculas, nombre sin espacios sobrantes).
+        String codigo = dto.codigo();
         if (asignaturaRepository.existsByCodigo(codigo)) {
             throw new CodigoAsignaturaDuplicadoException(codigo);
         }
@@ -54,7 +55,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
             throw new ProgramaInactivoException(programa.getNombre());
         }
 
-        Asignatura asignatura = new Asignatura(codigo, dto.nombre().trim(), programa);
+        Asignatura asignatura = new Asignatura(codigo, dto.nombre(), programa);
         return asignaturaMapper.toResponseDTO(asignaturaRepository.saveAndFlush(asignatura), 0);
     }
 
@@ -66,7 +67,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         Map<UUID, Long> raActivosPorAsignatura = asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)
                 .stream()
                 .collect(Collectors.toMap(ConteoRaPorAsignatura::getAsignaturaId, ConteoRaPorAsignatura::getCantidad));
-        String texto = filtro.texto() == null || filtro.texto().isBlank() ? null : normalizar(filtro.texto().trim());
+        String texto = filtro.texto() == null ? null : normalizar(filtro.texto());
 
         // El catálogo de asignaturas es pequeño, así que se filtra en memoria.
         return asignaturaRepository.findAll().stream()
@@ -95,7 +96,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     @Transactional
     public AsignaturaResponseDTO modificarAsignatura(UUID id, AsignaturaUpdateDTO dto) {
         Asignatura asignatura = buscar(id);
-        asignatura.renombrar(dto.nombre().trim());
+        asignatura.renombrar(dto.nombre());
         return asignaturaMapper.toResponseDTO(asignaturaRepository.save(asignatura), contarRaActivos(id));
     }
 

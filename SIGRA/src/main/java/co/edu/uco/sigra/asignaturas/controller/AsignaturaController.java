@@ -4,12 +4,17 @@ import co.edu.uco.sigra.asignaturas.dto.AsignaturaFiltroDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaRequestDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaResponseDTO;
 import co.edu.uco.sigra.asignaturas.dto.AsignaturaUpdateDTO;
+import co.edu.uco.sigra.asignaturas.dto.ReglasEntrada;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,7 +25,11 @@ import java.util.UUID;
  * el módulo de seguridad (RF-05) active JWT y roles. Ver Matriz RBAC del SRS.
  * El SRS 3.2.3b indica que el Profesor asignado puede consultar asignaturas, pero la matriz RBAC
  * no se lo permite; por ahora solo se contempla al Administrador.
+ * <p>
+ * {@code @Validated} activa la validación de los parámetros de consulta: un valor fuera de rango
+ * lanza ConstraintViolationException, que el manejador transversal traduce a 400.
  */
+@Validated
 @RestController
 @RequestMapping("/api/v1/asignaturas")
 @RequiredArgsConstructor
@@ -37,11 +46,16 @@ public class AsignaturaController {
     @GetMapping
     //@PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<AsignaturaResponseDTO>> consultarAsignaturas(
-            @RequestParam(required = false) String texto,
+            @RequestParam(required = false)
+            @Size(max = ReglasEntrada.TEXTO_BUSQUEDA_MAX, message = ReglasEntrada.TEXTO_LONGITUD) String texto,
             @RequestParam(required = false) UUID programaId,
             @RequestParam(required = false) EstadoAsignatura estado,
-            @RequestParam(required = false) Integer raMin,
-            @RequestParam(required = false) Integer raMax) {
+            @RequestParam(required = false)
+            @Min(value = 0, message = ReglasEntrada.RA_NEGATIVO)
+            @Max(value = ReglasEntrada.RA_FILTRO_MAX, message = ReglasEntrada.RA_MAXIMO) Integer raMin,
+            @RequestParam(required = false)
+            @Min(value = 0, message = ReglasEntrada.RA_NEGATIVO)
+            @Max(value = ReglasEntrada.RA_FILTRO_MAX, message = ReglasEntrada.RA_MAXIMO) Integer raMax) {
         return ResponseEntity.ok(asignaturaService.consultar(
                 new AsignaturaFiltroDTO(texto, programaId, estado, raMin, raMax)));
     }
