@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS sigra.resultado_aprendizaje (
     codigo        VARCHAR(20)   NOT NULL,
     descripcion   VARCHAR(2000) NOT NULL,
     estado        VARCHAR(255)  NOT NULL DEFAULT 'ACTIVO',
+    inactivado_con_asignatura BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT resultado_aprendizaje_pkey PRIMARY KEY (id),
     CONSTRAINT uk_ra_asignatura_codigo UNIQUE (asignatura_id, codigo),
     CONSTRAINT fk_ra_asignatura FOREIGN KEY (asignatura_id) REFERENCES sigra.asignatura (id),

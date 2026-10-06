@@ -281,6 +281,63 @@ class AsignaturaServiceImplTest {
         }
 
         @Test
+        @DisplayName("Desde BORRADOR no restaura RA: solo cuenta los activos")
+        void desdeBorradorNoRestaura() {
+            existe(EstadoAsignatura.BORRADOR);
+            raActivos(5);
+            saveDevuelveArgumento();
+
+            service.activar(ID_ASIGNATURA);
+
+            verify(resultadoAprendizajeRepository, never()).restaurarInactivadosConAsignatura(any(), any());
+        }
+
+        @ParameterizedTest(name = "Reactivar con {0} RA restaurados queda ACTIVA")
+        @ValueSource(longs = {5, 6, 7})
+        @DisplayName("Desde INACTIVA restaura los RA inactivados con ella ANTES de contar y queda ACTIVA")
+        void reactivarDesdeInactiva(long cantidad) {
+            existe(EstadoAsignatura.INACTIVA);
+            raActivos(cantidad);
+            saveDevuelveArgumento();
+
+            AsignaturaResponseDTO respuesta = service.activar(ID_ASIGNATURA);
+
+            var orden = inOrder(resultadoAprendizajeRepository);
+            orden.verify(resultadoAprendizajeRepository)
+                    .restaurarInactivadosConAsignatura(ID_ASIGNATURA, EstadoRegistro.ACTIVO);
+            orden.verify(resultadoAprendizajeRepository)
+                    .countByAsignatura_IdAndEstado(ID_ASIGNATURA, EstadoRegistro.ACTIVO);
+            assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.ACTIVA);
+            assertThat(respuesta.cantidadRa()).isEqualTo(cantidad);
+        }
+
+        @Test
+        @DisplayName("Reactivar con menos de 5 RA restaurados falla, sigue INACTIVA y no guarda")
+        void reactivarConPocosRa() {
+            Asignatura asignatura = existe(EstadoAsignatura.INACTIVA);
+            raActivos(4);
+
+            assertThatThrownBy(() -> service.activar(ID_ASIGNATURA))
+                    .isInstanceOf(RangoRaInvalidoException.class)
+                    .hasMessageContaining("al menos 5");
+            assertThat(asignatura.getEstado()).isEqualTo(EstadoAsignatura.INACTIVA);
+            verify(asignaturaRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Reactivar con más de 7 RA restaurados falla, sigue INACTIVA y no guarda")
+        void reactivarConDemasiadosRa() {
+            Asignatura asignatura = existe(EstadoAsignatura.INACTIVA);
+            raActivos(8);
+
+            assertThatThrownBy(() -> service.activar(ID_ASIGNATURA))
+                    .isInstanceOf(RangoRaInvalidoException.class)
+                    .hasMessageContaining("máximo 7");
+            assertThat(asignatura.getEstado()).isEqualTo(EstadoAsignatura.INACTIVA);
+            verify(asignaturaRepository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("Una asignatura ya ACTIVA no se puede activar de nuevo")
         void yaActiva() {
             existe(EstadoAsignatura.ACTIVA);
@@ -317,7 +374,7 @@ class AsignaturaServiceImplTest {
             assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.INACTIVA);
             assertThat(respuesta.cantidadRa()).isZero();
             verify(resultadoAprendizajeRepository, times(1))
-                    .cambiarEstadoPorAsignatura(ID_ASIGNATURA, EstadoRegistro.ACTIVO, EstadoRegistro.INACTIVO);
+                    .inactivarActivosPorAsignatura(ID_ASIGNATURA, EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
             verify(asignaturaRepository, never()).delete(any());
             verify(asignaturaRepository, never()).deleteById(any());
             verify(resultadoAprendizajeRepository, never()).delete(any());
@@ -333,7 +390,7 @@ class AsignaturaServiceImplTest {
             assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
                     .isInstanceOf(TransicionEstadoInvalidaException.class);
             verify(asignaturaRepository, never()).save(any());
-            verify(resultadoAprendizajeRepository, never()).cambiarEstadoPorAsignatura(any(), any(), any());
+            verify(resultadoAprendizajeRepository, never()).inactivarActivosPorAsignatura(any(), any(), any());
         }
 
         @Test
@@ -344,7 +401,7 @@ class AsignaturaServiceImplTest {
             assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
                     .isInstanceOf(TransicionEstadoInvalidaException.class);
             verify(asignaturaRepository, never()).save(any());
-            verify(resultadoAprendizajeRepository, never()).cambiarEstadoPorAsignatura(any(), any(), any());
+            verify(resultadoAprendizajeRepository, never()).inactivarActivosPorAsignatura(any(), any(), any());
         }
 
         @Test

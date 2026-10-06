@@ -81,12 +81,49 @@ class AsignaturaTest {
     }
 
     @Test
-    @DisplayName("Activar una asignatura INACTIVA no está permitido")
+    @DisplayName("Activar una asignatura INACTIVA (reactivar) con 5 RA la deja ACTIVA")
     void activarAsignaturaInactiva() {
         asignatura.activar(5);
         asignatura.inactivar();
 
-        assertThrows(TransicionEstadoInvalidaException.class, () -> asignatura.activar(5));
+        asignatura.activar(5);
+
+        assertEquals(EstadoAsignatura.ACTIVA, asignatura.getEstado());
+    }
+
+    @ParameterizedTest(name = "Reactivar con {0} RA la deja ACTIVA")
+    @ValueSource(longs = {5, 6, 7})
+    @DisplayName("Reactivar una asignatura INACTIVA con un rango válido de RA la deja ACTIVA")
+    void reactivarConRangoValido(long cantidad) {
+        asignatura.activar(5);
+        asignatura.inactivar();
+
+        asignatura.activar(cantidad);
+
+        assertEquals(EstadoAsignatura.ACTIVA, asignatura.getEstado());
+    }
+
+    @Test
+    @DisplayName("Reactivar con 4 RA falla indicando el mínimo y sigue INACTIVA")
+    void reactivarConPocosRa() {
+        asignatura.activar(5);
+        asignatura.inactivar();
+
+        RangoRaInvalidoException ex = assertThrows(RangoRaInvalidoException.class, () -> asignatura.activar(4));
+
+        assertTrue(ex.getMessage().contains("al menos 5"));
+        assertEquals(EstadoAsignatura.INACTIVA, asignatura.getEstado());
+    }
+
+    @Test
+    @DisplayName("Reactivar con 8 RA falla indicando el máximo y sigue INACTIVA")
+    void reactivarConDemasiadosRa() {
+        asignatura.activar(5);
+        asignatura.inactivar();
+
+        RangoRaInvalidoException ex = assertThrows(RangoRaInvalidoException.class, () -> asignatura.activar(8));
+
+        assertTrue(ex.getMessage().contains("máximo 7"));
         assertEquals(EstadoAsignatura.INACTIVA, asignatura.getEstado());
     }
 

@@ -39,7 +39,7 @@ Estrategia:            el esquema lo controla SQL/migraciones.
 | Elemento | Decisión |
 | --- | --- |
 | Creación del esquema | `docs/db/SIGRA_SCHEMA_CURRENT.sql` (base vacía) |
-| Cambios sobre una base existente | Scripts SQL revisados y ejecutados a mano (`RF04_usuario_migration.sql`, ya aplicada; `RF09_estudiante_y_asignacion_docente_migration.sql`; y `RF04_administrador_y_estudiante_subtipos_migration.sql`) |
+| Cambios sobre una base existente | Scripts SQL revisados y ejecutados a mano (`RF04_usuario_migration.sql`, ya aplicada; `RF09_estudiante_y_asignacion_docente_migration.sql`; y `RF04_administrador_y_estudiante_subtipos_migration.sql`; `RF08_matricula_migration.sql`; y `RF03_ra_inactivado_con_asignatura_migration.sql`) |
 | Validación en el arranque | Hibernate `ddl-auto=validate`: si una entidad no coincide con la tabla, el backend no arranca |
 | Hibernate modifica tablas | **No.** Ni `update`, ni `create`, ni `create-drop` |
 
@@ -123,6 +123,20 @@ La terna `(estudiante_id, asignatura_id, semestre_id)` es **única sin importar 
 (`uk_matricula_terna`). Desvincular no borra el registro: lo deja en `INACTIVO`, y volver a
 matricular la misma terna reactiva ese registro en lugar de crear otro.
 
+## Columna `sigra.resultado_aprendizaje.inactivado_con_asignatura` (RF-03)
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `inactivado_con_asignatura` | BOOLEAN | no | Por defecto `FALSE`. `TRUE` si el RA pasó a `INACTIVO` en la cascada al inactivar su asignatura |
+
+Una asignatura `INACTIVA` puede reactivarse (`INACTIVA → ACTIVA`). Es una decisión del equipo de
+asignaturas, distinta del SRS 3.2.3d, que solo define `Borrador → Activa`. Al reactivarla se
+devuelven a `ACTIVO` **solo** los RA marcados con esta columna (no los que alguien inactivó a mano
+antes) y la marca vuelve a `FALSE`; si el total de RA activos queda fuera de 5 a 7, la reactivación
+se rechaza y no cambia nada. En bases anteriores, la columna se agrega con
+`RF03_ra_inactivado_con_asignatura_migration.sql`, que marca como mejor esfuerzo los RA inactivos de
+las asignaturas que ya estaban `INACTIVA`.
+
 ## Correo institucional
 
 - `correo_institucional` es **global a `Usuario`**: la unicidad se garantiza sobre la tabla base,
@@ -164,6 +178,7 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | `docs/db/RF09_estudiante_y_asignacion_docente_migration.sql` | Migración idempotente | Crea `sigra.estudiante` (diseño anterior, independiente) y agrega `asignacion_docente.asignatura_id` en bases creadas antes de RF-07/RF-09 |
 | `docs/db/RF04_administrador_y_estudiante_subtipos_migration.sql` | Migración idempotente | Crea `sigra.administrador` y convierte `sigra.estudiante` en subtipo de `usuario` (mueve los datos, no los borra) |
 | `docs/db/RF08_matricula_migration.sql` | Migración idempotente | Crea `sigra.matricula` en bases creadas antes de RF-08/RF-09 |
+| `docs/db/RF03_ra_inactivado_con_asignatura_migration.sql` | Migración idempotente | Agrega `resultado_aprendizaje.inactivado_con_asignatura` para poder reactivar asignaturas |
 | `bruno/SIGRA/seed/seed-roles.sql` | Datos de prueba | Un administrador y un estudiante de Bruno para RF-04, idempotente |
 | `bruno/SIGRA/seed/seed-auth.sql` | Datos de prueba | Usuarios de Bruno para RF-04, idempotente |
 

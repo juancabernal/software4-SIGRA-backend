@@ -383,14 +383,40 @@ class AsignaturaControllerTest {
         }
 
         @Test
-        @DisplayName("Desde un estado inválido devuelve 409")
+        @DisplayName("Una asignatura ya ACTIVA devuelve 409")
         void estadoInvalido() throws Exception {
             when(service.activar(ID)).thenThrow(new TransicionEstadoInvalidaException(EstadoAsignatura.ACTIVA,
-                    "activar", "Solo se pueden activar asignaturas en estado BORRADOR."));
+                    "activar", "Solo una asignatura en estado BORRADOR o INACTIVA puede activarse."));
 
             activar()
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath(JSON_MENSAJE).value(containsString("No se puede activar")));
+        }
+
+        @Test
+        @DisplayName("Reactivar una asignatura INACTIVA devuelve 200 y la asignatura ACTIVA")
+        void reactivarInactiva() throws Exception {
+            when(service.activar(ID)).thenReturn(respuesta(CODIGO, EstadoAsignatura.ACTIVA, 5));
+
+            activar()
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(JSON_ESTADO).value("ACTIVA"))
+                    .andExpect(jsonPath("$.cantidadRa").value(5));
+        }
+
+        @Test
+        @DisplayName("Reactivar con RA restaurados fuera de rango devuelve 400 con el mínimo o el máximo")
+        void reactivarFueraDeRango() throws Exception {
+            when(service.activar(ID))
+                    .thenThrow(RangoRaInvalidoException.pocosRa(5, 3))
+                    .thenThrow(RangoRaInvalidoException.demasiadosRa(7, 9));
+
+            activar()
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath(JSON_MENSAJE).value(containsString("al menos 5")));
+            activar()
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath(JSON_MENSAJE).value(containsString("máximo 7")));
         }
 
         @Test

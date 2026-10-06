@@ -18,10 +18,17 @@ public interface ResultadoAprendizajeRepository extends JpaRepository<ResultadoA
     long countByAsignatura_IdAndEstado(UUID asignaturaId, EstadoRegistro estado);
 
     @Modifying(flushAutomatically = true)
-    @Query("update ResultadoAprendizaje r set r.estado = :nuevo where r.asignatura.id = :asignaturaId and r.estado = :actual")
-    int cambiarEstadoPorAsignatura(@Param("asignaturaId") UUID asignaturaId,
-                                   @Param("actual") EstadoRegistro actual,
-                                   @Param("nuevo") EstadoRegistro nuevo);
+    @Query("update ResultadoAprendizaje r set r.estado = :inactivo, r.inactivadoConAsignatura = true "
+            + "where r.asignatura.id = :asignaturaId and r.estado = :activo")
+    int inactivarActivosPorAsignatura(@Param("asignaturaId") UUID asignaturaId,
+                                      @Param("inactivo") EstadoRegistro inactivo,
+                                      @Param("activo") EstadoRegistro activo);
+
+    @Modifying(flushAutomatically = true)
+    @Query("update ResultadoAprendizaje r set r.estado = :activo, r.inactivadoConAsignatura = false "
+            + "where r.asignatura.id = :asignaturaId and r.inactivadoConAsignatura = true")
+    int restaurarInactivadosConAsignatura(@Param("asignaturaId") UUID asignaturaId,
+                                          @Param("activo") EstadoRegistro activo);
 
 
     boolean existsByAsignatura_IdAndCodigo(UUID asignaturaId, String codigo);
