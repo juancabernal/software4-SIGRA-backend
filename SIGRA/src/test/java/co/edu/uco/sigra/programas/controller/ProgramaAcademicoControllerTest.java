@@ -49,7 +49,7 @@ class ProgramaAcademicoControllerTest {
     @Test
     @DisplayName("Sin filtro devuelve 200 con la lista de programas")
     void listaDeProgramas() throws Exception {
-        when(service.consultar(null)).thenReturn(List.of(
+        when(service.consultar(null, null, null)).thenReturn(List.of(
                 programa("DER", "Derecho", EstadoRegistro.ACTIVO),
                 programa("MED", "Medicina", EstadoRegistro.INACTIVO)));
 
@@ -65,7 +65,7 @@ class ProgramaAcademicoControllerTest {
     @Test
     @DisplayName("Sin programas devuelve 200 y una lista vacía")
     void listaVacia() throws Exception {
-        when(service.consultar(null)).thenReturn(List.of());
+        when(service.consultar(null, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get(URL))
                 .andExpect(status().isOk())
@@ -75,12 +75,12 @@ class ProgramaAcademicoControllerTest {
     @Test
     @DisplayName("El filtro de estado llega al servicio")
     void filtroLlegaAlServicio() throws Exception {
-        when(service.consultar(EstadoRegistro.ACTIVO)).thenReturn(List.of());
+        when(service.consultar(null, null, EstadoRegistro.ACTIVO)).thenReturn(List.of());
 
         mockMvc.perform(get(URL).param("estado", "ACTIVO"))
                 .andExpect(status().isOk());
 
-        verify(service).consultar(EstadoRegistro.ACTIVO);
+        verify(service).consultar(null, null, EstadoRegistro.ACTIVO);
     }
 
     @Test

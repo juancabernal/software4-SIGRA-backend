@@ -8,4 +8,10 @@ import java.util.UUID;
 
 @Repository
 public interface ProgramaAcademicoRepository extends JpaRepository<ProgramaAcademico, UUID> {
+
+    boolean existsByNombreIgnoreCase(String nombre);
+
+    boolean existsByNombreIgnoreCaseAndIdNot(String nombre, UUID id);
+
+    boolean existsByCodigoIgnoreCase(String codigo);
 }
