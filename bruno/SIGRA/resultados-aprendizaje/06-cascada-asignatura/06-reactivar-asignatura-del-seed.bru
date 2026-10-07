@@ -1,0 +1,17 @@
+meta {
+  name: 06 Reactivar RAP-INA restaura sus 5 RA
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigInaId}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+  res.body.cantidadRa: eq 5
+}

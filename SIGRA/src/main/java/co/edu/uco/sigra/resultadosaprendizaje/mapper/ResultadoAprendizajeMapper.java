@@ -16,6 +16,7 @@ public interface ResultadoAprendizajeMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "asignatura", ignore = true)
     @Mapping(target = "estado", ignore = true)
+    @Mapping(target = "inactivadoConAsignatura", ignore = true)
     ResultadoAprendizaje toEntity(ResultadoAprendizajeCrearRequestDTO dto);
 
     @Mapping(target = "asignaturaId", source = "asignatura.id")

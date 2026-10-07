@@ -1,0 +1,27 @@
+meta {
+  name: 02 Descripcion se normaliza
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raAct5Ra01Id}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "descripcion": "  Evalua   la\tcalidad  "
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("la descripcion queda con un solo espacio y sin bordes", function () {
+    expect(res.body.descripcion).to.equal("Evalua la calidad");
+  });
+}

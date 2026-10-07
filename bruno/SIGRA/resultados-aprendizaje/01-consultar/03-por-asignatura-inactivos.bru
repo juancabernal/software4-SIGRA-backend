@@ -1,0 +1,30 @@
+meta {
+  name: 03 Por asignatura solo inactivos
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor7Id}}/resultados-aprendizaje?estado=INACTIVO
+  body: none
+  auth: none
+}
+
+params:query {
+  estado: INACTIVO
+}
+
+assert {
+  res.status: eq 200
+  res.body[0].codigo: eq RA-08
+}
+
+tests {
+  test("devuelve 1 RA", function () {
+    expect(res.body).to.be.an("array").with.lengthOf(1);
+  });
+
+  test("todos en estado INACTIVO", function () {
+    res.body.forEach(function (ra) { expect(ra.estado).to.equal("INACTIVO"); });
+  });
+}

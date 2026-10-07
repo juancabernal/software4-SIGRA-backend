@@ -1,0 +1,16 @@
+meta {
+  name: 05 El RA inactivado sigue existiendo
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raBor7Ra01Id}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVO
+}

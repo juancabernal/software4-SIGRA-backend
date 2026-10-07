@@ -1,0 +1,24 @@
+meta {
+  name: 01 Modificar descripcion (RAP-ACT5 RA-01)
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raAct5Ra01Id}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "descripcion": "Evalua la calidad del software"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.descripcion: eq Evalua la calidad del software
+  res.body.codigo: eq RA-01
+  res.body.estado: eq ACTIVO
+}

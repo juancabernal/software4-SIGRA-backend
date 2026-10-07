@@ -1,0 +1,25 @@
+meta {
+  name: 07 Los RA de RAP-INA quedan activos
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigInaId}}/resultados-aprendizaje
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve 5 RA", function () {
+    expect(res.body).to.be.an("array").with.lengthOf(5);
+  });
+
+  test("todos en estado ACTIVO", function () {
+    res.body.forEach(function (ra) { expect(ra.estado).to.equal("ACTIVO"); });
+  });
+}

@@ -1,0 +1,17 @@
+meta {
+  name: 04 Reactivar la asignatura RAP-ACT5
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigAct5Id}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+  res.body.cantidadRa: eq 5
+}

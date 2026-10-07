@@ -1,0 +1,17 @@
+meta {
+  name: 01 Inactivar en asignatura activa de 6 a 5 (RAP-ACT6 RA-01)
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raAct6Ra01Id}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVO
+  res.body.codigo: eq RA-01
+}

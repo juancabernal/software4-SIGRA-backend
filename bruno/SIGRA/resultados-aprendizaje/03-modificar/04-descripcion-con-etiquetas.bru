@@ -1,0 +1,37 @@
+meta {
+  name: 04 Descripcion con < o >
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raAct5Ra01Id}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "descripcion": "<b>Evalua</b>"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("el detalle senala el campo descripcion", function () {
+    expect(res.body.detalles.some(function (d) { return d.startsWith("descripcion:"); })).to.equal(true);
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

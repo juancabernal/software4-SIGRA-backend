@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static co.edu.uco.sigra.resultadosaprendizaje.dto.ReglasEntradaResultadoAprendizaje.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -134,6 +137,54 @@ class ResultadoAprendizajeControllerTest {
                     .andExpect(jsonPath("$.detalles[0]").value(startsWith("codigo")));
             verifyNoInteractions(service);
         }
+
+        @Test
+        @DisplayName("Con caracteres no permitidos en el código devuelve 400 con el mensaje de formato (RNF-14)")
+        void codigoConCaracteresInvalidos() throws Exception {
+            mockMvc.perform(post(URL_POR_ASIGNATURA).contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoCreacion("RA_01", DESCRIPCION)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detalles[0]").value("codigo: " + CODIGO_FORMATO));
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("Con un guion al inicio del código devuelve 400 (RNF-14)")
+        void codigoConGuionAlInicio() throws Exception {
+            mockMvc.perform(post(URL_POR_ASIGNATURA).contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoCreacion("-RA01", DESCRIPCION)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detalles[0]").value("codigo: " + CODIGO_FORMATO));
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("Con una etiqueta script en la descripción devuelve 400 sin repetir el valor enviado (RNF-14)")
+        void descripcionConEtiquetaScript() throws Exception {
+            mockMvc.perform(post(URL_POR_ASIGNATURA).contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoCreacion(CODIGO, "<script>alert(1)</script>")))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detalles[0]").value("descripcion: " + DESCRIPCION_CARACTERES))
+                    .andExpect(content().string(not(containsString("<script>"))));
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("Normaliza el código a mayúsculas y reduce los espacios de la descripción antes de delegar (RNF-14)")
+        void normalizaAntesDeDelegar() throws Exception {
+            when(service.registrar(eq(ID_ASIGNATURA), any(ResultadoAprendizajeCrearRequestDTO.class)))
+                    .thenReturn(respuesta(EstadoRegistro.ACTIVO));
+
+            mockMvc.perform(post(URL_POR_ASIGNATURA).contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoCreacion("  ra-01 ", "  Analiza   los\\n\\trequisitos  ")))
+                    .andExpect(status().isCreated());
+
+            ArgumentCaptor<ResultadoAprendizajeCrearRequestDTO> dto = ArgumentCaptor.forClass(ResultadoAprendizajeCrearRequestDTO.class);
+            verify(service).registrar(eq(ID_ASIGNATURA), dto.capture());
+            assertThat(dto.getValue().codigo()).isEqualTo("RA-01");
+            assertThat(dto.getValue().descripcion()).isEqualTo("Analiza los requisitos");
+        }
+
 
         @Test
         @DisplayName("Con una descripción de más de 500 caracteres devuelve 400 sin llamar al servicio")
@@ -344,6 +395,25 @@ class ResultadoAprendizajeControllerTest {
                     .andExpect(jsonPath("$.detalles[0]").value(startsWith("descripcion")));
             verifyNoInteractions(service);
         }
+
+        @Test
+        @DisplayName("Con < o > en la descripción devuelve 400 sin llamar al servicio (RNF-14)")
+        void descripcionConEtiquetas() throws Exception {
+            mockMvc.perform(put(URL_RA_ID).contentType(MediaType.APPLICATION_JSON).content("{\"descripcion\":\"<b>Nueva</b>\"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detalles[0]").value("descripcion: " + DESCRIPCION_CARACTERES));
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("Con una descripción de solo espacios devuelve 400 sin llamar al servicio (RNF-14)")
+        void descripcionSoloEspacios() throws Exception {
+            mockMvc.perform(put(URL_RA_ID).contentType(MediaType.APPLICATION_JSON).content("{\"descripcion\":\" \\n\\t \"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detalles[0]").value("descripcion: " + DESCRIPCION_OBLIGATORIA));
+            verifyNoInteractions(service);
+        }
+
 
         @Test
         @DisplayName("Con un RA inactivo devuelve 400 con el mensaje de negocio")

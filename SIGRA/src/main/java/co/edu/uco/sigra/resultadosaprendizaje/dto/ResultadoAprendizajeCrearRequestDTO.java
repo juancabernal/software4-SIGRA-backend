@@ -4,20 +4,27 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import static co.edu.uco.sigra.resultadosaprendizaje.dto.ReglasEntradaResultadoAprendizaje.*;
+
 /**
  * Datos de entrada para registrar un resultado de aprendizaje (RF-06a).
  * La asignatura no viaja aquí: llega en la URL (/asignaturas/{asignaturaId}/resultados-aprendizaje).
- * Longitudes según el MR: código hasta 10 caracteres y descripción hasta 500.
+ * El código y la descripción se normalizan aquí, antes de validarse (ver {@link ReglasEntradaResultadoAprendizaje}).
  */
 public record ResultadoAprendizajeCrearRequestDTO(
 
-        @NotBlank(message = "El código es obligatorio")
-        @Size(max = 10, message = "El código debe tener máximo 10 caracteres")
-        @Pattern(regexp = "^\\s*\\S+\\s*$", message = "El código no puede contener espacios internos")
+        @NotBlank(message = CODIGO_OBLIGATORIO)
+        @Size(max = CODIGO_MAX, message = CODIGO_LONGITUD)
+        @Pattern(regexp = PATRON_CODIGO, message = CODIGO_FORMATO)
         String codigo,
 
-        @NotBlank(message = "La descripción es obligatoria")
-        @Size(max = 500, message = "La descripción debe tener máximo 500 caracteres")
+        @NotBlank(message = DESCRIPCION_OBLIGATORIA)
+        @Size(max = DESCRIPCION_MAX, message = DESCRIPCION_LONGITUD)
+        @Pattern(regexp = PATRON_DESCRIPCION, message = DESCRIPCION_CARACTERES)
         String descripcion
 ) {
+    public ResultadoAprendizajeCrearRequestDTO {
+        codigo = normalizarCodigo(codigo);
+        descripcion = normalizarDescripcion(descripcion);
+    }
 }
