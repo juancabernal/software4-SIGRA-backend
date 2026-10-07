@@ -1,0 +1,16 @@
+meta {
+  name: 03 Reactivar en borrador de 6 a 7 (RAP-BOR7 RA-01)
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raBor7Ra01Id}}/reactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVO
+}

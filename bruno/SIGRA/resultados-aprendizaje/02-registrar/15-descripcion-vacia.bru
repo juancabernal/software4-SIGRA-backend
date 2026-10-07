@@ -1,0 +1,38 @@
+meta {
+  name: 15 Descripcion vacia
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor0Id}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "RA-09",
+    "descripcion": ""
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("el detalle senala el campo descripcion", function () {
+    expect(res.body.detalles.some(function (d) { return d.startsWith("descripcion:"); })).to.equal(true);
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

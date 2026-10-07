@@ -1,0 +1,25 @@
+meta {
+  name: 08 Todos los RA inactivos
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje?estado=INACTIVO
+  body: none
+  auth: none
+}
+
+params:query {
+  estado: INACTIVO
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("todos en estado INACTIVO", function () {
+    res.body.forEach(function (ra) { expect(ra.estado).to.equal("INACTIVO"); });
+  });
+}
