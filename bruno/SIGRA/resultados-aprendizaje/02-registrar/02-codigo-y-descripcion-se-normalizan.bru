@@ -1,0 +1,29 @@
+meta {
+  name: 02 Codigo y descripcion se normalizan
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor0Id}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "  ra-02 ",
+    "descripcion": "  Disena   la\n arquitectura  "
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.codigo: eq RA-02
+}
+
+tests {
+  test("la descripcion queda con un solo espacio y sin bordes", function () {
+    expect(res.body.descripcion).to.equal("Disena la arquitectura");
+  });
+}

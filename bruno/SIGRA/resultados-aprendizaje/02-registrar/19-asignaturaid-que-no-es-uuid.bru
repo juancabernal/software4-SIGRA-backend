@@ -1,0 +1,34 @@
+meta {
+  name: 19 asignaturaId que no es UUID
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/abc/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "RA-09",
+    "descripcion": "Analiza los requisitos de un sistema de informacion"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,38 @@
+meta {
+  name: 03 No se registra RA en la asignatura inactiva
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigAct5Id}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "RA-09",
+    "descripcion": "Analiza los requisitos de un sistema de informacion"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("no se pueden registrar ni reactivar");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

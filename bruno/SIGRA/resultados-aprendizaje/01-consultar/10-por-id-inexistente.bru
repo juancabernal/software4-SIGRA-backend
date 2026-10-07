@@ -1,0 +1,31 @@
+meta {
+  name: 10 Por id inexistente
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raIdInexistente}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe un resultado de aprendizaje con id");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

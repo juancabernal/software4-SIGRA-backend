@@ -1,0 +1,25 @@
+meta {
+  name: 02 Sus RA quedan inactivos
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigAct5Id}}/resultados-aprendizaje
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve 5 RA", function () {
+    expect(res.body).to.be.an("array").with.lengthOf(5);
+  });
+
+  test("todos en estado INACTIVO", function () {
+    res.body.forEach(function (ra) { expect(ra.estado).to.equal("INACTIVO"); });
+  });
+}

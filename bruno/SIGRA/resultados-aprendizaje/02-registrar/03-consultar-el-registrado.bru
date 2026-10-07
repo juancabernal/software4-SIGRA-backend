@@ -1,0 +1,17 @@
+meta {
+  name: 03 Consultar el RA registrado
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raCreadoId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq RA-01
+  res.body.estado: eq ACTIVO
+}

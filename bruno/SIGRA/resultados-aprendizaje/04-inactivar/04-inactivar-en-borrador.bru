@@ -1,0 +1,16 @@
+meta {
+  name: 04 Inactivar en asignatura en borrador (RAP-BOR7 RA-01)
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raBor7Ra01Id}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVO
+}
