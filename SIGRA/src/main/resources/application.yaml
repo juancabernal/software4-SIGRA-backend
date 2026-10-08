@@ -2,8 +2,6 @@ spring:
   application:
     name: sigra-backend
 
-  # Carga SIGRA/.env si existe (cuando Gradle o el jar se ejecutan desde SIGRA/).
-  # Las variables de entorno del sistema tienen prioridad sobre este archivo.
   config:
     import: "optional:file:.env[.properties]"
 
@@ -14,17 +12,15 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   jpa:
-    # El esquema lo controlan los scripts SQL (docs/db/SIGRA_SCHEMA_CURRENT.sql); Hibernate solo lo valida.
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: ${JPA_SHOW_SQL:false}
-    # Sin carga perezosa en la vista: las consultas se resuelven dentro de la capa de servicio.
     open-in-view: false
     properties:
       hibernate:
         format_sql: true
-        # Hibernate valida y consulta las tablas en el schema sigra, no en public (currentSchema de la URL no basta).
-        default_schema: sigra
+        # Cambiado a public para que coincida con Neon
+        default_schema: public
 
 server:
   port: ${SERVER_PORT:8080}
