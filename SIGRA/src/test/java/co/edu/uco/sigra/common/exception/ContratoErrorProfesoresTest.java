@@ -5,7 +5,6 @@ import co.edu.uco.sigra.profesores.exception.CampoNoModificableException;
 import co.edu.uco.sigra.profesores.exception.CorreoDuplicadoException;
 import co.edu.uco.sigra.profesores.exception.ProfesorNoEncontradoException;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,11 +53,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  *   <li><strong>Lo que el advice transversal no puede tocar</strong> — se comprueba, por reflexión
  *       sobre los tipos que declara, que no tiene manejador para ninguna excepción de dominio de
  *       {@code profesores} ni un catch-all. Es la prueba de no interferencia, y se hace así a
- *       propósito: ver el código HTTP de esas excepciones no sirve hoy, porque H-02 las deja en 500
- *       por una razón ajena a este cambio.</li>
- *   <li><strong>Lo que debería pasar y no pasa</strong> — las tres excepciones de dominio deberían
- *       dar 404, 409 y 400. Esas pruebas están escritas y {@code @Disabled} con el número de
- *       hallazgo y el dueño, listas para que las habilite al corregir.</li>
+ *       propósito: confirmar que el advice transversal no intercepte excepciones propias de
+ *       {@code profesores}.</li>
+ *   <li><strong>Lo que debe conservarse</strong> — las tres excepciones de dominio dan 404, 409 y
+ *       400 de forma determinista porque {@code ProfesorExceptionHandler} declara
+ *       {@code @Order(Ordered.HIGHEST_PRECEDENCE)}. Estas pruebas permanecen activas como
+ *       regresión del cierre de H-02.</li>
  * </ul>
  *
  * <p>{@code @WebMvcTest} carga <strong>todos</strong> los {@code @ControllerAdvice} del proyecto, que
@@ -231,26 +231,8 @@ class ContratoErrorProfesoresTest {
         }
     }
 
-    /**
-     * Comportamiento correcto según el spec, que hoy no se cumple por <strong>H-02</strong>.
-     *
-     * <p>{@code ProfesorExceptionHandler} no declara {@code @Order}, así que queda en
-     * {@code LOWEST_PRECEDENCE} empatado con {@code GlobalExceptionHandler}, que sí declara
-     * {@code Exception}. El desempate lo decide el orden de escaneo del classpath y en esta máquina
-     * lo gana el global: las tres excepciones de dominio salen como <strong>500</strong> en lugar de
-     * 404, 409 y 400.
-     *
-     * <p>Comprobado que es ajeno a este cambio: las tres responden 500 igual con
-     * {@code ManejadorErroresTransversal} retirado del árbol. La corrección es una línea en el advice
-     * de {@code profesores} —{@code @Order(Ordered.HIGHEST_PRECEDENCE)}— y le corresponde a su dueño.
-     *
-     * <p>Para habilitarlas: quitar el {@code @Disabled} de esta clase después de corregir.
-     */
     @Nested
-    @Disabled("H-02 (media) — ProfesorExceptionHandler, dueño: Jean Paul. Empata en LOWEST_PRECEDENCE "
-            + "con GlobalExceptionHandler, que declara Exception, y el desempate lo decide el "
-            + "classpath. Corrección: @Order(Ordered.HIGHEST_PRECEDENCE) en el advice de profesores.")
-    @DisplayName("H-02: las excepciones de dominio de profesores deben conservar su código HTTP")
+    @DisplayName("H-02 cerrado: las excepciones de dominio de profesores conservan su código HTTP")
     class HallazgoH02PrecedenciaDeProfesores {
 
         @Test

@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estudiantes.repository;
 
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,4 +35,41 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
                or lower(e.numeroDocumento) like concat('%', lower(:criterio), '%')
             """)
     List<Estudiante> buscarPorNombreODocumento(@Param("criterio") String criterio);
+
+    @Query("""
+            select distinct e from Estudiante e, Matricula m, AsignacionDocente a
+            where e.id = m.estudiante.id
+              and a.asignatura.id = m.asignatura.id
+              and a.profesor.id = :profesorId
+              and m.estado = :matriculaEstado
+              and a.estado = :asignacionEstado
+              and e.estado = :estudianteEstado
+            and (:criterio = ''
+                   or lower(e.nombreCompleto) like concat('%', lower(:criterio), '%')
+                   or lower(e.numeroDocumento) like concat('%', lower(:criterio), '%'))
+            order by e.nombreCompleto
+            """)
+    List<Estudiante> buscarVisiblesParaProfesor(@Param("profesorId") UUID profesorId,
+                                                @Param("criterio") String criterio,
+                                                @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                                @Param("asignacionEstado") EstadoRegistro asignacionEstado,
+                                                @Param("estudianteEstado") EstadoRegistro estudianteEstado);
+
+    /** Comprueba alcance puntual sin materializar todos los estudiantes visibles del profesor. */
+    @Query("""
+            select case when count(e) > 0 then true else false end
+            from Estudiante e, Matricula m, AsignacionDocente a
+            where e.id = :estudianteId
+              and e.id = m.estudiante.id
+              and a.asignatura.id = m.asignatura.id
+              and a.profesor.id = :profesorId
+              and m.estado = :matriculaEstado
+              and a.estado = :asignacionEstado
+              and e.estado = :estudianteEstado
+            """)
+    boolean existsVisibleToProfessor(@Param("estudianteId") UUID estudianteId,
+                                     @Param("profesorId") UUID profesorId,
+                                     @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                     @Param("asignacionEstado") EstadoRegistro asignacionEstado,
+                                     @Param("estudianteEstado") EstadoRegistro estudianteEstado);
 }

@@ -3,7 +3,9 @@ package co.edu.uco.sigra.estudiantes.service;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
@@ -20,6 +22,7 @@ import co.edu.uco.sigra.semestres.entity.EstadoSemestre;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.semestres.repository.SemestreRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +31,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -68,6 +74,14 @@ class MatriculaServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                new UsuarioPrincipal(UUID.randomUUID(), "admin@uco.net.co", RolUsuario.ADMINISTRADOR),
+                null, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
+    }
+
+    @AfterEach
+    void limpiarIdentidad() {
+        SecurityContextHolder.clearContext();
     }
 
     private static Estudiante estudiante(EstadoRegistro estado) {

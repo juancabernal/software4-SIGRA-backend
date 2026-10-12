@@ -1,0 +1,20 @@
+meta {
+  name: 06 Administrador accede a catálogo
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/programas
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isArray
+}

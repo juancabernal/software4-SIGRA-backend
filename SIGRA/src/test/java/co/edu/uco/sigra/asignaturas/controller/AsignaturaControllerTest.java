@@ -14,6 +14,9 @@ import co.edu.uco.sigra.asignaturas.exception.ProgramaNoEncontradoException;
 import co.edu.uco.sigra.asignaturas.exception.RangoRaInvalidoException;
 import co.edu.uco.sigra.asignaturas.exception.TransicionEstadoInvalidaException;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.common.enums.RolUsuario;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.lang.reflect.RecordComponent;
 import java.util.Arrays;
@@ -70,12 +76,21 @@ class AsignaturaControllerTest {
 
     @BeforeEach
     void setUp() {
+        UsuarioPrincipal principal = new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co",
+                RolUsuario.ADMINISTRADOR);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                principal, null, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
         mockMvc = MockMvcBuilders.standaloneSetup(new AsignaturaController(service))
                 .setControllerAdvice(new AsignaturaExceptionHandler())
                 .setValidator(validator)
                 .build();
+    }
+
+    @AfterEach
+    void limpiarContexto() {
+        SecurityContextHolder.clearContext();
     }
 
     private static AsignaturaResponseDTO respuesta(String codigo, EstadoAsignatura estado, long cantidadRa) {
@@ -215,7 +230,7 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Sin filtros devuelve 200 con la lista")
         void sinFiltros() throws Exception {
-            when(service.consultar(new AsignaturaFiltroDTO(null, null, null, null, null)))
+            when(service.consultar(any(AsignaturaFiltroDTO.class), any(UsuarioPrincipal.class)))
                     .thenReturn(List.of(respuesta(CODIGO, EstadoAsignatura.ACTIVA, 6),
                             respuesta("BD2", EstadoAsignatura.BORRADOR, 0)));
 
@@ -229,7 +244,7 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Sin registros devuelve 200 y una lista vacía")
         void sinRegistros() throws Exception {
-            when(service.consultar(any(AsignaturaFiltroDTO.class))).thenReturn(List.of());
+            when(service.consultar(any(AsignaturaFiltroDTO.class), any(UsuarioPrincipal.class))).thenReturn(List.of());
 
             mockMvc.perform(get(URL))
                     .andExpect(status().isOk())
@@ -239,7 +254,7 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Envía al servicio todos los filtros recibidos")
         void conTodosLosFiltros() throws Exception {
-            when(service.consultar(any(AsignaturaFiltroDTO.class))).thenReturn(List.of());
+            when(service.consultar(any(AsignaturaFiltroDTO.class), any(UsuarioPrincipal.class))).thenReturn(List.of());
 
             mockMvc.perform(get(URL)
                             .param("texto", "software")
@@ -250,7 +265,7 @@ class AsignaturaControllerTest {
                     .andExpect(status().isOk());
 
             ArgumentCaptor<AsignaturaFiltroDTO> captor = ArgumentCaptor.forClass(AsignaturaFiltroDTO.class);
-            verify(service).consultar(captor.capture());
+            verify(service).consultar(captor.capture(), any(UsuarioPrincipal.class));
             assertThat(captor.getValue())
                     .isEqualTo(new AsignaturaFiltroDTO("software", ID_PROGRAMA, EstadoAsignatura.ACTIVA, 5, 7));
         }
@@ -276,7 +291,7 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Un filtro inválido devuelve 400 con el mensaje")
         void filtroInvalido() throws Exception {
-            when(service.consultar(any(AsignaturaFiltroDTO.class)))
+            when(service.consultar(any(AsignaturaFiltroDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new FiltroInvalidoException("La cantidad mínima de RA no puede ser mayor que la máxima."));
 
             mockMvc.perform(get(URL).param("raMin", "7").param("raMax", "5"))
@@ -292,7 +307,8 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Existente devuelve 200")
         void existente() throws Exception {
-            when(service.obtenerAsignatura(ID)).thenReturn(respuesta(CODIGO, EstadoAsignatura.ACTIVA, 5));
+            when(service.obtenerAsignatura(eq(ID), any(UsuarioPrincipal.class)))
+                    .thenReturn(respuesta(CODIGO, EstadoAsignatura.ACTIVA, 5));
 
             mockMvc.perform(get(URL_ID))
                     .andExpect(status().isOk())
@@ -303,7 +319,8 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Inexistente devuelve 404")
         void inexistente() throws Exception {
-            when(service.obtenerAsignatura(ID)).thenThrow(new AsignaturaNoEncontradaException(ID));
+            when(service.obtenerAsignatura(eq(ID), any(UsuarioPrincipal.class)))
+                    .thenThrow(new AsignaturaNoEncontradaException(ID));
 
             mockMvc.perform(get(URL_ID))
                     .andExpect(status().isNotFound())
@@ -468,7 +485,7 @@ class AsignaturaControllerTest {
     @DisplayName("Un error inesperado no lo convierte este manejador: lo atiende el manejador global")
     void errorInesperadoLoAtiendeElManejadorGlobal() {
         RuntimeException original = new RuntimeException("error inesperado");
-        when(service.obtenerAsignatura(ID)).thenThrow(original);
+        when(service.obtenerAsignatura(eq(ID), any(UsuarioPrincipal.class))).thenThrow(original);
 
         assertThatThrownBy(() -> mockMvc.perform(get(URL_ID)))
                 .rootCause()

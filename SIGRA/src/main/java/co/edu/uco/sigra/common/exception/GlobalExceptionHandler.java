@@ -75,7 +75,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> manejarErrorGenerico(Exception ex) {
         // El detalle técnico (SQL, Hibernate, trazas) va solo al log del servidor, nunca a la respuesta (RNF-17).
-        log.error("Error inesperado no controlado", ex);
+        log.error("Evento error=UNEXPECTED requestId={} causa={}",
+                co.edu.uco.sigra.auth.security.RequestCorrelationFilter.currentRequestId(),
+                ex.getClass().getSimpleName());
         return ErrorResponseBuilder.build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
                 "Ocurrió un error inesperado en el servidor", null);
     }

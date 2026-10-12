@@ -5,6 +5,8 @@
 # Trabajo 2 - pruebas de integración: levanta PostgreSQL 16, crea el esquema sigra desde
 #   docs/db/SIGRA_SCHEMA_CURRENT.sql y ejecuta ./gradlew integrationTest con ddl-auto=validate.
 #   Si falta una tabla o columna para alguna entidad, este trabajo falla.
+# Trabajo 3 - SCA en pull requests: dependency-review-action bloquea cambios con
+#   dependencias de severidad moderada o superior.
 #
 # Secretos (opcionales): CI_DB_PASSWORD y CI_JWT_SECRET en Settings > Secrets and variables > Actions.
 # Si no existen se usan los valores de respaldo de abajo, que son desechables y viven solo
@@ -19,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -29,6 +32,20 @@ defaults:
     working-directory: SIGRA
 
 jobs:
+  analisis-dependencias:
+    name: SCA de dependencias
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Revisar cambios de dependencias
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+
   pruebas-unitarias:
     name: Pruebas unitarias
     runs-on: ubuntu-latest
