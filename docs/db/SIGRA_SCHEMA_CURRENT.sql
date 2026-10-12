@@ -226,6 +226,29 @@ CREATE TABLE IF NOT EXISTS sigra.conclusion (
 CREATE INDEX IF NOT EXISTS idx_conclusion_ra_semestre ON sigra.conclusion (resultado_aprendizaje_id, semestre_id);
 
 -- -----------------------------------------------------------------------------
+-- Acción de mejora (RF-17): propuesta sobre una conclusión, convertible luego en evaluación (RF-18).
+-- evaluacion_generada_id no tiene FK: la evaluación real la crea el módulo evaluaciones, que todavía
+-- no existe; cuando exista, este id apuntará a su tabla sin necesidad de migrar una foreign key.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.accion_mejora (
+    id                        UUID         NOT NULL DEFAULT gen_random_uuid(),
+    nombre                    VARCHAR(150) NOT NULL,
+    descripcion               VARCHAR(500) NOT NULL,
+    fecha_propuesta           TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    resultado_aprendizaje_id  UUID         NOT NULL,
+    conclusion_origen_id      UUID         NOT NULL,
+    evaluacion_generada_id    UUID,
+    CONSTRAINT accion_mejora_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_accion_mejora_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_accion_mejora_conclusion FOREIGN KEY (conclusion_origen_id)
+        REFERENCES sigra.conclusion (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_accion_mejora_ra ON sigra.accion_mejora (resultado_aprendizaje_id);
+CREATE INDEX IF NOT EXISTS idx_accion_mejora_conclusion ON sigra.accion_mejora (conclusion_origen_id);
+
+-- -----------------------------------------------------------------------------
 -- Nivel de logro por estudiante en un (RA, semestre) — DATO DE PRUEBA (RF-16).
 -- El equipo de Estadísticas todavía no calcula el nivel de logro real a partir de las
 -- calificaciones (módulo "calificaciones" sin implementar); esta tabla es el puente temporal que
