@@ -103,11 +103,6 @@ class ConclusionServiceImplTest {
         semestre2 = new Semestre();
         semestre2.setId(ID_SEMESTRE_2);
         semestre2.setCodigo("2026-1");
-
-        when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
-        when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
-        when(semestreRepository.findById(ID_SEMESTRE_2)).thenReturn(Optional.of(semestre2));
-        when(conclusionRepository.save(any(Conclusion.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     private void evaluados(UUID semestreId, long total, long enBajoOMedio) {
@@ -127,7 +122,10 @@ class ConclusionServiceImplTest {
         @Test
         @DisplayName("Con 2 calificaciones (menos del mínimo de 3) no genera por datos insuficientes")
         void datosInsuficientes() {
-            evaluados(ID_SEMESTRE, 2, 2);
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
+            // Con menos del mínimo se corta antes de consultar contarEnBajoOMedio: solo se stubea contarEvaluados.
+            when(proveedorNivelesLogro.contarEvaluados(ID_RA, ID_SEMESTRE)).thenReturn(2L);
 
             GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE);
 
@@ -142,6 +140,8 @@ class ConclusionServiceImplTest {
         @Test
         @DisplayName("Con 10 estudiantes y 4 en Bajo/Medio (40%) no genera: el umbral es estricto")
         void cuarentaPorCientoNoGenera() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
             sinVigentePrevia(ID_SEMESTRE);
             evaluados(ID_SEMESTRE, 10, 4);
 
@@ -155,6 +155,9 @@ class ConclusionServiceImplTest {
         @Test
         @DisplayName("Con 10 estudiantes y 5 en Bajo/Medio (50%) genera una conclusión Vigente")
         void cincuentaPorCientoGenera() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
+            when(conclusionRepository.save(any(Conclusion.class))).thenAnswer(inv -> inv.getArgument(0));
             sinVigentePrevia(ID_SEMESTRE);
             evaluados(ID_SEMESTRE, 10, 5);
 
@@ -175,7 +178,10 @@ class ConclusionServiceImplTest {
         @Test
         @DisplayName("Con una conclusión Vigente previa para el mismo (RA, semestre) no duplica")
         void yaExisteVigenteNoDuplica() {
-            evaluados(ID_SEMESTRE, 10, 7);
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
+            // Se corta por la Vigente previa antes de llegar a contarEnBajoOMedio: solo se stubea contarEvaluados.
+            when(proveedorNivelesLogro.contarEvaluados(ID_RA, ID_SEMESTRE)).thenReturn(10L);
             Conclusion existente = new Conclusion(resultadoAprendizaje, semestre, 70.0);
             when(conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
                     ID_RA, ID_SEMESTRE, EstadoConclusion.VIGENTE)).thenReturn(Optional.of(existente));
@@ -190,6 +196,9 @@ class ConclusionServiceImplTest {
         @Test
         @DisplayName("En un semestre nuevo, aunque haya una Atendida en uno anterior, se genera otra")
         void otroSemestreGeneraNueva() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE_2)).thenReturn(Optional.of(semestre2));
+            when(conclusionRepository.save(any(Conclusion.class))).thenAnswer(inv -> inv.getArgument(0));
             // La Vigente previa (si la hay) es de otro semestre: la búsqueda del semestre nuevo no la encuentra.
             sinVigentePrevia(ID_SEMESTRE_2);
             evaluados(ID_SEMESTRE_2, 10, 6);
@@ -214,6 +223,7 @@ class ConclusionServiceImplTest {
         @Test
         @DisplayName("Con un semestre inexistente falla y no evalúa nada")
         void semestreInexistente() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
             when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.generarConclusion(ID_RA, ID_SEMESTRE))
