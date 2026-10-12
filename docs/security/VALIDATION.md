@@ -16,7 +16,7 @@ los reportes previos no se reutilizan como evidencia de este SHA.
 | `git diff --check` | PASS | Sin errores de whitespace con `core.whitespace=cr-at-eol`; permanecen solo advertencias informativas de conversión LF/CRLF. |
 | Secretos y artefactos | PASS | `SIGRA/.env` está ignorado y no trackeado. El JAR no contiene `.env`, `.git`, `build`, `.gradle` ni logs. No se generó ZIP compartible. |
 | CI remoto | BLOCKED | No hay commit candidato publicado en esta pasada; no se ejecutaron jobs remotos ni se abrió PR. |
-| SCA | BLOCKED | El workflow configura `actions/dependency-review-action@v4` con umbral `moderate` solo para cambios de dependencias del PR. Se generó inventario Gradle runtime, pero no se ejecutó un scanner integral ni se puede declarar vulnerabilidades PASS/FAIL. |
+| SCA | PENDIENTE DE EJECUCIÓN REMOTA | El workflow conserva `actions/dependency-review-action@v4` con umbral `moderate` y añade `dependencyCheckAnalyze` de OWASP para Gradle con umbral CVSS 4.0 y `failOnError=true`. El scanner bloquea ante vulnerabilidades moderadas o superiores y ante fallos de actualización NVD; falta observar el job en GitHub sobre este commit. |
 
 ## Criterio de cierre
 
@@ -31,4 +31,7 @@ no pudo crear el lock en la caché global por permisos; se utilizó la distribuc
 sin descargar dependencias.
 
 El inventario runtime se conserva en `SIGRA/build/evidence/runtime-dependencies-2026-10-11.txt`.
+El secreto `NVD_API_KEY` debe configurarse en GitHub Actions para que la versión actual del
+cliente NVD pueda actualizar su base; si falta o es inválido, el job queda bloqueado por
+`failOnError=true` y no se transforma en PASS.
 Los reportes de la corrida limpia se conservan en `SIGRA/build/evidence/clean-test-2026-10-11`.
