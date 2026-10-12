@@ -3,6 +3,7 @@ package co.edu.uco.sigra.estudiantes.controller;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.exception.AsercionesContratoError;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
@@ -31,6 +32,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import tools.jackson.databind.JsonNode;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -69,6 +71,9 @@ class MatriculaControllerTest {
     private static final UUID ID_SEMESTRE = UUID.fromString("33333333-3333-3333-3333-333333333333");
     private static final UUID ID_MATRICULA = UUID.fromString("44444444-4444-4444-4444-444444444444");
 
+    /** Fecha que trae la matrícula devuelta por el servicio mockeado: la fija el sistema, no el cliente. */
+    private static final LocalDate FECHA_MATRICULA = LocalDate.of(2026, 3, 2);
+
     private static final String CUERPO_VALIDO = """
             {
               "estudianteId": "11111111-1111-1111-1111-111111111111",
@@ -84,7 +89,7 @@ class MatriculaControllerTest {
     private MatriculaService matriculaService;
 
     private static Matricula matriculaCompleta(UUID id, UUID estudianteId, UUID asignaturaId, UUID semestreId,
-                                                 EstadoRegistro estado) {
+                                                 EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         ReflectionTestUtils.setField(estudiante, "id", estudianteId);
         estudiante.setNumeroDocumento("1098765432");
@@ -103,12 +108,13 @@ class MatriculaControllerTest {
         matricula.setEstudiante(estudiante);
         matricula.setAsignatura(asignatura);
         matricula.setSemestre(semestre);
+        matricula.setFechaMatricula(FECHA_MATRICULA);
         matricula.setEstado(estado);
         return matricula;
     }
 
     private static Matricula matriculaDeListado(UUID id, String numeroDocumento, String nombreCompleto,
-                                                  EstadoRegistro estado) {
+                                                  EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         estudiante.setNumeroDocumento(numeroDocumento);
         estudiante.setNombreCompleto(nombreCompleto);
@@ -116,6 +122,7 @@ class MatriculaControllerTest {
         Matricula matricula = new Matricula();
         matricula.setId(id);
         matricula.setEstudiante(estudiante);
+        matricula.setFechaMatricula(FECHA_MATRICULA);
         matricula.setEstado(estado);
         return matricula;
     }
@@ -128,7 +135,7 @@ class MatriculaControllerTest {
         @DisplayName("Cuerpo válido y matrícula nueva devuelve 201 con la matrícula creada")
         void cuerpoValidoMatriculaNuevaDevuelve201() throws Exception {
             Matricula matricula = matriculaCompleta(ID_MATRICULA, ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE,
-                    EstadoRegistro.ACTIVO);
+                    EstadoMatricula.ACTIVA);
             given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .willReturn(new ResultadoMatricula(matricula, false));
 
@@ -140,14 +147,15 @@ class MatriculaControllerTest {
                     .andExpect(jsonPath("$.estudianteId").value(ID_ESTUDIANTE.toString()))
                     .andExpect(jsonPath("$.asignaturaId").value(ID_ASIGNATURA.toString()))
                     .andExpect(jsonPath("$.semestreId").value(ID_SEMESTRE.toString()))
-                    .andExpect(jsonPath("$.estado").value("ACTIVO"));
+                    .andExpect(jsonPath("$.fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$.estado").value("ACTIVA"));
         }
 
         @Test
         @DisplayName("Cuerpo válido y matrícula reactivada devuelve 200, no 201")
         void cuerpoValidoMatriculaReactivadaDevuelve200() throws Exception {
             Matricula matricula = matriculaCompleta(ID_MATRICULA, ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE,
-                    EstadoRegistro.ACTIVO);
+                    EstadoMatricula.ACTIVA);
             given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .willReturn(new ResultadoMatricula(matricula, true));
 
@@ -156,7 +164,34 @@ class MatriculaControllerTest {
                             .content(CUERPO_VALIDO))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(ID_MATRICULA.toString()))
-                    .andExpect(jsonPath("$.estado").value("ACTIVO"));
+                    .andExpect(jsonPath("$.fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$.estado").value("ACTIVA"));
+        }
+
+        @Test
+        @DisplayName("Una fecha enviada en el cuerpo se ignora: la matrícula se crea con la del sistema")
+        void fechaEnviadaPorElClienteSeIgnora() throws Exception {
+            String cuerpoConFechaPropia = """
+                    {
+                      "estudianteId": "11111111-1111-1111-1111-111111111111",
+                      "asignaturaId": "22222222-2222-2222-2222-222222222222",
+                      "semestreId": "33333333-3333-3333-3333-333333333333",
+                      "fechaMatricula": "1999-01-01"
+                    }
+                    """;
+            Matricula matricula = matriculaCompleta(ID_MATRICULA, ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE,
+                    EstadoMatricula.ACTIVA);
+            given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
+                    .willReturn(new ResultadoMatricula(matricula, false));
+
+            mockMvc.perform(post(RUTA)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoConFechaPropia))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.fechaMatricula").value("2026-03-02"));
+
+            // El contrato de entrada no tiene fecha: el servicio recibe solo la terna.
+            verify(matriculaService).matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
         }
 
         @Test
@@ -324,7 +359,8 @@ class MatriculaControllerTest {
         @Test
         @DisplayName("Sin incluirInactivas devuelve 200 y llama al servicio con incluirInactivas=false")
         void sinIncluirInactivasDevuelve200() throws Exception {
-            Matricula matricula = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez", EstadoRegistro.ACTIVO);
+            Matricula matricula = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez",
+                    EstadoMatricula.ACTIVA);
             given(matriculaService.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false))
                     .willReturn(List.of(matricula));
 
@@ -336,7 +372,8 @@ class MatriculaControllerTest {
                     .andExpect(jsonPath("$[0].matriculaId").value(ID_MATRICULA.toString()))
                     .andExpect(jsonPath("$[0].numeroDocumento").value("1098765432"))
                     .andExpect(jsonPath("$[0].nombreCompleto").value("Ana Gómez"))
-                    .andExpect(jsonPath("$[0].estado").value("ACTIVO"));
+                    .andExpect(jsonPath("$[0].fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$[0].estado").value("ACTIVA"));
 
             verify(matriculaService).listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false);
         }
@@ -344,14 +381,18 @@ class MatriculaControllerTest {
         @Test
         @DisplayName("Con incluirInactivas=true llama al servicio con ese valor")
         void conIncluirInactivasDevuelve200() throws Exception {
+            Matricula desvinculada = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez",
+                    EstadoMatricula.DESVINCULADA);
             given(matriculaService.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, true))
-                    .willReturn(List.of());
+                    .willReturn(List.of(desvinculada));
 
             mockMvc.perform(get(RUTA)
                             .param("asignaturaId", ID_ASIGNATURA.toString())
                             .param("semestreId", ID_SEMESTRE.toString())
                             .param("incluirInactivas", "true"))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$[0].estado").value("DESVINCULADA"));
 
             verify(matriculaService).listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, true);
         }

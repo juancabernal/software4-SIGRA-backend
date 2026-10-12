@@ -3,6 +3,7 @@ package co.edu.uco.sigra.asignaturas.repository;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,7 +34,7 @@ public interface AsignaturaRepository extends JpaRepository<Asignatura, UUID> {
             + "(select m.asignatura.id from Matricula m "
             + "where m.estudiante.id = :estudianteId and m.estado = :estado)")
     List<Asignatura> findMatriculadasPorEstudiante(@Param("estudianteId") UUID estudianteId,
-                                                   @Param("estado") EstadoRegistro estado);
+                                                   @Param("estado") EstadoMatricula estado);
 
     @Query("select r.asignatura.id as asignaturaId, count(r) as cantidad from ResultadoAprendizaje r "
             + "where r.asignatura.id in :ids and r.estado = :estado group by r.asignatura.id")
@@ -42,7 +43,7 @@ public interface AsignaturaRepository extends JpaRepository<Asignatura, UUID> {
     @Query("select m.asignatura.id as asignaturaId, count(m) as cantidad from Matricula m "
             + "where m.asignatura.id in :ids and m.estado = :estado group by m.asignatura.id")
     List<ConteoPorAsignatura> contarMatriculasDe(@Param("ids") Collection<UUID> ids,
-                                                 @Param("estado") EstadoRegistro estado);
+                                                 @Param("estado") EstadoMatricula estado);
 
     @Query("select ad.asignatura.id as asignaturaId, p.nombreCompleto as nombre from AsignacionDocente ad "
             + "join ad.profesor p where ad.asignatura.id in :ids and ad.estado = :estado "

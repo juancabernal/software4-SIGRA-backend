@@ -4,6 +4,7 @@ import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
@@ -29,7 +30,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +54,9 @@ class MatriculaServiceImplTest {
     private static final String CODIGO_ASIGNATURA = "ASIG-001";
     private static final String NOMBRE_ASIGNATURA = "Cálculo I";
     private static final String CODIGO_SEMESTRE = "2024-1";
+    private static final ZoneId ZONA = ZoneId.of("America/Bogota");
+    private static final LocalDate HOY = LocalDate.of(2024, 3, 15);
+    private static final LocalDate OTRO_DIA = LocalDate.of(2024, 4, 2);
 
     @Mock
     private MatriculaRepository matriculaRepository;
@@ -63,11 +70,14 @@ class MatriculaServiceImplTest {
     @Mock
     private SemestreRepository semestreRepository;
 
+    private RelojAjustable reloj;
+
     private MatriculaServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository);
+        reloj = new RelojAjustable(HOY);
+        service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository, reloj);
     }
 
     private static Estudiante estudiante(EstadoRegistro estado) {
@@ -88,18 +98,19 @@ class MatriculaServiceImplTest {
         Semestre s = new Semestre();
         s.setId(ID_SEMESTRE);
         s.setCodigo(CODIGO_SEMESTRE);
-        s.setFechaInicio(LocalDate.now().minusMonths(1));
-        s.setFechaFin(LocalDate.now().plusMonths(1));
+        s.setFechaInicio(HOY.minusMonths(1));
+        s.setFechaFin(HOY.plusMonths(1));
         s.setEstado(estado);
         return s;
     }
 
-    private static Matricula matricula(UUID id, Estudiante estudiante, Asignatura asignatura, Semestre semestre, EstadoRegistro estado) {
+    private static Matricula matricula(UUID id, Estudiante estudiante, Asignatura asignatura, Semestre semestre, EstadoMatricula estado) {
         Matricula m = new Matricula();
         m.setId(id);
         m.setEstudiante(estudiante);
         m.setAsignatura(asignatura);
         m.setSemestre(semestre);
+        m.setFechaMatricula(HOY);
         m.setEstado(estado);
         return m;
     }
@@ -131,7 +142,7 @@ class MatriculaServiceImplTest {
 
             ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
             verify(matriculaRepository).save(captor.capture());
-            assertThat(captor.getValue().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+            assertThat(captor.getValue().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
             assertThat(captor.getValue().getEstudiante().getId()).isEqualTo(ID_ESTUDIANTE);
             assertThat(captor.getValue().getAsignatura().getId()).isEqualTo(ID_ASIGNATURA);
             assertThat(captor.getValue().getSemestre().getId()).isEqualTo(ID_SEMESTRE);
@@ -236,7 +247,7 @@ class MatriculaServiceImplTest {
         void ternaConMatriculaActivaExistente() {
             stubTresActivos();
             Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
-                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoRegistro.ACTIVO);
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.ACTIVA);
             when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.of(existente));
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
@@ -249,11 +260,11 @@ class MatriculaServiceImplTest {
         }
 
         @Test
-        @DisplayName("Con la terna retirada (INACTIVA) existente, reactiva la misma matrícula en lugar de crear una nueva")
+        @DisplayName("Con la terna retirada (DESVINCULADA) existente, reactiva la misma matrícula en lugar de crear una nueva")
         void ternaConMatriculaInactivaExistenteSeReactiva() {
             stubTresActivos();
             Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
-                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoRegistro.INACTIVO);
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.DESVINCULADA);
             when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.of(existente));
             when(matriculaRepository.save(any(Matricula.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -261,12 +272,12 @@ class MatriculaServiceImplTest {
 
             assertThat(resultado.reactivada()).isTrue();
             assertThat(resultado.matricula().getId()).isEqualTo(ID_MATRICULA);
-            assertThat(resultado.matricula().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+            assertThat(resultado.matricula().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
 
             ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
             verify(matriculaRepository, times(1)).save(captor.capture());
             assertThat(captor.getValue()).isSameAs(existente);
-            assertThat(captor.getValue().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+            assertThat(captor.getValue().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
         }
 
         @Test
@@ -285,6 +296,67 @@ class MatriculaServiceImplTest {
             verify(asignaturaRepository, never()).delete(any());
             verify(semestreRepository, never()).delete(any());
         }
+
+        @Test
+        @DisplayName("Al crear la matrícula le queda la fecha del reloj, no una fecha del cliente")
+        void fechaDeCreacionLaPoneElReloj() {
+            stubTresActivos();
+            when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.empty());
+            saveDevuelveArgumento();
+
+            ResultadoMatricula resultado = service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
+
+            assertThat(resultado.matricula().getFechaMatricula()).isEqualTo(HOY);
+
+            ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
+            verify(matriculaRepository).save(captor.capture());
+            assertThat(captor.getValue().getFechaMatricula()).isEqualTo(HOY);
+        }
+
+        @Test
+        @DisplayName("Al reactivar una matrícula retirada, su fecha pasa a ser la del día de la rematrícula")
+        void reactivacionActualizaLaFecha() {
+            stubTresActivos();
+            Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.DESVINCULADA);
+            when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.of(existente));
+            saveDevuelveArgumento();
+
+            // La matrícula original quedó con la fecha HOY; entre el retiro y la rematrícula pasan días.
+            assertThat(existente.getFechaMatricula()).isEqualTo(HOY);
+            reloj.moverA(OTRO_DIA);
+
+            ResultadoMatricula resultado = service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
+
+            assertThat(resultado.matricula().getFechaMatricula()).isEqualTo(OTRO_DIA);
+
+            ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
+            verify(matriculaRepository).save(captor.capture());
+            assertThat(captor.getValue().getFechaMatricula())
+                    .isEqualTo(OTRO_DIA)
+                    .isNotEqualTo(HOY);
+        }
+
+        @Test
+        @DisplayName("La matrícula reactivada conserva su identificador original aunque su fecha cambie")
+        void reactivacionConservaElIdentificador() {
+            stubTresActivos();
+            Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.DESVINCULADA);
+            when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.of(existente));
+            saveDevuelveArgumento();
+
+            reloj.moverA(OTRO_DIA);
+
+            ResultadoMatricula resultado = service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
+
+            assertThat(resultado.matricula().getId()).isEqualTo(ID_MATRICULA);
+
+            ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
+            verify(matriculaRepository, times(1)).save(captor.capture());
+            assertThat(captor.getValue().getId()).isEqualTo(ID_MATRICULA);
+            assertThat(captor.getValue()).isSameAs(existente);
+        }
     }
 
     @Nested
@@ -292,10 +364,10 @@ class MatriculaServiceImplTest {
     class Desvincular {
 
         @Test
-        @DisplayName("Con una matrícula ACTIVA la pasa a INACTIVA")
+        @DisplayName("Con una matrícula ACTIVA la pasa a DESVINCULADA")
         void matriculaActiva() {
             Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
-                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoRegistro.ACTIVO);
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.ACTIVA);
             when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
             saveDevuelveArgumento();
 
@@ -304,7 +376,7 @@ class MatriculaServiceImplTest {
             ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
             verify(matriculaRepository, times(1)).save(captor.capture());
             assertThat(captor.getValue().getId()).isEqualTo(ID_MATRICULA);
-            assertThat(captor.getValue().getEstado()).isEqualTo(EstadoRegistro.INACTIVO);
+            assertThat(captor.getValue().getEstado()).isEqualTo(EstadoMatricula.DESVINCULADA);
 
             verify(matriculaRepository, never()).delete(any());
             verify(matriculaRepository, never()).deleteById(any());
@@ -324,10 +396,10 @@ class MatriculaServiceImplTest {
         }
 
         @Test
-        @DisplayName("Con una matrícula ya INACTIVA lanza excepción y no guarda")
+        @DisplayName("Con una matrícula ya DESVINCULADA lanza excepción y no guarda")
         void matriculaYaInactiva() {
             Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
-                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoRegistro.INACTIVO);
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.DESVINCULADA);
             when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
 
             assertThatThrownBy(() -> service.desvincular(ID_MATRICULA))
@@ -366,18 +438,18 @@ class MatriculaServiceImplTest {
         }
 
         @Test
-        @DisplayName("Con incluirInactivas en false delega la consulta con el estado ACTIVO")
+        @DisplayName("Con incluirInactivas en false delega la consulta con el estado ACTIVA")
         void incluirInactivasFalse() {
             when(asignaturaRepository.existsById(ID_ASIGNATURA)).thenReturn(true);
             when(semestreRepository.existsById(ID_SEMESTRE)).thenReturn(true);
-            when(matriculaRepository.buscarPorAsignaturaYSemestre(ID_ASIGNATURA, ID_SEMESTRE, EstadoRegistro.ACTIVO))
+            when(matriculaRepository.buscarPorAsignaturaYSemestre(ID_ASIGNATURA, ID_SEMESTRE, EstadoMatricula.ACTIVA))
                     .thenReturn(List.of(matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
-                            asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoRegistro.ACTIVO)));
+                            asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.ACTIVA)));
 
             List<Matricula> resultado = service.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false);
 
             assertThat(resultado).hasSize(1);
-            verify(matriculaRepository).buscarPorAsignaturaYSemestre(ID_ASIGNATURA, ID_SEMESTRE, EstadoRegistro.ACTIVO);
+            verify(matriculaRepository).buscarPorAsignaturaYSemestre(ID_ASIGNATURA, ID_SEMESTRE, EstadoMatricula.ACTIVA);
         }
 
         @Test
@@ -398,7 +470,7 @@ class MatriculaServiceImplTest {
         void sinMatriculados() {
             when(asignaturaRepository.existsById(ID_ASIGNATURA)).thenReturn(true);
             when(semestreRepository.existsById(ID_SEMESTRE)).thenReturn(true);
-            when(matriculaRepository.buscarPorAsignaturaYSemestre(ID_ASIGNATURA, ID_SEMESTRE, EstadoRegistro.ACTIVO))
+            when(matriculaRepository.buscarPorAsignaturaYSemestre(ID_ASIGNATURA, ID_SEMESTRE, EstadoMatricula.ACTIVA))
                     .thenReturn(List.of());
 
             List<Matricula> resultado = service.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false);
@@ -427,9 +499,9 @@ class MatriculaServiceImplTest {
         @DisplayName("Con historial de varias matrículas devuelve la lista tal cual la entrega el repositorio")
         void historialConVariasMatriculas() {
             Matricula m1 = matricula(UUID.randomUUID(), estudiante(EstadoRegistro.ACTIVO),
-                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoRegistro.ACTIVO);
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.ACTIVA);
             Matricula m2 = matricula(UUID.randomUUID(), estudiante(EstadoRegistro.ACTIVO),
-                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.INACTIVO), EstadoRegistro.INACTIVO);
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.INACTIVO), EstadoMatricula.DESVINCULADA);
             when(estudianteRepository.existsById(ID_ESTUDIANTE)).thenReturn(true);
             when(matriculaRepository.buscarPorEstudiante(ID_ESTUDIANTE)).thenReturn(List.of(m1, m2));
 
@@ -447,6 +519,49 @@ class MatriculaServiceImplTest {
             List<Matricula> resultado = service.listarAsignaturasDeEstudiante(ID_ESTUDIANTE);
 
             assertThat(resultado).isEmpty();
+        }
+    }
+
+    private static Clock relojFijoEn(LocalDate dia) {
+        return Clock.fixed(dia.atStartOfDay(ZONA).toInstant(), ZONA);
+    }
+
+    /**
+     * Reloj fijo que además se puede mover a otro día.
+     * <p>
+     * Delega en {@link Clock#fixed(Instant, ZoneId)}, así que dentro de una prueba el tiempo no
+     * avanza por su cuenta y las fechas son deterministas. {@code moverA} lo repunta a otro día,
+     * que es lo que exige el caso de la rematrícula: hace falta un instante para la matrícula
+     * original y otro, en un día distinto, para la reactivación, sobre el mismo servicio.
+     * <p>
+     * Se recrea en cada {@code @BeforeEach}, así que no hay estado mutable compartido entre
+     * pruebas ni dependencia del orden.
+     */
+    private static final class RelojAjustable extends Clock {
+
+        private Clock delegado;
+
+        private RelojAjustable(LocalDate dia) {
+            this.delegado = relojFijoEn(dia);
+        }
+
+        private void moverA(LocalDate dia) {
+            this.delegado = relojFijoEn(dia);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return delegado.getZone();
+        }
+
+        @Override
+        public Clock withZone(ZoneId zona) {
+            return delegado.withZone(zona);
+        }
+
+        @Override
+        public Instant instant() {
+            return delegado.instant();
         }
     }
 }

@@ -6,6 +6,7 @@ import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
@@ -337,7 +338,7 @@ class EstudianteIntegracionIT {
         assertThat(documentos).containsExactly(numero);
         assertThat(estados).containsExactly("INACTIVO");
 
-        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
 
         MvcResult noEncontrado = enviar(delete(URL_ESTUDIANTES + "/" + UUID.randomUUID()), null);
         assertThat(noEncontrado.getResponse().getStatus()).isEqualTo(404);
@@ -360,7 +361,7 @@ class EstudianteIntegracionIT {
                 jsonMatricula(estudianteId, asignaturaActiva.getId(), semestre1.getId()));
         assertThat(matricula.getResponse().getStatus()).isEqualTo(201);
         UUID matriculaId = UUID.fromString(JsonPath.read(cuerpo(matricula), "$.id"));
-        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
 
         // Terna duplicada (activa): 409, mensaje de MatriculaDuplicadaException, sin fila nueva.
         MvcResult duplicada = enviar(post(URL_MATRICULAS),
@@ -372,7 +373,7 @@ class EstudianteIntegracionIT {
         Matricula ternaOriginal = matriculaRepository.buscarPorTerna(estudianteId, asignaturaActiva.getId(), semestre1.getId())
                 .orElseThrow();
         assertThat(ternaOriginal.getId()).isEqualTo(matriculaId);
-        assertThat(ternaOriginal.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(ternaOriginal.getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
 
         // Repitencia en otro semestre (terna distinta): 201.
         MvcResult repitencia = enviar(post(URL_MATRICULAS),
@@ -420,7 +421,7 @@ class EstudianteIntegracionIT {
         // Desvincular la matrícula original: 204, estado INACTIVO en la fila real.
         MvcResult desvinculada = enviar(delete(URL_MATRICULAS + "/" + matriculaId), null);
         assertThat(desvinculada.getResponse().getStatus()).isEqualTo(204);
-        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.INACTIVO);
+        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.DESVINCULADA);
 
         // Desvincularla otra vez: 409, mensaje de MatriculaYaInactivaException.
         MvcResult desvinculadaOtraVez = enviar(delete(URL_MATRICULAS + "/" + matriculaId), null);
@@ -438,7 +439,7 @@ class EstudianteIntegracionIT {
         Matricula ternaReactivada = matriculaRepository.buscarPorTerna(estudianteId, asignaturaActiva.getId(), semestre1.getId())
                 .orElseThrow();
         assertThat(ternaReactivada.getId()).isEqualTo(matriculaId);
-        assertThat(ternaReactivada.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(ternaReactivada.getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
     }
 
     // ---------------------------------------------------------------- utilidades
