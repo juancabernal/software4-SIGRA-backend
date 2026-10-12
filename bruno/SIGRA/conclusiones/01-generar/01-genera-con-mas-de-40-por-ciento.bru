@@ -1,0 +1,37 @@
+meta {
+  name: 01 Genera con mas de 40 por ciento en Bajo o Medio
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raConcMas40Id}}/semestres/{{semBruConcId}}/conclusiones
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.generada: eq true
+  res.body.motivo: eq Se generó una nueva conclusión.
+  res.body.conclusion.estado: eq VIGENTE
+  res.body.conclusion.mensaje: eq Nivel de logro insuficiente, se recomienda acción de mejora
+  res.body.conclusion.resultadoAprendizajeId: eq {{raConcMas40Id}}
+  res.body.conclusion.semestreId: eq {{semBruConcId}}
+  res.body.conclusion.tieneDatosSuficientes: eq true
+  res.body.conclusion.porcentajeInsuficiente: eq 60
+}
+
+script:post-response {
+  bru.setVar("conclusionVigenteId", res.body.conclusion.id);
+}
+
+tests {
+  test("devuelve el id de la conclusion generada", function () {
+    expect(res.body.conclusion.id).to.be.a("string").and.not.be.empty;
+  });
+}

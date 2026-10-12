@@ -1,0 +1,26 @@
+meta {
+  name: 02 Por asignatura
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/acciones-mejora?asignaturaId={{asignaturaBruConcId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  asignaturaId: {{asignaturaBruConcId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("solo trae acciones de mejora de la asignatura pedida", function () {
+    expect(res.body).to.be.an("array").with.length.at.least(1);
+    res.body.forEach((a) => expect(a.asignaturaId).to.equal(bru.getVar("asignaturaBruConcId")));
+  });
+}
