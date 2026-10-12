@@ -3,6 +3,7 @@ package co.edu.uco.sigra.auth.security;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.auth.service.AuthService;
 import co.edu.uco.sigra.common.service.TipoDocumentoService;
+import co.edu.uco.sigra.estadisticas.service.ConclusionService;
 import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
 import co.edu.uco.sigra.estudiantes.service.EstudianteService;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
@@ -74,6 +75,9 @@ class PrivateEndpointAuthorizationArchitectureTest {
 
     @MockitoBean
     private SemestreService semestreService;
+
+    @MockitoBean
+    private ConclusionService conclusionService;
 
     @Test
     void todosLosMappingsPrivadosDelContextoRealDeclaranPreAuthorize() {

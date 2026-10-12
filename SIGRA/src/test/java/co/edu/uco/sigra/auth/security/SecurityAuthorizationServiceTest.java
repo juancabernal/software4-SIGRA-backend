@@ -5,6 +5,10 @@ import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.estadisticas.entity.Conclusion;
+import co.edu.uco.sigra.resultadosaprendizaje.entity.ResultadoAprendizaje;
+import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 
 import java.util.UUID;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -24,6 +29,7 @@ class SecurityAuthorizationServiceTest {
     @Mock private AsignacionDocenteRepository asignacionDocenteRepository;
     @Mock private ResultadoAprendizajeRepository resultadoAprendizajeRepository;
     @Mock private MatriculaRepository matriculaRepository;
+    @Mock private ConclusionRepository conclusionRepository;
 
     @Test
     void estudianteSoloPuedeVerseASiMismo() {
@@ -62,9 +68,33 @@ class SecurityAuthorizationServiceTest {
         assertThat(service.canAccessStudent(UUID.randomUUID(), authentication)).isFalse();
     }
 
+    @Test
+    void profesorSoloPuedeVerConclusionDeAsignaturaActiva() {
+        UUID profesor = UUID.randomUUID();
+        UUID asignatura = UUID.randomUUID();
+        UUID conclusionId = UUID.randomUUID();
+        Conclusion conclusion = org.mockito.Mockito.mock(Conclusion.class);
+        ResultadoAprendizaje resultado = org.mockito.Mockito.mock(ResultadoAprendizaje.class);
+        Asignatura materia = org.mockito.Mockito.mock(Asignatura.class);
+
+        when(conclusionRepository.findById(conclusionId)).thenReturn(Optional.of(conclusion));
+        when(conclusion.getResultadoAprendizaje()).thenReturn(resultado);
+        when(resultado.getAsignatura()).thenReturn(materia);
+        when(materia.getId()).thenReturn(asignatura);
+        when(asignacionDocenteRepository.existsByProfesor_IdAndAsignatura_IdAndEstado(
+                profesor, asignatura, EstadoRegistro.ACTIVO)).thenReturn(true);
+
+        SecurityAuthorizationService service = service();
+
+        assertThat(service.hasActiveAssignmentForConclusion(
+                conclusionId, authentication(profesor, RolUsuario.PROFESOR))).isTrue();
+        assertThat(service.hasActiveAssignmentForConclusion(
+                conclusionId, authentication(UUID.randomUUID(), RolUsuario.ESTUDIANTE))).isFalse();
+    }
+
     private SecurityAuthorizationService service() {
         return new SecurityAuthorizationService(asignacionDocenteRepository,
-                resultadoAprendizajeRepository, matriculaRepository);
+                resultadoAprendizajeRepository, matriculaRepository, conclusionRepository);
     }
 
     private Authentication authentication(UUID id, RolUsuario rol) {

@@ -5,6 +5,7 @@ import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ public class SecurityAuthorizationService {
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final ResultadoAprendizajeRepository resultadoAprendizajeRepository;
     private final MatriculaRepository matriculaRepository;
+    private final ConclusionRepository conclusionRepository;
 
     public boolean isSelf(UUID requestedId, Authentication authentication) {
         if (requestedId == null || authentication == null
@@ -62,6 +64,24 @@ public class SecurityAuthorizationService {
         }
         return resultadoAprendizajeRepository.findById(resultadoId)
                 .map(resultado -> hasActiveAssignment(resultado.getAsignatura().getId(), authentication))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasActiveAssignmentForConclusion(UUID conclusionId, Authentication authentication) {
+        UsuarioPrincipal principal = principal(authentication);
+        if (principal == null) {
+            return false;
+        }
+        if (principal.rol() == RolUsuario.ADMINISTRADOR) {
+            return true;
+        }
+        if (principal.rol() != RolUsuario.PROFESOR) {
+            return false;
+        }
+        return conclusionRepository.findById(conclusionId)
+                .map(conclusion -> hasActiveAssignment(
+                        conclusion.getResultadoAprendizaje().getAsignatura().getId(), authentication))
                 .orElse(false);
     }
 
