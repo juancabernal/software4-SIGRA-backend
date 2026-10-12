@@ -21,6 +21,6 @@ assert {
 tests {
   test("solo trae conclusiones del semestre pedido", function () {
     expect(res.body).to.be.an("array").with.length.at.least(1);
-    res.body.forEach((c) => expect(c.semestreId).to.equal(bru.getVar("semBruConcId")));
+    res.body.forEach((c) => expect(c.semestreId).to.equal(bru.getEnvVar("semBruConcId")));
   });
 }

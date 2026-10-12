@@ -21,6 +21,6 @@ assert {
 tests {
   test("solo trae acciones de mejora de la asignatura pedida", function () {
     expect(res.body).to.be.an("array").with.length.at.least(1);
-    res.body.forEach((a) => expect(a.asignaturaId).to.equal(bru.getVar("asignaturaBruConcId")));
+    res.body.forEach((a) => expect(a.asignaturaId).to.equal(bru.getEnvVar("asignaturaBruConcId")));
   });
 }

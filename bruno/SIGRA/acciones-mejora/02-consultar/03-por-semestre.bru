@@ -21,6 +21,6 @@ assert {
 tests {
   test("solo trae acciones de mejora del semestre pedido", function () {
     expect(res.body).to.be.an("array").with.length.at.least(1);
-    res.body.forEach((a) => expect(a.semestreId).to.equal(bru.getVar("semBruConcId")));
+    res.body.forEach((a) => expect(a.semestreId).to.equal(bru.getEnvVar("semBruConcId")));
   });
 }
