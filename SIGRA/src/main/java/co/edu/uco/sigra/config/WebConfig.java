@@ -35,7 +35,9 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(controlAccesoAsignaturas)
                 .addPathPatterns("/api/v1/asignaturas", "/api/v1/asignaturas/**",
                         "/api/v1/conclusiones", "/api/v1/conclusiones/**",
-                        "/api/v1/resultados-aprendizaje/**");
+                        "/api/v1/resultados-aprendizaje/**",
+                        "/api/v1/acciones-mejora", "/api/v1/acciones-mejora/**",
+                        "/api/v1/conclusiones/*/acciones-mejora");
     }
 
     @Override
