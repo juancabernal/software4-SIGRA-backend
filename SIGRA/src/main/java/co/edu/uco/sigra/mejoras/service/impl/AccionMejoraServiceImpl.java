@@ -93,6 +93,8 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
                         || filtro.resultadoAprendizajeId().equals(a.getResultadoAprendizaje().getId()))
                 .filter(a -> filtro.asignaturaId() == null
                         || filtro.asignaturaId().equals(a.getResultadoAprendizaje().getAsignatura().getId()))
+                .filter(a -> filtro.semestreId() == null
+                        || filtro.semestreId().equals(a.getConclusionOrigen().getSemestre().getId()))
                 .filter(a -> filtro.convertida() == null || filtro.convertida() == a.estaConvertida())
                 .sorted(Comparator.comparing(AccionMejora::getFechaPropuesta).reversed())
                 .map(accionMejoraMapper::toResponseDTO)

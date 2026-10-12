@@ -44,6 +44,7 @@ class AccionMejoraControllerTest {
     private static final UUID ID_CONCLUSION = UUID.randomUUID();
     private static final UUID ID_ACCION = UUID.randomUUID();
     private static final UUID ID_EVALUACION = UUID.randomUUID();
+    private static final UUID ID_SEMESTRE = UUID.randomUUID();
 
     private static final String URL_REGISTRAR = "/api/v1/conclusiones/" + ID_CONCLUSION + "/acciones-mejora";
     private static final String URL_CONVERTIR = "/api/v1/acciones-mejora/" + ID_ACCION + "/conversion";
@@ -69,7 +70,8 @@ class AccionMejoraControllerTest {
 
     private static AccionMejoraResponseDTO respuesta(boolean convertida, UUID evaluacionGeneradaId) {
         return new AccionMejoraResponseDTO(ID_ACCION, "Capacitación", "Taller de refuerzo", LocalDateTime.now(),
-                ID_RA, "RA-01", ID_ASIGNATURA, ID_CONCLUSION, evaluacionGeneradaId, convertida);
+                ID_RA, "RA-01", ID_ASIGNATURA, ID_CONCLUSION, ID_SEMESTRE, "2025-2", evaluacionGeneradaId,
+                convertida);
     }
 
     @Nested

@@ -52,8 +52,10 @@ public class AccionMejoraController {
             @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad,
             @RequestParam(required = false) UUID resultadoAprendizajeId,
             @RequestParam(required = false) UUID asignaturaId,
+            @RequestParam(required = false) UUID semestreId,
             @RequestParam(required = false) Boolean convertida) {
-        AccionMejoraFiltroDTO filtro = new AccionMejoraFiltroDTO(resultadoAprendizajeId, asignaturaId, convertida);
+        AccionMejoraFiltroDTO filtro =
+                new AccionMejoraFiltroDTO(resultadoAprendizajeId, asignaturaId, semestreId, convertida);
         return ResponseEntity.ok(identidad == null
                 ? accionMejoraService.consultarAcciones(filtro)
                 : accionMejoraService.consultarAcciones(filtro, identidad));
