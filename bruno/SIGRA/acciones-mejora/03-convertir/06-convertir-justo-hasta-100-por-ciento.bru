@@ -1,0 +1,33 @@
+meta {
+  name: 06 Convertir justo hasta el 100 por ciento exacto
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{accionMejora2Id}}/conversion
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "porcentaje": 40
+  }
+}
+
+docs {
+  60 (ya convertido) + 40 = 100 exacto. La regla de negocio es "no superar"
+  el 100%, asi que llegar justo a 100 debe aceptarse.
+}
+
+assert {
+  res.status: eq 200
+  res.body.convertida: eq true
+}
+
+tests {
+  test("devuelve el id de la evaluacion generada", function () {
+    expect(res.body.evaluacionGeneradaId).to.be.a("string").and.not.be.empty;
+  });
+}

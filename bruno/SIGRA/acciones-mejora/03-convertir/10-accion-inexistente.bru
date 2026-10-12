@@ -1,0 +1,27 @@
+meta {
+  name: 10 Accion inexistente
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{idAccionMejoraInexistente}}/conversion
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "porcentaje": 50
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe una acción de mejora con id");
+  });
+}

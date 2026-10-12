@@ -1,0 +1,28 @@
+meta {
+  name: 01 Convertir con un porcentaje valido
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{accionMejoraId}}/conversion
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "porcentaje": 60
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.convertida: eq true
+}
+
+tests {
+  test("devuelve el id de la evaluacion generada", function () {
+    expect(res.body.evaluacionGeneradaId).to.be.a("string").and.not.be.empty;
+  });
+}

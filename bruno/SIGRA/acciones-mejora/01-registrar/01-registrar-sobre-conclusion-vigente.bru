@@ -1,0 +1,37 @@
+meta {
+  name: 01 Registrar sobre una conclusion VIGENTE
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/conclusiones/{{conclusionVigenteId}}/acciones-mejora
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Taller de refuerzo",
+    "descripcion": "Taller de refuerzo para los estudiantes con nivel de logro Bajo o Medio."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.nombre: eq Taller de refuerzo
+  res.body.conclusionOrigenId: eq {{conclusionVigenteId}}
+  res.body.resultadoAprendizajeId: eq {{raConcMas40Id}}
+  res.body.convertida: eq false
+  res.body.evaluacionGeneradaId: isNull
+}
+
+script:post-response {
+  bru.setVar("accionMejoraId", res.body.id);
+}
+
+tests {
+  test("devuelve el id generado", function () {
+    expect(res.body.id).to.be.a("string").and.not.be.empty;
+  });
+}
