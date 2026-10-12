@@ -5,6 +5,8 @@ import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.estudiantes.config.MatriculaConfig;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
@@ -18,6 +20,7 @@ import co.edu.uco.sigra.estudiantes.exception.ReglaDeMatriculaException;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
 import co.edu.uco.sigra.estudiantes.service.CalificacionesDeMatricula;
+import co.edu.uco.sigra.estudiantes.service.EstudianteService;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.semestres.repository.SemestreRepository;
@@ -39,6 +42,7 @@ public class MatriculaServiceImpl implements MatriculaService {
     private final SemestreRepository semestreRepository;
     private final Clock reloj;
     private final CalificacionesDeMatricula calificacionesDeMatricula;
+    private final EstudianteService estudianteService;
 
     // Constructor explícito (no @RequiredArgsConstructor) porque Lombok no copia @Qualifier.
     public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
@@ -46,13 +50,15 @@ public class MatriculaServiceImpl implements MatriculaService {
                                 AsignaturaRepository asignaturaRepository,
                                 SemestreRepository semestreRepository,
                                 @Qualifier(MatriculaConfig.RELOJ_MATRICULAS) Clock reloj,
-                                CalificacionesDeMatricula calificacionesDeMatricula) {
+                                CalificacionesDeMatricula calificacionesDeMatricula,
+                                EstudianteService estudianteService) {
         this.matriculaRepository = matriculaRepository;
         this.estudianteRepository = estudianteRepository;
         this.asignaturaRepository = asignaturaRepository;
         this.semestreRepository = semestreRepository;
         this.reloj = reloj;
         this.calificacionesDeMatricula = calificacionesDeMatricula;
+        this.estudianteService = estudianteService;
     }
 
     @Override
@@ -159,5 +165,20 @@ public class MatriculaServiceImpl implements MatriculaService {
         }
 
         return matriculaRepository.buscarPorEstudiante(estudianteId);
+    }
+
+    @Override
+    @Transactional
+    public ResultadoAltaConMatricula registrarYMatricular(EstudianteRequestDTO estudianteDTO, UUID asignaturaId, UUID semestreId) {
+        // Registrar primero y matricular después es lo que hace que un fallo de matrícula
+        // deshaga el alta: EstudianteServiceImpl.registrar también es @Transactional con
+        // propagación REQUIRED, así que se adhiere a esta misma transacción, y cualquier
+        // excepción de negocio lanzada por this.matricular (son todas RuntimeException) marca
+        // el rollback completo, sin dejar al estudiante creado.
+        EstudianteResponseDTO estudianteRegistrado = estudianteService.registrar(estudianteDTO);
+
+        ResultadoMatricula resultadoMatricula = this.matricular(estudianteRegistrado.id(), asignaturaId, semestreId);
+
+        return new ResultadoAltaConMatricula(estudianteRegistrado, resultadoMatricula.matricula());
     }
 }

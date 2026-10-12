@@ -1,6 +1,8 @@
 package co.edu.uco.sigra.estudiantes.controller;
 
+import co.edu.uco.sigra.estudiantes.dto.EstudianteConMatriculaResponseDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteMatriculadoDTO;
+import co.edu.uco.sigra.estudiantes.dto.MatriculaConEstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.MatriculaRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.MatriculaResponseDTO;
 import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
@@ -48,6 +50,16 @@ public class MatriculaController {
             @RequestParam(defaultValue = "false") boolean incluirInactivas) {
         var matriculas = matriculaService.listarMatriculados(asignaturaId, semestreId, incluirInactivas);
         return ResponseEntity.ok(matriculaMapper.toEstudianteMatriculadoDTOList(matriculas));
+    }
+
+    @PostMapping("/con-estudiante")
+    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    public ResponseEntity<EstudianteConMatriculaResponseDTO> registrarYMatricular(
+            @Valid @RequestBody MatriculaConEstudianteRequestDTO dto) {
+        var resultado = matriculaService.registrarYMatricular(dto.estudiante(), dto.asignaturaId(), dto.semestreId());
+        var matriculaDTO = matriculaMapper.toResponseDTO(resultado.matricula());
+        var respuesta = new EstudianteConMatriculaResponseDTO(resultado.estudiante(), matriculaDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
 }

@@ -4,11 +4,15 @@ import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.exception.ConfirmacionRequeridaException;
+import co.edu.uco.sigra.estudiantes.exception.CorreoEstudianteDuplicadoException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
+import co.edu.uco.sigra.estudiantes.exception.EstudianteYaRegistradoException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaDuplicadaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaNoEncontradaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaYaInactivaException;
@@ -16,6 +20,7 @@ import co.edu.uco.sigra.estudiantes.exception.ReferenciaNoEncontradaException;
 import co.edu.uco.sigra.estudiantes.exception.ReglaDeMatriculaException;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.estudiantes.service.MatriculaService.ResultadoAltaConMatricula;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService.ResultadoMatricula;
 import co.edu.uco.sigra.estudiantes.service.impl.MatriculaServiceImpl;
 import co.edu.uco.sigra.semestres.entity.EstadoSemestre;
@@ -27,6 +32,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -58,6 +64,11 @@ class MatriculaServiceImplTest {
     private static final ZoneId ZONA = ZoneId.of("America/Bogota");
     private static final LocalDate HOY = LocalDate.of(2024, 3, 15);
     private static final LocalDate OTRO_DIA = LocalDate.of(2024, 4, 2);
+    private static final UUID ID_TIPO_DOCUMENTO = UUID.randomUUID();
+    private static final String NUMERO_DOCUMENTO = "123456789";
+    private static final String NOMBRE_COMPLETO = "Juan Pérez";
+    private static final String CORREO_INSTITUCIONAL = "juan.perez@uco.net.co";
+    private static final String TIPO_DOCUMENTO_NOMBRE = "Cédula de Ciudadanía";
 
     @Mock
     private MatriculaRepository matriculaRepository;
@@ -74,6 +85,9 @@ class MatriculaServiceImplTest {
     @Mock
     private CalificacionesDeMatricula calificacionesDeMatricula;
 
+    @Mock
+    private EstudianteService estudianteService;
+
     private RelojAjustable reloj;
 
     private MatriculaServiceImpl service;
@@ -81,7 +95,17 @@ class MatriculaServiceImplTest {
     @BeforeEach
     void setUp() {
         reloj = new RelojAjustable(HOY);
-        service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository, reloj, calificacionesDeMatricula);
+        service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository, reloj, calificacionesDeMatricula, estudianteService);
+    }
+
+    private static EstudianteRequestDTO estudianteRequestDTO() {
+        return new EstudianteRequestDTO(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+    }
+
+    private static EstudianteResponseDTO estudianteResponseDTO() {
+        return new EstudianteResponseDTO(
+                ID_ESTUDIANTE, TIPO_DOCUMENTO_NOMBRE, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL,
+                EstadoRegistro.ACTIVO.name());
     }
 
     private static Estudiante estudiante(EstadoRegistro estado) {
@@ -765,6 +789,159 @@ class MatriculaServiceImplTest {
             List<Matricula> resultado = service.listarAsignaturasDeEstudiante(ID_ESTUDIANTE);
 
             assertThat(resultado).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Registrar y matricular (alta con estudiante nuevo)")
+    class AltaConEstudiante {
+
+        /**
+         * Estudiante recién registrado y activo: stubea {@code estudianteService.registrar} con
+         * la respuesta dada y hace que el {@code estudianteRepository} —un mock distinto, que
+         * {@code matricular} vuelve a consultar internamente— lo encuentre activo con el mismo id.
+         */
+        private EstudianteResponseDTO estudianteRegistradoActivo() {
+            EstudianteResponseDTO respuesta = estudianteResponseDTO();
+            when(estudianteService.registrar(any(EstudianteRequestDTO.class))).thenReturn(respuesta);
+            when(estudianteRepository.findById(ID_ESTUDIANTE)).thenReturn(Optional.of(estudiante(EstadoRegistro.ACTIVO)));
+            return respuesta;
+        }
+
+        private void matriculaSaveAsignaId() {
+            when(matriculaRepository.save(any(Matricula.class))).thenAnswer(inv -> {
+                Matricula m = inv.getArgument(0);
+                m.setId(ID_MATRICULA);
+                return m;
+            });
+        }
+
+        @Test
+        @DisplayName("RF-09a Con datos válidos, registra al estudiante y lo matricula en una sola operación, sin reactivar nada")
+        void caminoFelizRegistraYMatricula() {
+            EstudianteResponseDTO estudianteRegistrado = estudianteRegistradoActivo();
+            when(asignaturaRepository.findById(ID_ASIGNATURA)).thenReturn(Optional.of(asignatura(EstadoAsignatura.ACTIVA)));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre(EstadoSemestre.ACTIVO)));
+            when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.empty());
+            matriculaSaveAsignaId();
+
+            ResultadoAltaConMatricula resultado = service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE);
+
+            assertThat(resultado.estudiante()).isSameAs(estudianteRegistrado);
+            assertThat(resultado.matricula().getId()).isEqualTo(ID_MATRICULA);
+            assertThat(resultado.matricula().getFechaMatricula()).isEqualTo(HOY);
+            assertThat(resultado.matricula().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
+
+            // La terna estaba libre (buscarPorTerna vacío): la matrícula se crea de cero, nunca
+            // se reactiva una existente.
+            verify(matriculaRepository).buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
+
+            InOrder orden = inOrder(estudianteService, matriculaRepository);
+            orden.verify(estudianteService).registrar(any(EstudianteRequestDTO.class));
+            orden.verify(matriculaRepository).save(any(Matricula.class));
+        }
+
+        @Test
+        @DisplayName("Con el documento ya registrado, propaga la excepción del registro sin envolverla y no consulta nada de la matrícula")
+        void documentoYaRegistradoPropagaLaExcepcionSinConsultarNada() {
+            EstudianteYaRegistradoException esperada = EstudianteYaRegistradoException.porDocumento(NUMERO_DOCUMENTO);
+            when(estudianteService.registrar(any(EstudianteRequestDTO.class))).thenThrow(esperada);
+
+            assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(EstudianteYaRegistradoException.class)
+                    .hasMessage(esperada.getMessage());
+
+            verify(asignaturaRepository, never()).findById(any());
+            verify(matriculaRepository, never()).save(any());
+            verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Con el correo ya registrado, propaga la excepción del registro sin envolverla y no consulta nada de la matrícula")
+        void correoYaRegistradoPropagaLaExcepcionSinConsultarNada() {
+            CorreoEstudianteDuplicadoException esperada = CorreoEstudianteDuplicadoException.porCorreo(CORREO_INSTITUCIONAL);
+            when(estudianteService.registrar(any(EstudianteRequestDTO.class))).thenThrow(esperada);
+
+            assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(CorreoEstudianteDuplicadoException.class)
+                    .hasMessage(esperada.getMessage());
+
+            verify(asignaturaRepository, never()).findById(any());
+            verify(matriculaRepository, never()).save(any());
+            verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Tarea 4.8: el mensaje de documento duplicado llega idéntico, letra por letra, al que lanza el registro normal")
+        void garantiaCruzadaMismoMensajeQueElRegistroNormal() {
+            // Se reconstruye el mensaje con una llamada independiente a la misma fábrica que usa
+            // EstudianteServiceImplTest para el documento duplicado: si algún refactor llegara a
+            // capturar y reescribir la excepción en el camino de registrarYMatricular, esta
+            // prueba lo detectaría aunque el tipo de la excepción se conservara.
+            String mensajeEsperado = EstudianteYaRegistradoException.porDocumento(NUMERO_DOCUMENTO).getMessage();
+            when(estudianteService.registrar(any(EstudianteRequestDTO.class)))
+                    .thenThrow(EstudianteYaRegistradoException.porDocumento(NUMERO_DOCUMENTO));
+
+            assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(EstudianteYaRegistradoException.class)
+                    .hasMessage(mensajeEsperado);
+        }
+
+        @Test
+        @DisplayName("PN-35 Con la asignatura no activa, registra al estudiante pero rechaza la matrícula y no la guarda")
+        void asignaturaNoActivaRechazaYNoGuardaLaMatricula() {
+            estudianteRegistradoActivo();
+            when(asignaturaRepository.findById(ID_ASIGNATURA)).thenReturn(Optional.of(asignatura(EstadoAsignatura.BORRADOR)));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre(EstadoSemestre.ACTIVO)));
+
+            assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(ReglaDeMatriculaException.class)
+                    .hasMessageContaining(ID_ASIGNATURA.toString());
+
+            verify(matriculaRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("PN-35 Con el semestre no vigente, registra al estudiante pero rechaza la matrícula y no la guarda")
+        void semestreNoVigenteRechazaYNoGuardaLaMatricula() {
+            estudianteRegistradoActivo();
+            when(asignaturaRepository.findById(ID_ASIGNATURA)).thenReturn(Optional.of(asignatura(EstadoAsignatura.ACTIVA)));
+            Semestre vencido = semestreConFechas(HOY.minusMonths(2), HOY.minusDays(1), EstadoSemestre.ACTIVO);
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(vencido));
+
+            assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(ReglaDeMatriculaException.class)
+                    .hasMessageContaining(ID_SEMESTRE.toString())
+                    .hasMessageContaining("no está vigente");
+
+            verify(matriculaRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Con una asignatura inexistente, registra al estudiante pero lanza excepción al matricular")
+        void asignaturaInexistentePropagaReferenciaNoEncontrada() {
+            estudianteRegistradoActivo();
+            when(asignaturaRepository.findById(ID_ASIGNATURA)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(ReferenciaNoEncontradaException.class)
+                    .hasMessageContaining(ID_ASIGNATURA.toString());
+
+            verify(matriculaRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Con un semestre inexistente, registra al estudiante pero lanza excepción al matricular")
+        void semestreInexistentePropagaReferenciaNoEncontrada() {
+            estudianteRegistradoActivo();
+            when(asignaturaRepository.findById(ID_ASIGNATURA)).thenReturn(Optional.of(asignatura(EstadoAsignatura.ACTIVA)));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(ReferenciaNoEncontradaException.class)
+                    .hasMessageContaining(ID_SEMESTRE.toString());
+
+            verify(matriculaRepository, never()).save(any());
         }
     }
 
