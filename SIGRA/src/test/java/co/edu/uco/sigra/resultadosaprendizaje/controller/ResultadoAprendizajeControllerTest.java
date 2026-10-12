@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.hasItem;
 
 /**
  * Pruebas de la capa web en modo standalone: no levanta contexto Spring, base de datos ni seguridad.
@@ -420,7 +421,7 @@ class ResultadoAprendizajeControllerTest {
         void descripcionSoloEspacios() throws Exception {
             mockMvc.perform(put(URL_RA_ID).contentType(MediaType.APPLICATION_JSON).content("{\"descripcion\":\" \\n\\t \"}"))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.detalles[0]").value("descripcion: " + DESCRIPCION_OBLIGATORIA));
+                    .andExpect(jsonPath("$.detalles", hasItem("descripcion: La descripción es obligatoria")));
             verifyNoInteractions(service);
         }
 
