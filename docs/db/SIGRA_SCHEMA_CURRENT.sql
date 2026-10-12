@@ -270,4 +270,26 @@ CREATE TABLE IF NOT EXISTS sigra.registro_nivel_logro_prueba (
     CONSTRAINT chk_nivel_logro_prueba_nivel CHECK (nivel_logro IN ('BAJO', 'MEDIO', 'ALTO', 'SOBRESALIENTE'))
 );
 
+-- -----------------------------------------------------------------------------
+-- Evaluación generada al convertir una acción de mejora (RF-18) — DATO DE PRUEBA.
+-- El módulo "evaluaciones" todavía no existe (solo tiene el .gitkeep); mientras tanto, esta tabla
+-- hace de evaluación real solo para validar que la suma de porcentajes de un (RA, semestre) no
+-- supere el 100%. Se retira cuando el equipo de evaluaciones entregue el módulo real.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.registro_evaluacion_prueba (
+    id                        UUID         NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id  UUID         NOT NULL,
+    semestre_id               UUID         NOT NULL,
+    descripcion               VARCHAR(500) NOT NULL,
+    porcentaje                DOUBLE PRECISION NOT NULL,
+    fecha_generacion          TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    CONSTRAINT registro_evaluacion_prueba_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_evaluacion_prueba_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_evaluacion_prueba_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_evaluacion_prueba_ra_semestre
+    ON sigra.registro_evaluacion_prueba (resultado_aprendizaje_id, semestre_id);
+
 COMMIT;

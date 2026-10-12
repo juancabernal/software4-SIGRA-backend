@@ -5,6 +5,7 @@ import co.edu.uco.sigra.asignaturas.seguridad.RolesPermitidos;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
+import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import jakarta.validation.Valid;
@@ -62,5 +63,14 @@ public class AccionMejoraController {
     @RolesPermitidos({RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR})
     public ResponseEntity<AccionMejoraResponseDTO> consultarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(accionMejoraService.consultarPorId(id));
+    }
+
+    @PostMapping("/acciones-mejora/{id}/conversion")
+    @RolesPermitidos({RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR})
+    public ResponseEntity<AccionMejoraResponseDTO> convertirEnEvaluacion(
+            @PathVariable UUID id,
+            @Valid @RequestBody ConvertirEvaluacionRequestDTO datos,
+            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
+        return ResponseEntity.ok(accionMejoraService.convertirEnEvaluacion(id, datos, identidad));
     }
 }
