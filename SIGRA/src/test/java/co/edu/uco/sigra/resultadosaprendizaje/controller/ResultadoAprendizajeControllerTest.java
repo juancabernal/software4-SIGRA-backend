@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.hasItem;
 
 /**
  * Pruebas de la capa web en modo standalone: no levanta contexto Spring, base de datos ni seguridad.
@@ -187,10 +188,20 @@ class ResultadoAprendizajeControllerTest {
 
 
         @Test
-        @DisplayName("Con una descripción de más de 500 caracteres devuelve 400 sin llamar al servicio")
+        @DisplayName("Con una descripción de más de 100 caracteres devuelve 400 sin llamar al servicio")
         void descripcionDemasiadoLarga() throws Exception {
             mockMvc.perform(post(URL_POR_ASIGNATURA).contentType(MediaType.APPLICATION_JSON)
-                            .content(cuerpoCreacion(CODIGO, "x".repeat(501))))
+                            .content(cuerpoCreacion(CODIGO, "x".repeat(101))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detalles[0]").value(startsWith("descripcion")));
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("Con una descripción de menos de 10 caracteres devuelve 400 sin llamar al servicio")
+        void descripcionDemasiadoCorta() throws Exception {
+            mockMvc.perform(post(URL_POR_ASIGNATURA).contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoCreacion(CODIGO, "Corta")))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.detalles[0]").value(startsWith("descripcion")));
             verifyNoInteractions(service);
@@ -410,7 +421,7 @@ class ResultadoAprendizajeControllerTest {
         void descripcionSoloEspacios() throws Exception {
             mockMvc.perform(put(URL_RA_ID).contentType(MediaType.APPLICATION_JSON).content("{\"descripcion\":\" \\n\\t \"}"))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.detalles[0]").value("descripcion: " + DESCRIPCION_OBLIGATORIA));
+                    .andExpect(jsonPath("$.detalles", hasItem("descripcion: La descripción es obligatoria")));
             verifyNoInteractions(service);
         }
 
