@@ -12,6 +12,8 @@ public record AccionMejoraResponseDTO(
         String resultadoAprendizajeCodigo,
         UUID asignaturaId,
         UUID conclusionOrigenId,
+        UUID semestreId,
+        String semestreCodigo,
         UUID evaluacionGeneradaId,
         boolean convertida
 ) {

@@ -9,6 +9,7 @@ import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
+import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
 import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
@@ -226,6 +227,35 @@ class AccionMejoraServiceImplTest {
             assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, datos, null))
                     .isInstanceOf(AccionYaConvertidaException.class);
             verifyNoInteractions(registroEvaluacionPruebaRepository);
+        }
+    }
+
+    @Nested
+    @DisplayName("consultarAcciones: filtro por semestre")
+    class ConsultarAccionesFiltroSemestre {
+
+        @Test
+        @DisplayName("Con semestreId filtra solo las acciones cuya conclusión origen es de ese semestre")
+        void filtraPorSemestreDeLaConclusionOrigen() {
+            Semestre otroSemestre = new Semestre();
+            otroSemestre.setId(UUID.randomUUID());
+            otroSemestre.setCodigo("2025-1");
+
+            AccionMejora deSemestreBuscado =
+                    new AccionMejora("Capacitación", "Taller de refuerzo", resultadoAprendizaje,
+                            new Conclusion(resultadoAprendizaje, semestre, 60.0));
+            AccionMejora deOtroSemestre =
+                    new AccionMejora("Otra acción", "Otro taller", resultadoAprendizaje,
+                            new Conclusion(resultadoAprendizaje, otroSemestre, 60.0));
+            when(accionMejoraRepository.findAll()).thenReturn(List.of(deSemestreBuscado, deOtroSemestre));
+
+            AccionMejoraFiltroDTO filtro = new AccionMejoraFiltroDTO(null, null, ID_SEMESTRE, null);
+
+            List<AccionMejoraResponseDTO> resultado = service.consultarAcciones(filtro);
+
+            assertThat(resultado).hasSize(1);
+            assertThat(resultado.get(0).semestreId()).isEqualTo(ID_SEMESTRE);
+            assertThat(resultado.get(0).semestreCodigo()).isEqualTo("2025-2");
         }
     }
 

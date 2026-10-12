@@ -14,6 +14,8 @@ public interface AccionMejoraMapper {
     @Mapping(target = "resultadoAprendizajeCodigo", source = "resultadoAprendizaje.codigo")
     @Mapping(target = "asignaturaId", source = "resultadoAprendizaje.asignatura.id")
     @Mapping(target = "conclusionOrigenId", source = "conclusionOrigen.id")
+    @Mapping(target = "semestreId", source = "conclusionOrigen.semestre.id")
+    @Mapping(target = "semestreCodigo", source = "conclusionOrigen.semestre.codigo")
     @Mapping(target = "convertida", expression = "java(entity.estaConvertida())")
     AccionMejoraResponseDTO toResponseDTO(AccionMejora entity);
 
