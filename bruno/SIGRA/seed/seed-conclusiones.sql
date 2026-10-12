@@ -99,18 +99,20 @@ INSERT INTO sigra.resultado_aprendizaje (id, asignatura_id, codigo, descripcion,
   ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e200-000000000001', 'RA-CONC-03', 'RA de prueba con menos de 3 calificaciones', 'ACTIVO', false);
 
 -- 4. Estudiantes de prueba (mismo tipo de documento compartido que usan
--- estudiantes y profesores). Se resuelve por nombre, igual que seed-auth.sql,
--- en vez de depender de un id fijo que puede no existir en una base real:
--- se usa el que ya exista, o se crea si no hay ninguno.
+-- estudiantes y profesores). Al seed le da igual QUE tipo de documento usen:
+-- toma cualquiera que ya exista, o crea uno si la tabla esta vacia. Sin id
+-- fijo ni comparacion por nombre, para no depender de datos preexistentes.
 DO $$
 DECLARE
     v_tipo_doc_id UUID;
 BEGIN
-    INSERT INTO sigra.tipo_documento (id, nombre)
-    VALUES ('00000000-0000-4000-d000-000000000001', 'Cédula de Ciudadanía')
-    ON CONFLICT (nombre) DO NOTHING;
+    SELECT id INTO v_tipo_doc_id FROM sigra.tipo_documento LIMIT 1;
 
-    SELECT id INTO v_tipo_doc_id FROM sigra.tipo_documento WHERE nombre = 'Cédula de Ciudadanía' LIMIT 1;
+    IF v_tipo_doc_id IS NULL THEN
+        INSERT INTO sigra.tipo_documento (nombre)
+        VALUES ('Cedula de Ciudadania')
+        RETURNING id INTO v_tipo_doc_id;
+    END IF;
 
     INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
       ('00000000-0000-4000-e500-000000000001', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 1', 'bruno.conc1@uco.net.co', 'ACTIVO'),
