@@ -99,14 +99,18 @@ INSERT INTO sigra.resultado_aprendizaje (id, asignatura_id, codigo, descripcion,
   ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e200-000000000001', 'RA-CONC-03', 'RA de prueba con menos de 3 calificaciones', 'ACTIVO', false);
 
 -- 4. Estudiantes de prueba (mismo tipo de documento compartido que usan
--- estudiantes y profesores; se valida antes que el id exista).
+-- estudiantes y profesores). Se resuelve por nombre, igual que seed-auth.sql,
+-- en vez de depender de un id fijo que puede no existir en una base real:
+-- se usa el que ya exista, o se crea si no hay ninguno.
 DO $$
 DECLARE
-    v_tipo_doc_id UUID := '07219e8d-126d-44cb-9d22-0f57afebec90';
+    v_tipo_doc_id UUID;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sigra.tipo_documento WHERE id = v_tipo_doc_id) THEN
-        RAISE EXCEPTION 'Seed abortado: no existe el tipo de documento % (el mismo id que environments/local.bru usa en tipoDocCc). Ajuste v_tipo_doc_id en este script al id real de "Cedula de Ciudadania" en su base.', v_tipo_doc_id;
-    END IF;
+    INSERT INTO sigra.tipo_documento (id, nombre)
+    VALUES ('00000000-0000-4000-d000-000000000001', 'Cédula de Ciudadanía')
+    ON CONFLICT (nombre) DO NOTHING;
+
+    SELECT id INTO v_tipo_doc_id FROM sigra.tipo_documento WHERE nombre = 'Cédula de Ciudadanía' LIMIT 1;
 
     INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
       ('00000000-0000-4000-e500-000000000001', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 1', 'bruno.conc1@uco.net.co', 'ACTIVO'),
