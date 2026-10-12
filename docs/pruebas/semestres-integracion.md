@@ -6,7 +6,7 @@ Levantan el contexto completo de Spring Boot contra **PostgreSQL real** y llaman
 
 **Fecha controlada.** El reloj del módulo (bean `relojSemestres`) se reemplaza con `@MockitoBean`, así "hoy" es una fecha fija del año 2190 (por defecto 2190-01-10) y cada caso puede moverla. Con eso se prueba el cálculo del estado sin depender de la fecha en que se ejecuten.
 
-**Seguridad.** Los `@PreAuthorize` del módulo siguen comentados hasta RF-05 y `SecurityConfig` usa `permitAll()`, así que estas pruebas no cubren roles. Cuando se active RF-05 hay que añadir un caso de 401/403.
+**Seguridad.** Estas pruebas de persistencia usan `@AutoConfigureMockMvc(addFilters = false)` para conservar su alcance histórico. La cadena real y los casos 401/403/RBAC se validan en `SecurityFilterMockMvcTest` y `AsignaturaIntegracionIT`; no representan rutas públicas en producción.
 
 | ID | Requisito | Escenario | Datos de entrada (hoy = 2190-01-10) | Resultado esperado (respuesta) | Resultado esperado (base) |
 | --- | --- | --- | --- | --- | --- |

@@ -33,8 +33,8 @@ Este repositorio contiene el **backend**: la API REST, el modelo de datos y las 
 
 El backend es responsable de:
 
-- Autenticar usuarios y emitir los tokens de sesión (RF-04).
-- Aplicar el control de acceso por rol en cada endpoint, según la Matriz RBAC del SRS (RF-05).
+- Autenticar usuarios y emitir los tokens de sesión (RF-02).
+- Aplicar el control de acceso por rol en cada endpoint, según la Matriz RBAC del SRS (RF-03).
 - Mantener el catálogo académico: programas, asignaturas, RA, profesores, estudiantes y semestres (RF-01 a RF-03, RF-06 a RF-09).
 - Registrar evaluaciones, calificaciones y observaciones (RF-10 a RF-13).
 - Calcular el nivel de logro y las estadísticas descriptivas con **lógica de agregación convencional, sin IA** (RF-14, RF-15).
@@ -51,8 +51,8 @@ Queda fuera del alcance del MVP: uso de IA para el análisis, carga de rúbricas
 
 | Integrante | Funcionalidad | Requisitos | Módulo |
 | --- | --- | --- | --- |
-| José Alejandro Valencia | Inicio de sesión: clase base `Usuario`, catálogo `TipoDocumento`, bcrypt factor 12, JWT HS256 de 60 min, bloqueo de 15 min tras 5 intentos fallidos | RF-04, RNF-10, RNF-17 | `auth` |
-| José Alejandro Valencia | Control de acceso por roles: filtro JWT, roles ADMINISTRADOR/PROFESOR/ESTUDIANTE, 401 sin token y 403 sin permiso | RF-05, RNF-13 | `security` |
+| José Alejandro Valencia | Inicio de sesión: clase base `Usuario`, catálogo `TipoDocumento`, bcrypt factor 12, JWT HS256 de 60 min, bloqueo de 15 min tras 5 intentos fallidos | RF-02, RNF-10, RNF-17 | `auth` |
+| José Alejandro Valencia | Control de acceso por roles: filtro JWT, roles ADMINISTRADOR/PROFESOR/ESTUDIANTE, 401 sin token y 403 sin permiso | RF-03, RNF-13 | `security` |
 | Juan Camilo Bernal | Gestión de asignaturas: ciclo Borrador → Activa → Inactiva, código único, activación solo con 5 a 7 RA activos; al inactivar una asignatura se inactivan en cascada sus RA activos | RF-03a–d | `asignaturas` |
 | Jean Paul Ortiz | Gestión de profesores: cédula de 6 a 10 dígitos, correo `@uco.net.co`, cédula no modificable, inactivación lógica | RF-01a–d | `profesores` |
 | Juan José Narváez | Gestión de Resultados de Aprendizaje: código único por asignatura, tope de 7 RA, mínimo de 5 activos | RF-06a–c | `resultadosaprendizaje` |
@@ -406,11 +406,11 @@ Levanta el backend en el puerto 8080 y luego el [frontend Angular](https://githu
 
 ---
 
-## RF-04 — Inicio de sesión
+## RF-02 / RF-03 — Autenticación y autorización
 
-**Estado: COMPLETADO (backend).** Listo para desarrollo del frontend. RF-05 (autorización por roles) no está iniciado.
+**Estado: COMPLETADO (backend para integración frontend).** La autenticación RF-02 y la autorización RBAC RF-03 están activas en la cadena HTTP y en los métodos de los controladores.
 
-| Tecnología | Uso en RF-04 |
+| Tecnología | Uso en RF-02/RF-03 |
 | --- | --- |
 | Spring Security | Cadena de filtros sin estado (`STATELESS`), CSRF deshabilitado para la API REST |
 | BCrypt, factor 12 | Hash de contraseñas (`PasswordEncoder`). Nunca se expone el hash |
@@ -429,7 +429,7 @@ Levanta el backend en el puerto 8080 y luego el [frontend Angular](https://githu
 | Persistencia del contador | Los fallos se guardan aunque la respuesta sea un error (`noRollbackFor`) |
 | Mensajes de error | Amigables, sin trazas, SQL ni nombres internos de clases (RNF-17) |
 
-Códigos de respuesta: 200 (login correcto), 400 (validación), 401 (credenciales), 423 (bloqueo temporal).
+Códigos de respuesta: 200 (login correcto), 400 (validación), 401 (credenciales/token), 403 (rol o alcance), 413 (login mayor de 16 KiB), 423 (bloqueo temporal), 500 (fallo inesperado) y 503 (persistencia no disponible).
 
 **Documentación en ejecución** (con el backend en `localhost:8080`):
 
@@ -442,25 +442,25 @@ Códigos de respuesta: 200 (login correcto), 400 (validación), 401 (credenciale
 **Notas:**
 
 - Al arrancar, Spring puede mostrar `Using generated security password`. Es un aviso inocuo: SIGRA no usa `UserDetailsService`; la autenticación real es `AuthService` + `PasswordEncoder` + JWT.
-- Mientras RF-05 no esté implementado, `SecurityConfig` deja pasar el resto de rutas (`anyRequest().permitAll()`). No hay filtro JWT ni `@PreAuthorize` activos.
+- `SecurityConfig` exige autenticación para toda ruta privada (`anyRequest().authenticated()`); la autorización fina se declara con `@PreAuthorize` y el alcance por recurso se comprueba en servicios/repositorios. La etiqueta interna RF-05 de la rama no reemplaza la nomenclatura oficial RF-02/RF-03.
 
-**Deudas que no bloquean RF-04** (ver «Pendientes conocidos» más abajo): `FAILED_ATTEMPTS_CONCURRENCY` (DEFERRED), y `PASSWORD_PROVISIONING_FLOW` (decidido, pendiente de implementar). `AUTH_RUNTIME_ROLES` quedó resuelta: `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04).
+**Deudas que no bloquean RF-02/RF-03** (ver «Pendientes conocidos» más abajo): aprovisionamiento de contraseñas para usuarios creados por API, revocación inmediata de JWT y rate limiting distribuido. `AUTH_RUNTIME_ROLES` quedó resuelta: `Profesor`, `Administrador` y `Estudiante` extienden `Usuario`.
 
 ---
 
 ## Pendientes conocidos del repositorio
 
-Estado de RF-04 (autenticación) y lo que sigue abierto:
+Estado de RF-02/RF-03 (autenticación y autorización) y lo que sigue abierto:
 
 1. **Cédula modificable: contradicción documental.** El diagrama de clases indica que `(tipoDocumento, numeroDocumento)` es una identidad no modificable, pero el criterio de aceptación de RF-01c valida la cédula al modificarla. Mientras el equipo no lo unifique, `modificarProfesor` conserva el comportamiento actual: el número de documento no cambia y el tipo de documento sí.
-2. **Concurrencia de intentos fallidos (`FAILED_ATTEMPTS_CONCURRENCY: DEFERRED`).** Dos inicios de sesión incorrectos simultáneos pueden perder un incremento del contador. Es deuda técnica de seguridad: requiere bloqueo pesimista o versionado, probado contra PostgreSQL con herencia JOINED.
+2. **Concurrencia de intentos fallidos (resuelto).** La búsqueda de usuario aplica bloqueo pesimista y la suite de integración verifica que no se pierdan incrementos bajo concurrencia en PostgreSQL.
 3. **Aprovisionamiento de contraseñas (`PASSWORD_PROVISIONING_FLOW`).** `POST /api/v1/profesores` y `POST /api/v1/estudiantes` no reciben contraseña, así que un profesor o un estudiante registrado por la API no puede iniciar sesión todavía (lo mismo aplica a los estudiantes migrados desde el diseño anterior). Decisión: el administrador asigna la contraseña mediante un endpoint propio, `PUT /api/v1/usuarios/{id}/contrasena` (RNF-10: nunca se devuelve ni se registra); pendiente de implementar. Para desarrollo se usan los seeds de Bruno.
-4. **Roles en tiempo de ejecución (resuelto).** `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04), así que los tres pueden autenticarse si tienen contraseña (ver el punto 3).
+4. **Roles en tiempo de ejecución (resuelto).** `Profesor`, `Administrador` y `Estudiante` extienden `Usuario`, así que los tres pueden autenticarse si tienen contraseña (ver el punto 3).
 5. **Alineación de esquema.** Si una base tiene `profesor_asignatura` (modelo antiguo) en lugar de `asignacion_docente`, el preflight lo marca como `ALINEACION_ASIGNACIONES_REQUERIDA`. No se renombra ninguna tabla sin revisión del módulo de asignaciones. La base de referencia no lo tiene. Ver `docs/db/RF04_schema_preflight.sql`.
 6. **Unicidad de (tipoDocumento, numeroDocumento).** El UNIQUE compuesto del diagrama no puede declararse solo en `profesor`, porque `tipo_documento_id` vive en `usuario`. Se verifica en la migración y en el servicio, pero no como restricción de base de datos.
 7. **JaCoCo.** El plugin de cobertura todavía no está declarado, aunque el plan de pruebas exige un 70 % mínimo.
 8. **Redis.** Está desactivado temporalmente: comentado en `build.gradle` y `docker-compose.yml`.
-9. **Seguridad abierta (RF-05).** `SecurityConfig` permite todas las peticiones salvo el login, y el filtro JWT no está activado. Tampoco hay `@PreAuthorize` activos hasta implementar RF-05.
+9. **Nomenclatura histórica.** La rama se llama `rf-05-security-rbac`, pero la trazabilidad oficial de esta entrega es RF-02 (autenticación) y RF-03 (autorización). El código activo ya exige JWT y aplica `@PreAuthorize`.
 
 ---
 

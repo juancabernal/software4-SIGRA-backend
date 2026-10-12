@@ -14,13 +14,6 @@ headers {
   Authorization: Bearer {{tokenAdmin}}
 }
 
-script:pre-request {
-  // Solo corre con el control por rol encendido (backend y variable controlPorRol=true).
-  if (String(bru.getEnvVar("controlPorRol")) !== "true") {
-    bru.runner.skipRequest();
-  }
-}
-
 assert {
   res.status: eq 200
 }

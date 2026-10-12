@@ -26,6 +26,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -170,6 +171,54 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void loginConCorreoDemasiadoLargoDevuelve400SinInvocarServicio() throws Exception {
+        String usuarioLargo = "a".repeat(246);
+        String json = "{\"correoInstitucional\":\"" + usuarioLargo + "@uco.net.co\","
+                + "\"contrasena\":\"Password123*\"}";
+
+        mockMvc.perform(post(URL_LOGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
+
+        verify(authService, never()).autenticar(any(LoginRequestDTO.class));
+    }
+
+    @Test
+    void loginConPasswordQueSupera72BytesUtf8Devuelve400() throws Exception {
+        String passwordMultibyte = "é".repeat(37); // 74 bytes UTF-8, aunque son 37 caracteres.
+        String json = "{\"correoInstitucional\":\"profesor@uco.net.co\",\"contrasena\":\""
+                + passwordMultibyte + "\"}";
+
+        mockMvc.perform(post(URL_LOGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
+
+        verify(authService, never()).autenticar(any(LoginRequestDTO.class));
+    }
+
+    @Test
+    void passwordMultibyteDentroDe72BytesNoSeRecorta() throws Exception {
+        String passwordMultibyte = "é".repeat(36); // 72 bytes UTF-8 exactos.
+        when(authService.autenticar(any(LoginRequestDTO.class)))
+                .thenReturn(new LoginResponseDTO("token", "Bearer", 3600L,
+                        new UsuarioSesionDTO(UUID.randomUUID(), "Profesor", "profesor@uco.net.co",
+                                RolUsuario.PROFESOR)));
+        String json = "{\"correoInstitucional\":\"profesor@uco.net.co\",\"contrasena\":\""
+                + passwordMultibyte + "\"}";
+
+        mockMvc.perform(post(URL_LOGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk());
+
+        verify(authService).autenticar(any(LoginRequestDTO.class));
     }
 
     @Test

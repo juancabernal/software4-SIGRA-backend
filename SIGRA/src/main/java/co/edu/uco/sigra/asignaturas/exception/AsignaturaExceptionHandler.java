@@ -80,7 +80,7 @@ public class AsignaturaExceptionHandler {
         return construirRespuestaError(HttpStatus.CONFLICT, ex.getMessage(), null);
     }
 
-    /** 401 del control por rol del módulo (temporal hasta RF-05). */
+    /** 401 producido por una petición sin identidad autenticada. */
     @ExceptionHandler(AutenticacionRequeridaException.class)
     public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AutenticacionRequeridaException ex) {
         ResponseEntity<Map<String, Object>> respuesta =
@@ -90,7 +90,7 @@ public class AsignaturaExceptionHandler {
                 .body(respuesta.getBody());
     }
 
-    /** 403 del control por rol del módulo y del alcance del profesor (temporal hasta RF-05). */
+    /** 403 producido por una identidad sin permisos o fuera de su alcance. */
     @ExceptionHandler(PermisoInsuficienteException.class)
     public ResponseEntity<Map<String, Object>> manejarSinPermiso(PermisoInsuficienteException ex) {
         return construirRespuestaError(HttpStatus.FORBIDDEN, ex.getMessage(), null);

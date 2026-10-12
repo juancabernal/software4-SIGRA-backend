@@ -24,7 +24,7 @@ public class MatriculaController {
     private final MatriculaMapper matriculaMapper;
 
     @PostMapping
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<MatriculaResponseDTO> matricular(@Valid @RequestBody MatriculaRequestDTO dto) {
         var resultado = matriculaService.matricular(dto.estudianteId(), dto.asignaturaId(), dto.semestreId());
         var respuesta = matriculaMapper.toResponseDTO(resultado.matricula());
@@ -33,14 +33,14 @@ public class MatriculaController {
     }
 
     @DeleteMapping("/{id}")
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<Void> desvincular(@PathVariable UUID id) {
         matriculaService.desvincular(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<List<EstudianteMatriculadoDTO>> listarMatriculados(
             @RequestParam UUID asignaturaId,
             @RequestParam UUID semestreId,

@@ -3,10 +3,12 @@ package co.edu.uco.sigra.auth.service;
 import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,9 +19,12 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Date;
 
-@Slf4j
 @Service
 public class JwtService {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
+
+    public static final String ALGORITMO_PERMITIDO = "HS256";
 
     private final SecretKey key;
     private final long expirationMs;
@@ -61,12 +66,30 @@ public class JwtService {
     }
 
     public Claims extraerClaims(String token) {
-        return Jwts.parser()
+        Jws<Claims> firmado = Jwts.parser()
                 .clock(() -> Date.from(clock.instant()))
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload();
+                ;
+        if (!ALGORITMO_PERMITIDO.equals(firmado.getHeader().getAlgorithm())) {
+            throw new JwtException("Algoritmo JWT no permitido");
+        }
+        Claims claims = firmado.getPayload();
+        if (claims.getSubject() == null || claims.getSubject().isBlank()
+                || claims.get("correo", String.class) == null
+                || claims.get("rol", String.class) == null
+                || claims.getIssuedAt() == null
+                || claims.getExpiration() == null) {
+            throw new JwtException("Claims JWT requeridos ausentes");
+        }
+        // Fuerza la validación de los tipos y valores que utiliza autorización.
+        java.util.UUID.fromString(claims.getSubject());
+        RolUsuario.valueOf(claims.get("rol", String.class));
+        if (claims.get("correo", String.class).isBlank()) {
+            throw new JwtException("Claim de correo inválido");
+        }
+        return claims;
     }
 
     public String extraerSubject(String token) {

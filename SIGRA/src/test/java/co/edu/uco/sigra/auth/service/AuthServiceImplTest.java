@@ -16,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
@@ -35,7 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 // UNIT: AuthServiceImpl con repositorio, encoder y JWT simulados y un reloj fijo (sin Thread.sleep).
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, OutputCaptureExtension.class})
 class AuthServiceImplTest {
 
     private static final String CORREO = "profesor.valido@uco.net.co";
@@ -126,6 +128,17 @@ class AuthServiceImplTest {
         assertThat(usuario.getIntentosFallidos()).isEqualTo(1);
         assertThat(usuario.getFechaBloqueo()).isNull();
         verify(usuarioRepository).save(usuario);
+    }
+
+    @Test
+    void eventoDeRechazoNoRegistraCorreoNiPassword(CapturedOutput output) {
+        when(usuarioRepository.findByCorreoInstitucionalIgnoreCase(CORREO)).thenReturn(Optional.of(usuario));
+        when(passwordEncoder.matches(PASSWORD_INCORRECTO, HASH_PASSWORD)).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.autenticar(new LoginRequestDTO(CORREO, PASSWORD_INCORRECTO)))
+                .isInstanceOf(CredencialesInvalidasException.class);
+
+        assertThat(output).doesNotContain(CORREO, PASSWORD_INCORRECTO, "Authorization", "Bearer");
     }
 
     @Test

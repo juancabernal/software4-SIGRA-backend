@@ -55,11 +55,10 @@
  * fragmentos de SQL, nombres de tablas, columnas o restricciones de base de datos, y rutas del
  * sistema de archivos.
  *
- * <p>Esto aplica <em>también</em> cuando el fallo es inesperado. El patrón correcto es registrar y
- * no filtrar: {@code log.error("…", ex)} con la causa completa en el servidor, y un {@code mensaje}
- * genérico para el cliente. Entregar {@code ex.getMessage()} al cliente es el antipatrón que esta
- * regla existe para evitar — expone el detalle técnico <em>en vez de</em> registrarlo, y deja el
- * 500 sin rastro en el log.
+ * <p>Esto aplica <em>también</em> cuando el fallo es inesperado. El patrón correcto es registrar un
+ * evento sanitizado con {@code requestId} y la clase de excepción, y devolver un {@code mensaje}
+ * genérico al cliente. No se registran cuerpos, contraseñas, JWT ni cabeceras Authorization; tampoco
+ * se entrega {@code ex.getMessage()} al cliente.
  *
  * <h2>3. Precedencia entre advices</h2>
  *
@@ -99,7 +98,7 @@
  *   </tr>
  *   <tr>
  *     <td>{@code profesores.exception.ProfesorExceptionHandler}</td>
- *     <td>—</td><td>{@code Integer.MAX_VALUE}</td>
+ *     <td>{@code HIGHEST_PRECEDENCE}</td><td>{@code Integer.MIN_VALUE}</td>
  *     <td>global</td><td>No</td>
  *   </tr>
  *   <tr>
@@ -112,13 +111,9 @@
  * <p>Dos observaciones sobre esta tabla, útiles al depurar un código HTTP inesperado:
  *
  * <ul>
- *   <li>{@code ProfesorExceptionHandler} y {@code GlobalExceptionHandler} <strong>empatan</strong>
- *       en {@code LOWEST_PRECEDENCE}. El desempate lo define el orden de los beans, que viene del
- *       escaneo del classpath, y Spring no garantiza que sea el mismo entre máquinas. Si el global
- *       se evalúa primero, su método para {@code Exception} convierte las excepciones de
- *       {@code profesores} en 500 en lugar de 404 o 409. La corrección es una línea en el advice de
- *       {@code profesores} — declarar {@code @Order(Ordered.HIGHEST_PRECEDENCE)} — y le corresponde
- *       a su dueño.</li>
+ *   <li>{@code ProfesorExceptionHandler} declara {@code @Order(Ordered.HIGHEST_PRECEDENCE)}, por lo
+ *       que sus excepciones de dominio no dependen del orden de escaneo del classpath y no pueden
+ *       caer accidentalmente en el respaldo genérico de {@code GlobalExceptionHandler}.</li>
  *   <li>Un advice de módulo con máxima precedencia que declare {@code Exception} se queda con
  *       <em>todo</em> lo que ocurra en sus controladores, incluidos los errores de petición mal
  *       formada que el advice transversal sabría mapear mejor. Ningún advice aditivo puede ganarle,
@@ -179,36 +174,28 @@
  * <strong>declara únicamente tipos de excepción que ningún advice existente declara, y nunca
  * {@code Exception} ni {@code Throwable}</strong>. Es lo que hace que agregarlo no pueda cambiar
  * ninguna respuesta que hoy sea correcta. Si declarara {@code Exception}, con el orden {@code 0} le
- * ganaría a {@code ProfesorExceptionHandler} y convertiría sus 404 y 409 en 500: rompería el módulo
- * de un compañero para arreglar un contrato.
+ * ganaría a los advices de módulo que no hayan declarado una precedencia explícita y convertiría sus
+ * respuestas de dominio en 500: rompería el módulo de un compañero para arreglar un contrato.
  *
- * <h2>6. Deuda documentada: tres implementaciones del cuerpo de error (H-05)</h2>
+ * <h2>6. Implementación del cuerpo de error</h2>
  *
- * <p>El contrato de este paquete lo cumplen hoy <strong>tres</strong> implementaciones distintas del
- * mismo cuerpo JSON, y no hay nada que impida que aparezca una cuarta:
+ * <p>El contrato de este paquete converge hoy en el builder transversal y el constructor de los
+ * advices de módulo; no debe aparecer una cuarta implementación:
  *
  * <ul>
- *   <li>{@link ErrorResponseBuilder}, con {@link java.util.HashMap} — <strong>no garantiza el orden
- *       de las claves</strong> — y que recibe {@code error} como string literal, lo que permite
- *       incoherencias como un 404 con {@code error: "BAD_REQUEST"}. La usan
+ *   <li>{@link ErrorResponseBuilder}, con {@link java.util.LinkedHashMap}; deriva {@code error} de
+ *       {@code status} e ignora etiquetas inconsistentes recibidas por compatibilidad. La usan
  *       {@code GlobalExceptionHandler}, {@code ProfesorExceptionHandler},
  *       {@code ResultadoAprendizajeExceptionHandler} y {@code SemestreExceptionHandler}.</li>
- *   <li>Un método privado {@code construirRespuestaError}, con {@link java.util.LinkedHashMap}, en
- *       {@code AsignaturaExceptionHandler}. Ya no es la única copia de este patrón: hasta el
- *       2026-10-03 {@code SemestreExceptionHandler} tenía la suya, consolidada en ese módulo hacia
- *       {@code ErrorResponseBuilder} — la prueba de que acercar estas implementaciones es viable sin
- *       romper nada.</li>
+ *   <li>El método privado {@code construirRespuestaError} de {@code AsignaturaExceptionHandler}
+ *       queda limitado al contrato propio de ese módulo.</li>
  *   <li>{@link ConstructorRespuestaError}, de este paquete, que corrige las dos fallas de
  *       {@code ErrorResponseBuilder}: orden de claves garantizado y {@code error} derivado de
  *       {@code status}. Es la que deben usar los módulos nuevos (§4); no sustituye a las otras dos en
  *       los módulos que ya las adoptaron, porque hacerlo exigiría editar sus archivos.</li>
  * </ul>
  *
- * <p>Ninguna de las tres es, hoy, un defecto observable desde fuera: las tres producen un cuerpo que
- * cumple el contrato cuando se usan correctamente. El riesgo es de mantenimiento, no de
- * comportamiento — tres lugares donde corregir el mismo bug, y la posibilidad real de que diverjan
- * más de lo que ya divergieron. La consolidación hacia {@code ConstructorRespuestaError} queda
- * propuesta como cambio futuro, cuando los módulos de los Sprints 2 y 3 estén cerrados y el refactor
- * no choque con nadie en paralelo.
+ * <p>La compatibilidad se protege con pruebas de contrato que verifican orden, estado y ausencia de
+ * detalle técnico. Si se agrega un advice nuevo, debe reutilizar estas mismas construcciones.
  */
 package co.edu.uco.sigra.common.exception;

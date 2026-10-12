@@ -20,6 +20,7 @@ bruno/
     ├── environments/local.bru      Variables del entorno local (URL e ids de prueba)
     ├── seed/seed-asignaturas.sql   Datos de prueba de RF-03 (asignaturas)
     ├── seed/seed-asignaturas-roles.sql Asignación docente y matrícula de prueba (roles y «mis asignaturas»)
+    ├── seed/seed-resultados-aprendizaje.sql Fixtures RAP aislados para resultados de aprendizaje
     ├── seed/seed-auth.sql          Datos de prueba de RF-04 (login)
     ├── asignaturas/                Pruebas de RF-03, en orden
         ├── 00-sesiones/            Login de administrador, profesor y estudiante; guarda sus tokens (3)
@@ -30,8 +31,9 @@ bruno/
         ├── 04-activar/             RF-03d: activación con 5 a 7 RA activos y reactivación (10)
         ├── 05-inactivar/           RF-03d: inactivación, cascada de RA y reactivación (8)
         ├── 06-cors/                CORS para el frontend en http://localhost:4200 (2)
-        ├── 07-roles/               Control por rol; solo corre con controlPorRol=true (11)
+        ├── 07-roles/               Control por rol de asignaturas (11)
         └── 08-mis-asignaturas/     «Mis asignaturas» del profesor y del estudiante (4)
+    ├── seguridad-rf05/             RBAC, JWT inválido, anónimo y alcance (8)
     └── auth/                       Pruebas de RF-04, en orden
         ├── 01-login/               Login correcto y validaciones de entrada
         ├── 02-intentos-fallidos/   Bloqueo tras 5 intentos fallidos (423)
@@ -153,25 +155,20 @@ bru run . -r --env local
 
 `-r` hace que se ejecuten también las subcarpetas.
 
-### 5. Control de acceso por rol: los dos modos (asignaturas, temporal hasta RF-05)
+### 5. Seguridad RF-05 y control de acceso
 
-El backend tiene un interruptor, `sigra.seguridad.roles.habilitado`, **apagado por defecto**. La colección tiene la variable `controlPorRol` en `environments/local.bru`, que debe coincidir con él.
+Desde RF-05 no existe un interruptor de seguridad: todas las rutas privadas requieren Bearer JWT y la autorización por rol se aplica siempre. `OPTIONS` solo resuelve preflight CORS; nunca habilita una operación privada. La carpeta `seguridad-rf05/` cubre login de los tres roles, acceso anónimo, token inválido, permisos permitidos/denegados y una ruta de alcance propio.
 
-| Modo | Backend | Bruno | Qué pasa |
-| --- | --- | --- | --- |
-| Apagado (por defecto) | sin la propiedad | `controlPorRol: false` | `/api/v1/asignaturas` no pide token, como siempre. `07-roles` aparece como omitida |
-| Encendido | `sigra.seguridad.roles.habilitado=true` en `SIGRA/.env`, o la variable de entorno `SIGRA_SEGURIDAD_ROLES_HABILITADO=true` | `--env-var controlPorRol=true` (o cambiar la variable en el entorno) | Se aplica la matriz y corren también las 11 peticiones de `07-roles` |
+La colección histórica `asignaturas/07-roles` conserva sus casos y se ejecuta sin interruptores temporales; `seguridad-rf05` concentra la validación completa de RF-05.
 
-En ambos modos, `00-sesiones` inicia sesión con los tres usuarios de prueba y guarda `tokenAdmin`, `tokenProfesor` y `tokenEstudiante`. La carpeta `asignaturas/` envía `Authorization: Bearer {{tokenAdmin}}` en todas sus peticiones, así que las pruebas de siempre funcionan igual con el control encendido. `08-mis-asignaturas` corre siempre, porque ese endpoint exige token aunque el interruptor esté apagado.
-
-Datos necesarios, en este orden: `seed-auth.sql`, `seed-roles.sql`, `seed-asignaturas.sql` (con `SET search_path TO sigra;`) y `seed-asignaturas-roles.sql`. Este último asigna a `profesor.bruno@uco.net.co` las materias `BRU10` y `BRU07`, y matricula a `estudiante.bruno@uco.net.co` en `BRU10`.
+Datos necesarios, en este orden: `seed-auth.sql`, `seed-roles.sql`, `seed-asignaturas.sql`, `seed-asignaturas-roles.sql`, `seed-semestres.sql`, `seed-estudiantes.sql` y `seed-resultados-aprendizaje.sql`. Cada seed usa prefijos/UUID propios; los semestres BRUEST activos se generan alrededor de `CURRENT_DATE` porque el servicio deriva `ACTIVO` de las fechas. El seed RAP mantiene sus asignaturas bajo `RAP-*` para que la suite no comparta estado con asignaturas.
 
 ```bash
-bru run asignaturas -r --env local                           # interruptor apagado
-bru run asignaturas -r --env local --env-var controlPorRol=true  # interruptor encendido
+bru run seguridad-rf05 -r --env local
+bru run . -r --env local
 ```
 
-Matriz con el interruptor encendido (sin token, token inválido o expirado, o usuario inexistente o inactivo: **401**; rol no permitido: **403**; las peticiones OPTIONS siempre pasan):
+Matriz efectiva (sin token, token inválido o expirado, usuario inexistente o inactivo: **401**; rol no permitido: **403**; las peticiones OPTIONS solo pasan como preflight válido):
 
 | Endpoint | ADMINISTRADOR | PROFESOR | ESTUDIANTE |
 | --- | --- | --- | --- |
@@ -191,7 +188,7 @@ Matriz con el interruptor encendido (sin token, token inválido o expirado, o us
 - Que inactivar no borra la asignatura y deja sus RA activos en INACTIVO (cascada).
 - Que una asignatura INACTIVA se puede reactivar y recupera **solo** los RA inactivados con ella (`BRU11` y `BRU10` vuelven con 5 RA activos). Es una decisión del equipo de asignaturas, distinta del SRS 3.2.3d, que solo define Borrador → Activa.
 - El saneamiento de la entrada: el código se guarda recortado y en mayúsculas, el nombre reduce los espacios repetidos, y los códigos o nombres inválidos responden 400 **sin repetir el valor enviado**.
-- Con `controlPorRol=true`, la matriz de roles de la sección 5; en ambos modos, «mis asignaturas» del profesor (BRU10 y BRU07, con RA, estudiantes y profesores) y del estudiante (solo BRU10).
+- En `seguridad-rf05`, la matriz de roles de la sección 5; «mis asignaturas» del profesor (BRU10 y BRU07, con RA, estudiantes y profesores) y del estudiante (solo BRU10).
 - Que CORS permite `http://localhost:4200` y rechaza otros orígenes. La segunda prueba de CORS no revisa el formato de error, porque ese 403 lo genera Spring antes de llegar al manejador de errores del módulo.
 
 ### Por qué no hay una prueba con JSON roto
