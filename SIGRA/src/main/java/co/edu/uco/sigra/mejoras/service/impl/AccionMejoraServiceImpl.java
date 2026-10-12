@@ -10,15 +10,21 @@ import co.edu.uco.sigra.estadisticas.exception.ConclusionNoEncontradaException;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
+import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.entity.AccionMejora;
+import co.edu.uco.sigra.mejoras.entity.RegistroEvaluacionPrueba;
 import co.edu.uco.sigra.mejoras.exception.AccionMejoraNoEncontradaException;
+import co.edu.uco.sigra.mejoras.exception.AccionYaConvertidaException;
 import co.edu.uco.sigra.mejoras.exception.ConclusionNoVigenteException;
 import co.edu.uco.sigra.mejoras.exception.PermisoInsuficienteException;
+import co.edu.uco.sigra.mejoras.exception.PorcentajeExcedeLimiteException;
 import co.edu.uco.sigra.mejoras.mapper.AccionMejoraMapper;
 import co.edu.uco.sigra.mejoras.repository.AccionMejoraRepository;
+import co.edu.uco.sigra.mejoras.repository.RegistroEvaluacionPruebaRepository;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import co.edu.uco.sigra.resultadosaprendizaje.entity.ResultadoAprendizaje;
+import co.edu.uco.sigra.semestres.entity.Semestre;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,6 +48,7 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
     private final ConclusionRepository conclusionRepository;
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final AccionMejoraMapper accionMejoraMapper;
+    private final RegistroEvaluacionPruebaRepository registroEvaluacionPruebaRepository;
 
     @Override
     @Transactional
@@ -96,6 +103,39 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
     @Transactional
     public AccionMejoraResponseDTO consultarPorId(UUID id) {
         return accionMejoraMapper.toResponseDTO(buscarAccionMejora(id));
+    }
+
+    @Override
+    @Transactional
+    public AccionMejoraResponseDTO convertirEnEvaluacion(UUID accionId, ConvertirEvaluacionRequestDTO datos,
+                                                          IdentidadActual identidad) {
+        AccionMejora accionMejora = buscarAccionMejora(accionId);
+
+        Set<UUID> alcance = alcanceDe(identidad);
+        if (alcance != null && !alcance.contains(accionMejora.getResultadoAprendizaje().getAsignatura().getId())) {
+            throw new PermisoInsuficienteException();
+        }
+
+        if (accionMejora.estaConvertida()) {
+            throw new AccionYaConvertidaException(accionId);
+        }
+
+        ResultadoAprendizaje resultadoAprendizaje = accionMejora.getResultadoAprendizaje();
+        Semestre semestre = accionMejora.getConclusionOrigen().getSemestre();
+
+        double sumaActual = registroEvaluacionPruebaRepository.sumarPorcentajes(resultadoAprendizaje.getId(),
+                semestre.getId());
+        if (sumaActual + datos.porcentaje() > 100) {
+            throw new PorcentajeExcedeLimiteException(sumaActual, datos.porcentaje());
+        }
+
+        RegistroEvaluacionPrueba registroEvaluacion = new RegistroEvaluacionPrueba(resultadoAprendizaje, semestre,
+                accionMejora.getDescripcion(), datos.porcentaje());
+        RegistroEvaluacionPrueba guardado = registroEvaluacionPruebaRepository.save(registroEvaluacion);
+
+        accionMejora.marcarConvertida(guardado.getId());
+        AccionMejora actualizada = accionMejoraRepository.save(accionMejora);
+        return accionMejoraMapper.toResponseDTO(actualizada);
     }
 
     /**

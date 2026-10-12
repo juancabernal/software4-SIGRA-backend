@@ -3,6 +3,7 @@ package co.edu.uco.sigra.mejoras.service;
 import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
+import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 
 import java.util.List;
@@ -20,4 +21,8 @@ public interface AccionMejoraService {
     List<AccionMejoraResponseDTO> consultarAcciones(AccionMejoraFiltroDTO filtro, IdentidadActual identidad);
 
     AccionMejoraResponseDTO consultarPorId(UUID id);
+
+    /** RF-18: convierte la acción en una evaluación nueva, validando el 100% del RA en el semestre. */
+    AccionMejoraResponseDTO convertirEnEvaluacion(UUID accionId, ConvertirEvaluacionRequestDTO datos,
+                                                   IdentidadActual identidad);
 }

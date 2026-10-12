@@ -32,6 +32,16 @@ public class MejorasExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), null);
     }
 
+    @ExceptionHandler(PorcentajeExcedeLimiteException.class)
+    public ResponseEntity<Map<String, Object>> manejarPorcentajeExcedeLimite(PorcentajeExcedeLimiteException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(AccionYaConvertidaException.class)
+    public ResponseEntity<Map<String, Object>> manejarAccionYaConvertida(AccionYaConvertidaException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), null);
+    }
+
     /** Por si escapa desde marcarAtendida() en algún camino no cubierto por el chequeo explícito. */
     @ExceptionHandler(TransicionEstadoInvalidaException.class)
     public ResponseEntity<Map<String, Object>> manejarTransicionInvalida(TransicionEstadoInvalidaException ex) {

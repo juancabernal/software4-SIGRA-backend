@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.mejoras.entity;
 
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
+import co.edu.uco.sigra.mejoras.exception.AccionYaConvertidaException;
 import co.edu.uco.sigra.resultadosaprendizaje.entity.ResultadoAprendizaje;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -63,5 +64,13 @@ public class AccionMejora {
 
     public boolean estaConvertida() {
         return evaluacionGeneradaId != null;
+    }
+
+    /** Marca la acción como convertida en evaluación (RF-18); falla si ya lo estaba. */
+    public void marcarConvertida(UUID evaluacionGeneradaId) {
+        if (estaConvertida()) {
+            throw new AccionYaConvertidaException(this.id);
+        }
+        this.evaluacionGeneradaId = evaluacionGeneradaId;
     }
 }
