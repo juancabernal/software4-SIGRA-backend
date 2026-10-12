@@ -26,39 +26,39 @@ public class EstudianteController {
     private final MatriculaMapper matriculaMapper;
 
     @PostMapping
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<EstudianteResponseDTO> registrar(@Valid @RequestBody EstudianteRequestDTO dto) {
         var creado = estudianteService.registrar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @GetMapping
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<List<EstudianteResponseDTO>> consultar(@RequestParam(required = false) String filtro) {
         return ResponseEntity.ok(estudianteService.consultar(filtro));
     }
 
     @GetMapping("/{id}")
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("@securityAuthorization.canAccessStudent(#id, authentication)")
     public ResponseEntity<EstudianteResponseDTO> consultarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(estudianteService.consultarPorId(id));
     }
 
     @PutMapping("/{id}")
-    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<EstudianteResponseDTO> modificar(@PathVariable UUID id, @Valid @RequestBody EstudianteRequestDTO dto) {
         return ResponseEntity.ok(estudianteService.modificar(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> inactivar(@PathVariable UUID id) {
         estudianteService.inactivar(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/asignaturas")
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("@securityAuthorization.canAccessStudent(#id, authentication)")
     public ResponseEntity<List<AsignaturaDeEstudianteDTO>> consultarAsignaturas(@PathVariable UUID id) {
         var matriculas = matriculaService.listarAsignaturasDeEstudiante(id);
         return ResponseEntity.ok(matriculaMapper.toAsignaturaDeEstudianteDTOList(matriculas));

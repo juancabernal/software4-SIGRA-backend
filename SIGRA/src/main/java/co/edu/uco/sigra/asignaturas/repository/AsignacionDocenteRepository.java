@@ -11,6 +11,7 @@ import java.util.UUID;
 @Repository
 public interface AsignacionDocenteRepository extends JpaRepository <AsignacionDocente, UUID> {
     boolean existsByProfesor_IdAndEstado(UUID profesorId, EstadoRegistro estado);
+    boolean existsByProfesor_IdAndAsignatura_IdAndEstado(UUID profesorId, UUID asignaturaId, EstadoRegistro estado);
     List<AsignacionDocente> findByProfesor_IdAndEstado(UUID profesorId, EstadoRegistro estado);
     List<AsignacionDocente> findByProfesor_Id(UUID profesorId);
 }

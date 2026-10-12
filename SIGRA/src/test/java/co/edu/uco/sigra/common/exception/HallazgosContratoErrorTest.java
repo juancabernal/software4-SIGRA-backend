@@ -2,6 +2,7 @@ package co.edu.uco.sigra.common.exception;
 
 import co.edu.uco.sigra.asignaturas.controller.AsignaturaController;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
+import co.edu.uco.sigra.auth.security.CurrentUser;
 import co.edu.uco.sigra.profesores.controller.ProfesorController;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
 import co.edu.uco.sigra.semestres.controller.SemestreController;
@@ -34,12 +35,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  *
  * <p>De los cuatro hallazgos que tocan código ajeno, <strong>tres ya estaban resueltos</strong> para
  * cuando se llegó a escribir esta prueba, dos por un commit de otro integrante y uno como efecto
- * colateral de {@link ManejadorErroresTransversal} (commit 4 de este cambio). Solo uno sigue abierto.
- * Por eso esta clase no sigue el patrón de «prueba correcta, {@code @Disabled}, para que el dueño la
- * habilite al corregir» en los tres que ya están cerrados: documentar con {@code @Disabled} un
- * defecto que no existe sería más confuso que útil para quien lea el PR. En su lugar, cada hallazgo
- * cerrado tiene una prueba de no regresión que <strong>pasa hoy</strong> y falla si alguien revierte
- * la corrección sin querer.
+ * colateral de {@link ManejadorErroresTransversal} (commit 4 de este cambio). H-02 también quedó
+ * cerrado al declarar {@code @Order(Ordered.HIGHEST_PRECEDENCE)} en el advice de profesores. Cada
+ * hallazgo cerrado tiene una prueba de no regresión que pasa hoy y falla si alguien revierte la
+ * corrección sin querer.
  *
  * <h2>Resumen de los cinco hallazgos</h2>
  *
@@ -47,11 +46,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  *   <li><strong>H-01</strong> ({@link HallazgoH01FugaDeMensajeTecnico}) — <strong>cerrado</strong>,
  *       por el commit {@code 8c32948} de Jean Paul, anterior a esta sección. Prueba de no
  *       regresión abajo.</li>
- *   <li><strong>H-02</strong> — <strong>abierto</strong>. Vive en
- *       {@code ContratoErrorProfesoresTest.HallazgoH02PrecedenciaDeProfesores} (sección 5 de este
- *       cambio) y no se repite aquí: esas pruebas ya expresan el comportamiento correcto y están
- *       {@code @Disabled} con el número de hallazgo y el dueño, listas para que las habilite al
- *       corregir.</li>
+ *   <li><strong>H-02</strong> — <strong>cerrado</strong>. Vive en
+ *       {@code ContratoErrorProfesoresTest.HallazgoH02PrecedenciaDeProfesores}, cuyas tres pruebas
+ *       activas verifican 404, 409 y 400 de forma determinista.</li>
  *   <li><strong>H-03 / H-04</strong> ({@link HallazgoH03H04ContentTypeEnAsignaturasYSemestres}) —
  *       <strong>cerrados</strong>, como efecto colateral de haber agregado
  *       {@link ManejadorErroresTransversal}: ninguno de los dos advices de módulo declaraba
@@ -138,6 +135,9 @@ class HallazgosContratoErrorTest {
 
             @MockitoBean
             private AsignaturaService asignaturaService;
+
+            @MockitoBean
+            private CurrentUser currentUser;
 
             @Test
             @DisplayName("Content-Type no soportado responde 415, no 500")

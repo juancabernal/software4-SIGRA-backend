@@ -15,11 +15,14 @@ import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,9 @@ import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -70,6 +76,15 @@ class AsignaturaServiceImplTest {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
                 resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
         programa = programa(EstadoRegistro.ACTIVO);
+        UsuarioPrincipal principal = new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co",
+                RolUsuario.ADMINISTRADOR);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                principal, null, java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
+    }
+
+    @AfterEach
+    void limpiarContexto() {
+        SecurityContextHolder.clearContext();
     }
 
     private static ProgramaAcademico programa(EstadoRegistro estado) {

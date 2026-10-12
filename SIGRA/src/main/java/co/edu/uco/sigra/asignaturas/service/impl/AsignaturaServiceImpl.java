@@ -19,7 +19,8 @@ import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ConteoPorAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.ProfesorDeAsignatura;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
@@ -27,7 +28,7 @@ import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRep
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
@@ -40,7 +41,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class AsignaturaServiceImpl implements AsignaturaService {
 
     private final AsignaturaRepository asignaturaRepository;
@@ -48,6 +48,32 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     private final ResultadoAprendizajeRepository resultadoAprendizajeRepository;
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final AsignaturaMapper asignaturaMapper;
+    private final CurrentUser currentUser;
+
+    @Autowired
+    public AsignaturaServiceImpl(AsignaturaRepository asignaturaRepository,
+                                 ProgramaAcademicoRepository programaAcademicoRepository,
+                                 ResultadoAprendizajeRepository resultadoAprendizajeRepository,
+                                 AsignacionDocenteRepository asignacionDocenteRepository,
+                                 AsignaturaMapper asignaturaMapper,
+                                 CurrentUser currentUser) {
+        this.asignaturaRepository = asignaturaRepository;
+        this.programaAcademicoRepository = programaAcademicoRepository;
+        this.resultadoAprendizajeRepository = resultadoAprendizajeRepository;
+        this.asignacionDocenteRepository = asignacionDocenteRepository;
+        this.asignaturaMapper = asignaturaMapper;
+        this.currentUser = currentUser;
+    }
+
+    /** Constructor reducido conservado para pruebas unitarias; las consultas siguen fallando cerrado sin identidad. */
+    public AsignaturaServiceImpl(AsignaturaRepository asignaturaRepository,
+                                 ProgramaAcademicoRepository programaAcademicoRepository,
+                                 ResultadoAprendizajeRepository resultadoAprendizajeRepository,
+                                 AsignacionDocenteRepository asignacionDocenteRepository,
+                                 AsignaturaMapper asignaturaMapper) {
+        this(asignaturaRepository, programaAcademicoRepository, resultadoAprendizajeRepository,
+                asignacionDocenteRepository, asignaturaMapper, new CurrentUser());
+    }
 
     @Override
     @Transactional
@@ -71,12 +97,12 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     @Override
     @Transactional
     public List<AsignaturaResponseDTO> consultar(AsignaturaFiltroDTO filtro) {
-        return consultar(filtro, null);
+        return consultar(filtro, currentUser.required());
     }
 
     @Override
     @Transactional
-    public List<AsignaturaResponseDTO> consultar(AsignaturaFiltroDTO filtro, IdentidadActual identidad) {
+    public List<AsignaturaResponseDTO> consultar(AsignaturaFiltroDTO filtro, UsuarioPrincipal identidad) {
         validarRangoRa(filtro.raMin(), filtro.raMax());
         Set<UUID> alcance = alcanceDe(identidad);
 
@@ -106,12 +132,12 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     @Override
     @Transactional
     public AsignaturaResponseDTO obtenerAsignatura(UUID id) {
-        return obtenerAsignatura(id, null);
+        return obtenerAsignatura(id, currentUser.required());
     }
 
     @Override
     @Transactional
-    public AsignaturaResponseDTO obtenerAsignatura(UUID id, IdentidadActual identidad) {
+    public AsignaturaResponseDTO obtenerAsignatura(UUID id, UsuarioPrincipal identidad) {
         Set<UUID> alcance = alcanceDe(identidad);
         if (alcance != null && !alcance.contains(id)) {
             throw new PermisoInsuficienteException();
@@ -158,8 +184,11 @@ public class AsignaturaServiceImpl implements AsignaturaService {
      * Asignaturas visibles para la identidad: null significa «todas» (sin identidad, o ADMINISTRADOR).
      * El PROFESOR solo ve las suyas con asignación docente ACTIVA; un ESTUDIANTE no consulta el catálogo.
      */
-    private Set<UUID> alcanceDe(IdentidadActual identidad) {
-        if (identidad == null || identidad.rol() == RolUsuario.ADMINISTRADOR) {
+    private Set<UUID> alcanceDe(UsuarioPrincipal identidad) {
+        if (identidad == null) {
+            throw new PermisoInsuficienteException();
+        }
+        if (identidad.rol() == RolUsuario.ADMINISTRADOR) {
             return null;
         }
         if (identidad.rol() == RolUsuario.PROFESOR) {
@@ -188,7 +217,10 @@ public class AsignaturaServiceImpl implements AsignaturaService {
 
     @Override
     @Transactional
-    public List<MiAsignaturaDTO> misAsignaturas(IdentidadActual identidad) {
+    public List<MiAsignaturaDTO> misAsignaturas(UsuarioPrincipal identidad) {
+        if (identidad == null) {
+            throw new PermisoInsuficienteException();
+        }
         List<Asignatura> asignaturas = switch (identidad.rol()) {
             case PROFESOR -> asignaturaRepository.findAsignadasAProfesor(identidad.id(), EstadoRegistro.ACTIVO);
             case ESTUDIANTE -> asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoRegistro.ACTIVO);

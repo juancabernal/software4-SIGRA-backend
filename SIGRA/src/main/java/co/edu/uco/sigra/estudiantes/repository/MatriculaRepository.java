@@ -59,4 +59,40 @@ public interface MatriculaRepository extends JpaRepository<Matricula, UUID> {
             where m.estudiante.id = :estudianteId
             """)
     List<Matricula> buscarPorEstudiante(@Param("estudianteId") UUID estudianteId);
+
+    @Query("""
+            select count(m) from Matricula m, AsignacionDocente a
+            where m.estudiante.id = :estudianteId
+              and a.profesor.id = :profesorId
+              and a.asignatura.id = m.asignatura.id
+              and m.estado = :matriculaEstado
+              and a.estado = :asignacionEstado
+              and m.estudiante.estado = :estudianteEstado
+            """)
+    long countActiveByStudentAndProfessor(@Param("estudianteId") UUID estudianteId,
+                                          @Param("profesorId") UUID profesorId,
+                                          @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                          @Param("asignacionEstado") EstadoRegistro asignacionEstado,
+                                          @Param("estudianteEstado") EstadoRegistro estudianteEstado);
+
+    @Query("""
+            select m from Matricula m
+            join fetch m.estudiante
+            join fetch m.asignatura
+            join fetch m.semestre
+            where m.estudiante.id = :estudianteId
+              and m.estado = :matriculaEstado
+              and m.estudiante.estado = :estudianteEstado
+              and exists (
+                  select a.id from AsignacionDocente a
+                  where a.profesor.id = :profesorId
+                    and a.asignatura.id = m.asignatura.id
+                    and a.estado = :asignacionEstado
+              )
+            """)
+    List<Matricula> buscarPorEstudianteYProfesor(@Param("estudianteId") UUID estudianteId,
+                                                  @Param("profesorId") UUID profesorId,
+                                                  @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                                  @Param("asignacionEstado") EstadoRegistro asignacionEstado,
+                                                  @Param("estudianteEstado") EstadoRegistro estudianteEstado);
 }
