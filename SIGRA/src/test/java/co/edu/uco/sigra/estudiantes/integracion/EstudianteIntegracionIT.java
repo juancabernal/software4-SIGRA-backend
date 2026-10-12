@@ -408,13 +408,15 @@ class EstudianteIntegracionIT {
         assertThat(matriculaRepository.buscarPorTerna(estudianteId, asignaturaBorrador.getId(), semestre1.getId()))
                 .isEmpty();
 
-        // Semestre no activo (INACTIVO): 400, sin fila.
-        Semestre semestreInactivo = guardarSemestre(PREFIJO_SEMESTRE + "3", EstadoSemestre.INACTIVO);
+        // Semestre no vigente (fecha de fin ya pasó, aunque la marca almacenada diga ACTIVO): 400, sin fila.
+        // La vigencia se juzga por fechas, no por el estado almacenado (design.md, D3).
+        Semestre semestreInactivo = guardarSemestreConFechas(PREFIJO_SEMESTRE + "3",
+                LocalDate.now().minusDays(90), LocalDate.now().minusDays(10), EstadoSemestre.ACTIVO);
         MvcResult porSemestreNoActivo = enviar(post(URL_MATRICULAS),
                 jsonMatricula(estudianteId, asignaturaActiva.getId(), semestreInactivo.getId()));
         assertThat(porSemestreNoActivo.getResponse().getStatus()).isEqualTo(400);
         assertThat((String) JsonPath.read(cuerpo(porSemestreNoActivo), "$.mensaje"))
-                .isEqualTo("El semestre con id " + semestreInactivo.getId() + " no está activo.");
+                .isEqualTo("El semestre con id " + semestreInactivo.getId() + " no está vigente.");
         assertThat(matriculaRepository.buscarPorTerna(estudianteId, asignaturaActiva.getId(), semestreInactivo.getId()))
                 .isEmpty();
 
@@ -449,6 +451,21 @@ class EstudianteIntegracionIT {
         s.setCodigo(codigo);
         s.setFechaInicio(LocalDate.now().minusDays(10));
         s.setFechaFin(LocalDate.now().plusDays(90));
+        s.setEstado(estado);
+        return semestreRepository.save(s);
+    }
+
+    /**
+     * Para probar la vigencia por fechas (design.md, D3): permite fijar fechas fuera del rango
+     * vigente con un {@code estado} almacenado que diga lo contrario, y así demostrar que la
+     * marca de estado ya no se consulta al matricular.
+     */
+    private Semestre guardarSemestreConFechas(String codigo, LocalDate fechaInicio, LocalDate fechaFin,
+                                               EstadoSemestre estado) {
+        Semestre s = new Semestre();
+        s.setCodigo(codigo);
+        s.setFechaInicio(fechaInicio);
+        s.setFechaFin(fechaFin);
         s.setEstado(estado);
         return semestreRepository.save(s);
     }

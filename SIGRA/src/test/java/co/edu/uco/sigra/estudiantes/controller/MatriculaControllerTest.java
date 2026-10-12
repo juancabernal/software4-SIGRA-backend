@@ -259,17 +259,26 @@ class MatriculaControllerTest {
         }
 
         @Test
-        @DisplayName("Semestre no activo devuelve 400 sin detalles")
-        void semestreNoActivoDevuelve400() throws Exception {
+        @DisplayName("Semestre no vigente devuelve 400 sin detalles")
+        void semestreNoVigenteDevuelve400() throws Exception {
             given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
-                    .willThrow(ReglaDeMatriculaException.semestreNoActivo(ID_SEMESTRE));
+                    .willThrow(ReglaDeMatriculaException.semestreNoVigente(ID_SEMESTRE));
 
             MvcResult resultado = mockMvc.perform(post(RUTA)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(CUERPO_VALIDO))
                     .andReturn();
 
-            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.BAD_REQUEST);
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.BAD_REQUEST);
+
+            // Mensaje nuevo (design.md, D3): la vigencia se juzga por fechas, no por la marca de
+            // estado almacenada. El contrato transversal ya garantiza timestamp/status/error/mensaje
+            // y la ausencia de detalle técnico; aquí se confirma que el texto es el nuevo y no el
+            // viejo ("no está activo").
+            assertThat(cuerpo.get("mensaje").stringValue())
+                    .as("El mensaje debe hablar de vigencia, no del estado almacenado del semestre")
+                    .contains("no está vigente")
+                    .doesNotContain("no está activo");
         }
 
         @Test

@@ -104,6 +104,24 @@ class MatriculaServiceImplTest {
         return s;
     }
 
+    /**
+     * Semestre con fechas explícitas e independientes de su marca de estado almacenada.
+     * <p>
+     * La vigencia se juzga por {@code fechaInicio}/{@code fechaFin}, no por {@code estado}
+     * (design.md, D3), así que las pruebas que cubren esa regla necesitan poder fijar fechas
+     * vencidas o futuras mientras la marca almacenada sigue diciendo {@code ACTIVO} — justo el
+     * escenario del defecto que esta regla corrige.
+     */
+    private static Semestre semestreConFechas(LocalDate fechaInicio, LocalDate fechaFin, EstadoSemestre estado) {
+        Semestre s = new Semestre();
+        s.setId(ID_SEMESTRE);
+        s.setCodigo(CODIGO_SEMESTRE);
+        s.setFechaInicio(fechaInicio);
+        s.setFechaFin(fechaFin);
+        s.setEstado(estado);
+        return s;
+    }
+
     private static Matricula matricula(UUID id, Estudiante estudiante, Asignatura asignatura, Semestre semestre, EstadoMatricula estado) {
         Matricula m = new Matricula();
         m.setId(id);
@@ -130,7 +148,7 @@ class MatriculaServiceImplTest {
         }
 
         @Test
-        @DisplayName("Con terna nueva y los tres activos, crea la matrícula ACTIVA sin reactivarla")
+        @DisplayName("PN-35 Con terna nueva y los tres activos, crea la matrícula ACTIVA sin reactivarla")
         void caminoFeliz() {
             stubTresActivos();
             when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.empty());
@@ -217,7 +235,7 @@ class MatriculaServiceImplTest {
         }
 
         @Test
-        @DisplayName("Con la asignatura INACTIVA lanza excepción sin consultar la terna")
+        @DisplayName("PN-35 Con la asignatura INACTIVA lanza excepción sin consultar la terna")
         void asignaturaInactiva() {
             stubTresActivos();
             when(asignaturaRepository.findById(ID_ASIGNATURA)).thenReturn(Optional.of(asignatura(EstadoAsignatura.INACTIVA)));
@@ -230,20 +248,73 @@ class MatriculaServiceImplTest {
         }
 
         @Test
-        @DisplayName("Con el semestre INACTIVO lanza excepción sin consultar la terna")
-        void semestreInactivo() {
+        @DisplayName("PN-35 Con el semestre cuya fecha de fin ya pasó lanza excepción aunque la marca almacenada diga ACTIVO")
+        void semestreConFechaFinVencidaAunqueLaMarcaDigaActivo() {
             stubTresActivos();
-            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre(EstadoSemestre.INACTIVO)));
+            // El punto central del defecto corregido (design.md, D3): la marca de estado
+            // almacenada sigue diciendo ACTIVO porque EstadoSemestre se recalcula de forma
+            // perezosa, pero las fechas dicen que el semestre ya terminó. Debe rechazarse
+            // igual, consultando solo las fechas.
+            Semestre vencido = semestreConFechas(HOY.minusMonths(2), HOY.minusDays(1), EstadoSemestre.ACTIVO);
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(vencido));
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_SEMESTRE.toString());
+                    .hasMessageContaining(ID_SEMESTRE.toString())
+                    .hasMessageContaining("no está vigente");
 
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
+            verify(matriculaRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Con la terna ya matriculada y ACTIVA lanza excepción y no guarda")
+        @DisplayName("PN-35 Con el semestre cuya fecha de inicio es posterior a hoy lanza excepción")
+        void semestreConFechaDeInicioPosteriorAHoy() {
+            stubTresActivos();
+            Semestre futuro = semestreConFechas(HOY.plusDays(1), HOY.plusMonths(2), EstadoSemestre.ACTIVO);
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(futuro));
+
+            assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
+                    .isInstanceOf(ReglaDeMatriculaException.class)
+                    .hasMessageContaining(ID_SEMESTRE.toString())
+                    .hasMessageContaining("no está vigente");
+
+            verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
+            verify(matriculaRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Con la fecha de inicio del semestre igual a hoy sí permite matricular")
+        void semestreConFechaDeInicioIgualAHoyPermiteMatricular() {
+            stubTresActivos();
+            Semestre semestreEnSuPrimerDia = semestreConFechas(HOY, HOY.plusMonths(1), EstadoSemestre.ACTIVO);
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestreEnSuPrimerDia));
+            when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.empty());
+            saveDevuelveArgumento();
+
+            ResultadoMatricula resultado = service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
+
+            assertThat(resultado.matricula().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
+            verify(matriculaRepository).save(any(Matricula.class));
+        }
+
+        @Test
+        @DisplayName("Con la fecha de fin del semestre igual a hoy sí permite matricular")
+        void semestreConFechaDeFinIgualAHoyPermiteMatricular() {
+            stubTresActivos();
+            Semestre semestreEnSuUltimoDia = semestreConFechas(HOY.minusMonths(1), HOY, EstadoSemestre.ACTIVO);
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestreEnSuUltimoDia));
+            when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE)).thenReturn(Optional.empty());
+            saveDevuelveArgumento();
+
+            ResultadoMatricula resultado = service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
+
+            assertThat(resultado.matricula().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
+            verify(matriculaRepository).save(any(Matricula.class));
+        }
+
+        @Test
+        @DisplayName("PN-35 Con la terna ya matriculada y ACTIVA lanza excepción y no guarda")
         void ternaConMatriculaActivaExistente() {
             stubTresActivos();
             Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
@@ -257,6 +328,39 @@ class MatriculaServiceImplTest {
                     .hasMessageContaining(ID_SEMESTRE.toString());
 
             verify(matriculaRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("PN-35 Con el mismo estudiante y asignatura ya matriculados en otro semestre, crea una matrícula nueva e independiente")
+        void repitenciaEnOtroSemestreCreaMatriculaIndependiente() {
+            UUID idSemestreOtro = UUID.randomUUID();
+
+            when(estudianteRepository.findById(ID_ESTUDIANTE)).thenReturn(Optional.of(estudiante(EstadoRegistro.ACTIVO)));
+            when(asignaturaRepository.findById(ID_ASIGNATURA)).thenReturn(Optional.of(asignatura(EstadoAsignatura.ACTIVA)));
+
+            Semestre semestreOtro = semestre(EstadoSemestre.ACTIVO);
+            semestreOtro.setId(idSemestreOtro);
+            when(semestreRepository.findById(idSemestreOtro)).thenReturn(Optional.of(semestreOtro));
+
+            // El estudiante ya tiene una matrícula ACTIVA de la misma asignatura, pero en OTRO
+            // semestre: la terna (estudiante, asignatura, semestre) es distinta, así que no debe
+            // reactivarse ni fusionarse con ella.
+            Matricula matriculaDelOtroSemestre = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
+                    asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.ACTIVA);
+            when(matriculaRepository.buscarPorTerna(ID_ESTUDIANTE, ID_ASIGNATURA, idSemestreOtro)).thenReturn(Optional.empty());
+            saveDevuelveArgumento();
+
+            ResultadoMatricula resultado = service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, idSemestreOtro);
+
+            assertThat(resultado.reactivada()).isFalse();
+            assertThat(resultado.matricula()).isNotSameAs(matriculaDelOtroSemestre);
+            assertThat(resultado.matricula().getSemestre().getId()).isEqualTo(idSemestreOtro);
+            assertThat(resultado.matricula().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
+
+            ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
+            verify(matriculaRepository, times(1)).save(captor.capture());
+            assertThat(captor.getValue()).isNotSameAs(matriculaDelOtroSemestre);
+            assertThat(captor.getValue().getId()).isNotEqualTo(ID_MATRICULA);
         }
 
         @Test

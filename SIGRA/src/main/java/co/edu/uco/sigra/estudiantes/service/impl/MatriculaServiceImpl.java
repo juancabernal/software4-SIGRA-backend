@@ -17,7 +17,6 @@ import co.edu.uco.sigra.estudiantes.exception.ReglaDeMatriculaException;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
-import co.edu.uco.sigra.semestres.entity.EstadoSemestre;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.semestres.repository.SemestreRepository;
 import jakarta.transaction.Transactional;
@@ -73,11 +72,17 @@ public class MatriculaServiceImpl implements MatriculaService {
             throw ReglaDeMatriculaException.asignaturaNoActiva(asignaturaId);
         }
 
-        if (semestre.getEstado() != EstadoSemestre.ACTIVO) {
-            throw ReglaDeMatriculaException.semestreNoActivo(semestreId);
-        }
-
         LocalDate hoy = LocalDate.now(reloj);
+
+        // La vigencia del semestre se juzga por sus fechas, no por su marca de estado
+        // almacenada: EstadoSemestre se recalcula de forma perezosa, solo cuando el módulo
+        // de semestres consulta ese semestre, así que el valor guardado puede estar obsoleto
+        // en cualquier dirección. Las fechas son la fuente de verdad de la que ese estado se
+        // deriva, y consultarlas aquí evita además una llamada hacia otro módulo (y su posible
+        // escritura lateral) como efecto de una matrícula.
+        if (hoy.isBefore(semestre.getFechaInicio()) || hoy.isAfter(semestre.getFechaFin())) {
+            throw ReglaDeMatriculaException.semestreNoVigente(semestreId);
+        }
 
         var existente = matriculaRepository.buscarPorTerna(estudianteId, asignaturaId, semestreId);
 
