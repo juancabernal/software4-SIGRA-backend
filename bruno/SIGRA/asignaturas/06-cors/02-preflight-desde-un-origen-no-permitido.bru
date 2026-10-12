@@ -1,0 +1,26 @@
+meta {
+  name: 02 Preflight desde un origen no permitido
+  type: http
+  seq: 2
+}
+
+options {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: http://sitio-no-permitido.example
+  Access-Control-Request-Method: POST
+}
+
+assert {
+  res.status: eq 403
+}
+
+tests {
+  test("no autoriza el origen", function () {
+    expect(res.getHeader("access-control-allow-origin")).to.be.undefined;
+  });
+}

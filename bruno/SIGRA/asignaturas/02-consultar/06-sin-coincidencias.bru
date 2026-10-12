@@ -1,0 +1,29 @@
+meta {
+  name: 06 Sin coincidencias
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?texto=zzzxxqq
+  body: none
+  auth: none
+}
+
+params:query {
+  texto: zzzxxqq
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("arreglo vacio", function () {
+    expect(res.body).to.have.lengthOf(0);
+  });
+}

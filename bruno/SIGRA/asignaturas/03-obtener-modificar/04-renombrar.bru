@@ -1,0 +1,25 @@
+meta {
+  name: 04 Renombrar
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU12}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": " Renombrada Bruno "
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.nombre: eq Renombrada Bruno
+  res.body.codigo: eq BRU12
+  res.body.programaId: eq {{programaActivoId}}
+  res.body.estado: eq BORRADOR
+}

@@ -1,0 +1,29 @@
+meta {
+  name: 02 Por asignatura solo activos
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor7Id}}/resultados-aprendizaje?estado=ACTIVO
+  body: none
+  auth: none
+}
+
+params:query {
+  estado: ACTIVO
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve 7 RA", function () {
+    expect(res.body).to.be.an("array").with.lengthOf(7);
+  });
+
+  test("todos en estado ACTIVO", function () {
+    res.body.forEach(function (ra) { expect(ra.estado).to.equal("ACTIVO"); });
+  });
+}

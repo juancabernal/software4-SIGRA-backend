@@ -1,0 +1,26 @@
+meta {
+  name: 02 Estudiante ve solo donde esta matriculado
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/mias
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenEstudiante}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("solo BRU10", function () {
+    expect(res.body.map((a) => a.codigo)).to.eql(["BRU10"]);
+    expect(res.body[0].cantidadEstudiantes).to.equal(1);
+  });
+}

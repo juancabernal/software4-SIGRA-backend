@@ -52,12 +52,12 @@ Queda fuera del alcance del MVP: uso de IA para el análisis, carga de rúbricas
 | Integrante | Funcionalidad | Requisitos | Módulo |
 | --- | --- | --- | --- |
 | José Alejandro Valencia | Inicio de sesión: clase base `Usuario`, catálogo `TipoDocumento`, bcrypt factor 12, JWT HS256 de 60 min, bloqueo de 15 min tras 5 intentos fallidos | RF-04, RNF-10, RNF-17 | `auth` |
-| José Alejandro Valencia | Control de acceso por roles: filtro JWT, roles ADMIN/PROFESOR/ESTUDIANTE, 401 sin token y 403 sin permiso | RF-05, RNF-13 | `security` |
-| Juan Camilo Bernal | Gestión de asignaturas: ciclo Borrador → Activa → Inactiva, código único, activación solo con 5 a 7 RA activos | RF-03a–d | `asignaturas` |
+| José Alejandro Valencia | Control de acceso por roles: filtro JWT, roles ADMINISTRADOR/PROFESOR/ESTUDIANTE, 401 sin token y 403 sin permiso | RF-05, RNF-13 | `security` |
+| Juan Camilo Bernal | Gestión de asignaturas: ciclo Borrador → Activa → Inactiva, código único, activación solo con 5 a 7 RA activos; al inactivar una asignatura se inactivan en cascada sus RA activos | RF-03a–d | `asignaturas` |
 | Jean Paul Ortiz | Gestión de profesores: cédula de 6 a 10 dígitos, correo `@uco.net.co`, cédula no modificable, inactivación lógica | RF-01a–d | `profesores` |
 | Juan José Narváez | Gestión de Resultados de Aprendizaje: código único por asignatura, tope de 7 RA, mínimo de 5 activos | RF-06a–c | `resultadosaprendizaje` |
 | Simón Tabares | Gestión de programas académicos: CRUD con nombre y código únicos y eliminación lógica | RF-02a–d | `programas` |
-| Santiago Torres | Gestión de semestres: código único, validación de fechas y rechazo de periodos solapados | RF-Semestre a/b | `asignaturas` (submódulo semestres) |
+| Santiago Torres | Gestión de semestres: código único, validación de fechas y rechazo de periodos solapados | RF-Semestre a/b | `semestres` |
 | Andrés Vélez | Gestión de estudiantes: `Estudiante` extiende `Usuario`, documento y correo únicos | RF-09a | `estudiantes` |
 
 ### Sprint 2 — Operación académica (06/10/2026 – 12/10/2026)
@@ -70,7 +70,7 @@ Queda fuera del alcance del MVP: uso de IA para el análisis, carga de rúbricas
 | Simón Tabares | Calificaciones y trazabilidad: nota 0.0–5.0, observación mínima de 10 caracteres, marca `fueraDeFecha` | RF-12, RF-13 | `calificaciones` |
 | Santiago Torres | Nivel de logro y estadísticas: catálogo de 4 rangos, recálculo automático, umbral de 3 calificaciones | RF-14, RF-15 | `estadisticas` |
 | Juan Camilo Bernal | Conclusiones automáticas: alerta cuando más del 40 % queda en Bajo o Medio, sin duplicar conclusiones vigentes | RF-16 | `estadisticas` |
-| José Alejandro Valencia | Historial de auditoría: servicio `registrarEvento`, tabla sin UPDATE ni DELETE, reporte paginado para ADMIN | RF-19, RF-21c | `auditoria` |
+| José Alejandro Valencia | Historial de auditoría: servicio `registrarEvento`, tabla sin UPDATE ni DELETE, reporte paginado para ADMINISTRADOR | RF-19, RF-21c | `auditoria` |
 
 ### Sprint 3 — Cierre del ciclo y reportes (13/10/2026 – 19/10/2026)
 
@@ -119,7 +119,7 @@ SIGRA/
     ├── main/
     │   ├── java/co/edu/uco/sigra/
     │   │   ├── SigraApplication.java      Punto de entrada
-    │   │   ├── asignaturas/               RF-03 y semestres
+    │   │   ├── asignaturas/               RF-03
     │   │   ├── auditoria/                 RF-19, RF-21c
     │   │   ├── auth/                      RF-04
     │   │   ├── calificaciones/            RF-12, RF-13
@@ -131,7 +131,9 @@ SIGRA/
     │   │   ├── programas/                 RF-02
     │   │   ├── reportes/                  RF-20, RF-21a/b, RF-22
     │   │   ├── resultadosaprendizaje/     RF-06
+    │   │   ├── semestres/                 RF-Semestre a/b
     │   │   ├── common/                    DTO, excepciones y utilidades compartidas
+    │   │   ├── shared/                    Entidades y enums transversales (TipoDocumento, EstadoRegistro)
     │   │   ├── config/                    Configuración transversal
     │   │   └── security/                  RF-05: config y filtros JWT
     │   └── resources/
@@ -154,6 +156,8 @@ Capas dentro de cada módulo:
 ### Convención
 
 Ninguna clase de `controller` accede directamente a `repository`: la ruta siempre es **controller → service → repository**. Las validaciones de negocio viven en `service/impl`, no en el controlador.
+
+Los manejadores de excepciones de cada módulo atienden solo errores de negocio de ese módulo y NO incluyen un método para `Exception.class`; los errores comunes (validación, JSON ilegible, 403 por permisos, 500 genérico sin detalles técnicos) los atiende el manejador global en `common/exception`.
 
 ---
 
@@ -209,12 +213,13 @@ SIGRA es un **sistema independiente**: no se integra con SIS, LMS ni pasarelas d
 | Base de datos | PostgreSQL | 15 o superior |
 | ORM | Spring Data JPA / Hibernate | — |
 | Seguridad | Spring Security + JWT (HS256) | — |
-| Caché / bloqueo de intentos | Spring Data Redis | — |
+| Bloqueo de intentos fallidos | Persistido en PostgreSQL (`usuario.intentos_fallidos`, `usuario.fecha_bloqueo`). Redis no se usa | — |
 | Validación | Spring Boot Starter Validation | — |
 | Monitoreo | Spring Boot Actuator (`/actuator/health`) | — |
 | Reducción de boilerplate | Lombok | — |
-| Pruebas | JUnit 5 + Spring Boot Test | — |
-| Documentación de API | OpenAPI / Swagger | — |
+| Mapeo entidad ↔ DTO | MapStruct | 1.6.3 |
+| Pruebas | JUnit 5 + Mockito + MockMvc | — |
+| Documentación de API | OpenAPI / Swagger (springdoc) | 3.1.1 |
 
 ---
 
@@ -226,7 +231,7 @@ SIGRA es un **sistema independiente**: no se integra con SIS, LMS ni pasarelas d
 | --- | --- | --- |
 | JDK | 21 | `java -version` |
 | PostgreSQL | 15 | `psql --version` |
-| Redis | 7 | `redis-cli ping` |
+| Redis | 7 — Opcional por ahora (deshabilitado temporalmente) | `redis-cli ping` |
 | Git | 2.30 | `git --version` |
 
 No hace falta instalar Gradle: el repositorio incluye el Wrapper (`gradlew`).
@@ -240,44 +245,62 @@ cd software4-SIGRA-backend/SIGRA
 
 > Todos los comandos siguientes se ejecutan desde la carpeta `SIGRA/`, que es la raíz del proyecto Gradle.
 
-### 2. Crear la base de datos
+### 2. Crear el esquema de la base de datos
 
-```sql
-CREATE DATABASE sigra;
-CREATE USER sigra_user WITH ENCRYPTED PASSWORD 'cambiar_esta_clave';
-GRANT ALL PRIVILEGES ON DATABASE sigra TO sigra_user;
+SIGRA usa la base `postgres` y el **schema** `sigra` dentro de ella. `sigra` **no es una base de datos**: por eso la URL JDBC lleva `?currentSchema=sigra`.
+
+Para una base vacía, ejecuta el baseline (crea el schema y todas sus tablas en una sola transacción):
+
+```bash
+psql -h localhost -p <PUERTO> -U <USUARIO> -d postgres -v ON_ERROR_STOP=1 -f docs/db/SIGRA_SCHEMA_CURRENT.sql
 ```
+
+Hibernate **no crea ni modifica tablas**: con `ddl-auto=validate` solo comprueba que las entidades coincidan con el esquema. Si falta una tabla o una columna, el backend no arranca. El detalle del modelo (herencia `Usuario` → `Profesor`, correo institucional, deudas) está en [docs/db/SIGRA_DATABASE_CURRENT.md](docs/db/SIGRA_DATABASE_CURRENT.md).
 
 ### 3. Configurar las variables de entorno
 
-Nunca subas credenciales al repositorio. Define estas variables en tu entorno o en un archivo `.env` local (ya ignorado por Git):
+Nunca subas credenciales al repositorio. La forma recomendada es un archivo `.env` dentro de `SIGRA/`. Spring Boot lo carga de forma nativa (`spring.config.import`) y Git lo ignora (`*.env`):
 
-| Variable | Descripción | Ejemplo |
-| --- | --- | --- |
-| `DB_URL` | URL JDBC de PostgreSQL | `jdbc:postgresql://localhost:5432/sigra` |
-| `DB_USERNAME` | Usuario de la base de datos | `sigra_user` |
-| `DB_PASSWORD` | Contraseña de la base de datos | — |
-| `REDIS_HOST` | Host de Redis | `localhost` |
-| `REDIS_PORT` | Puerto de Redis | `6379` |
-| `JWT_SECRET` | Clave de firma HS256 (mínimo 32 caracteres) | — |
-| `JWT_EXPIRATION` | Vigencia del token en milisegundos | `3600000` |
+```bash
+cp .env.example .env
+```
+
+En PowerShell: `Copy-Item .env.example .env`. Después completa los valores. Las variables reales del sistema (por ejemplo `$env:DB_URL`) tienen prioridad sobre el archivo.
+
+| Variable | Descripción | Valor por defecto | Ejemplo |
+| --- | --- | --- | --- |
+| `DB_URL` | URL JDBC: base `postgres` y schema `sigra` (`currentSchema`). El puerto depende de tu máquina. Sin valor por defecto | — | `jdbc:postgresql://localhost:5432/postgres?currentSchema=sigra` |
+| `DB_USERNAME` | Usuario de la base de datos. Sin valor por defecto | — | `postgres` |
+| `DB_PASSWORD` | Contraseña de la base de datos. Sin valor por defecto | — | — |
+| `SERVER_PORT` | Puerto HTTP del backend | `8080` | `8080` |
+| `JWT_SECRET` | Clave de firma HS256 de al menos 32 bytes. Sin valor por defecto | — | — |
+| `JWT_EXPIRATION_MS` | Vigencia del token en milisegundos (debe ser mayor que cero) | `3600000` (60 min) | `3600000` |
+| `CORS_ALLOWED_ORIGINS` | Orígenes del frontend, separados por coma | `http://localhost:4200` | `http://localhost:4200` |
+| `JPA_DDL_AUTO` | Estrategia de Hibernate. `validate` solo comprueba el esquema; Hibernate nunca lo modifica | `validate` | `validate` |
+| `JPA_SHOW_SQL` | Mostrar las consultas SQL en consola | `false` | `false` |
+
+> **Puerto de PostgreSQL:** cada desarrollador usa el puerto de su propio servidor. Por ejemplo, en la máquina de referencia de este proyecto el servidor escucha en `localhost:5433`, así que allí `DB_URL` es `jdbc:postgresql://localhost:5433/postgres?currentSchema=sigra`. El puerto **no está fijado en el código**: se configura en `SIGRA/.env` o en las variables del sistema. El `.env.example` compartido muestra `5432`, que es el valor por defecto de PostgreSQL.
 
 En Linux o macOS:
 
 ```bash
-export DB_URL=jdbc:postgresql://localhost:5432/sigra
-export DB_USERNAME=sigra_user
+export DB_URL="jdbc:postgresql://localhost:5432/postgres?currentSchema=sigra"
+export DB_USERNAME=postgres
 export DB_PASSWORD=cambiar_esta_clave
+export SERVER_PORT=8080
 export JWT_SECRET=una_clave_larga_y_aleatoria_de_al_menos_32_caracteres
+export JWT_EXPIRATION_MS=3600000
 ```
 
 En Windows (PowerShell):
 
 ```powershell
-$env:DB_URL="jdbc:postgresql://localhost:5432/sigra"
-$env:DB_USERNAME="sigra_user"
+$env:DB_URL="jdbc:postgresql://localhost:5432/postgres?currentSchema=sigra"
+$env:DB_USERNAME="postgres"
 $env:DB_PASSWORD="cambiar_esta_clave"
+$env:SERVER_PORT="8080"
 $env:JWT_SECRET="una_clave_larga_y_aleatoria_de_al_menos_32_caracteres"
+$env:JWT_EXPIRATION_MS="3600000"
 ```
 
 ### 4. Ejecutar en modo desarrollo
@@ -299,16 +322,54 @@ La API queda disponible en **http://localhost:8080**.
 | Recurso | URL |
 | --- | --- |
 | Estado del servicio | http://localhost:8080/actuator/health |
-| Documentación Swagger | http://localhost:8080/swagger-ui.html |
+| Documentación Swagger (UI) | http://localhost:8080/swagger-ui.html |
+| Contrato OpenAPI (JSON) | http://localhost:8080/v3/api-docs |
+
+#### Autenticación (RF-04)
+
+`POST /api/v1/auth/login` es público: no requiere token ni cabecera CSRF.
+
+```json
+{
+  "correoInstitucional": "profesor.bruno@uco.net.co",
+  "contrasena": "PasswordSeguro123*"
+}
+```
+
+| Código | Cuándo |
+| --- | --- |
+| 200 | Credenciales válidas. Devuelve `token` (JWT HS256 con los claims `sub`, `correo`, `rol`, `iat`, `exp`), `tipo` (`Bearer`), `expiraEn` (segundos) y `usuario` |
+| 400 | Datos inválidos: correo vacío o de otro dominio que no sea `@uco.net.co`, o contraseña vacía |
+| 401 | Correo o contraseña incorrectos, o usuario inactivo. Es el mismo mensaje en todos los casos |
+| 423 | Usuario bloqueado durante 15 minutos tras 5 intentos fallidos |
+
+El correo se acepta sin distinguir mayúsculas y con espacios laterales; el servidor lo normaliza antes de buscarlo. El token vence a los 60 minutos.
 
 ### 5. Ejecutar las pruebas
 
 ```bash
-./gradlew test                  # Pruebas unitarias y de integración
-./gradlew test jacocoTestReport # Pruebas + reporte de cobertura
+./gradlew test                            # Pruebas unitarias y de capa web (sin PostgreSQL)
+./gradlew integrationTest                 # Pruebas de integración (requiere PostgreSQL y SIGRA/.env)
+./gradlew test --tests '*auth*'           # Solo las pruebas de un módulo (ejemplo)
+./gradlew test jacocoTestReport           # Pruebas + reporte de cobertura (disponible cuando se agregue el plugin de JaCoCo)
 ```
 
-El reporte de cobertura queda en `build/reports/jacoco/test/html/index.html`.
+Las pruebas se separan por etiqueta para saber siempre qué se ejecutó:
+
+| Tarea | Qué incluye | Requiere PostgreSQL |
+| --- | --- | --- |
+| `test` | Unitarias y de capa web: servicios, entidades, JWT, BCrypt, controladores con MockMvc y la cadena de seguridad real (`SecurityConfig`) | No |
+| `integrationTest` | Pruebas con `@Tag("integration")`: `SigraContextIT` levanta el contexto completo | Sí, con `.env` válido |
+
+Las 5 pruebas de integración del módulo Asignaturas (casos, datos y limpieza con prefijo ITG) están en [docs/pruebas/asignaturas-integracion.md](docs/pruebas/asignaturas-integracion.md).
+
+Un fallo de `integrationTest` por credenciales o conexión no invalida el resultado de `test`.
+
+El reporte de cobertura quedará en `build/reports/jacoco/test/html/index.html` cuando se agregue el plugin de JaCoCo.
+
+#### Pruebas de la API con Bruno
+
+Además de las pruebas unitarias, el repositorio incluye una colección de pruebas de la API para [Bruno](https://www.usebruno.com) en `bruno/SIGRA/`, con datos de prueba reproducibles. Cómo cargar los datos y ejecutarla: [bruno/README.md](bruno/README.md).
 
 ### 6. Compilar y ejecutar el JAR
 
@@ -336,19 +397,70 @@ Levanta el backend en el puerto 8080 y luego el [frontend Angular](https://githu
 | `UnsupportedClassVersionError` | JDK anterior a 21 | Instala JDK 21 y ajusta `JAVA_HOME` |
 | `Could not resolve all dependencies` | Primera ejecución sin red o con proxy | Verifica la conexión y vuelve a ejecutar |
 | El token se rechaza siempre | `JWT_SECRET` ausente o demasiado corto | Define una clave de 32 caracteres o más |
+| `Could not resolve placeholder 'DB_URL'` (o `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`) | No existe `SIGRA/.env` ni la variable está definida en el sistema. Estas variables no tienen valor por defecto | Crea `SIGRA/.env` a partir de `.env.example` y completa los valores |
+| `Schema-validation: missing table [...]` o `missing column [...]` al arrancar | La base no tiene el esquema que esperan las entidades (`ddl-auto=validate`) | Ejecuta `docs/db/SIGRA_SCHEMA_CURRENT.sql` en una base vacía, o la migración correspondiente en una base existente. Ver [SIGRA_DATABASE_CURRENT.md](docs/db/SIGRA_DATABASE_CURRENT.md) |
+| `relation "usuario" does not exist` o `schema "sigra" does not exist` | `DB_URL` no apunta a `currentSchema=sigra` o el schema no fue creado | Revisa `DB_URL` y ejecuta el baseline |
+| `Connection refused` en `localhost:5433` (o `5432`) | El puerto de `DB_URL` no coincide con el de tu PostgreSQL | Corrige el puerto en `DB_URL` dentro de `SIGRA/.env` |
+| PowerShell no reconoce `gradlew` | En PowerShell hay que indicar la ruta del script | Ejecuta con `.\gradlew.bat` (con `.\`) |
+
+
+---
+
+## RF-04 — Inicio de sesión
+
+**Estado: COMPLETADO (backend).** Listo para desarrollo del frontend. RF-05 (autorización por roles) no está iniciado.
+
+| Tecnología | Uso en RF-04 |
+| --- | --- |
+| Spring Security | Cadena de filtros sin estado (`STATELESS`), CSRF deshabilitado para la API REST |
+| BCrypt, factor 12 | Hash de contraseñas (`PasswordEncoder`). Nunca se expone el hash |
+| JWT HS256 | Token de sesión firmado con `JWT_SECRET` |
+| Spring Data JPA / PostgreSQL | Persistencia de `Usuario` (herencia JOINED con `Profesor`) y del contador de intentos |
+| Swagger / OpenAPI | Documentación de la API |
+| Bruno | Colección de pruebas de la API (`bruno/SIGRA/auth/`) |
+
+**Endpoint:** `POST /api/v1/auth/login` (público).
+
+| Regla | Valor |
+| --- | --- |
+| Vigencia del JWT | 60 minutos (`JWT_EXPIRATION_MS`, por defecto `3600000`) |
+| Intentos fallidos antes de bloquear | 5 consecutivos |
+| Duración del bloqueo | 15 minutos. Durante el bloqueo se responde 423 sin evaluar la contraseña |
+| Persistencia del contador | Los fallos se guardan aunque la respuesta sea un error (`noRollbackFor`) |
+| Mensajes de error | Amigables, sin trazas, SQL ni nombres internos de clases (RNF-17) |
+
+Códigos de respuesta: 200 (login correcto), 400 (validación), 401 (credenciales), 423 (bloqueo temporal).
+
+**Documentación en ejecución** (con el backend en `localhost:8080`):
+
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- Contrato OpenAPI: http://localhost:8080/v3/api-docs
+- Estado del servicio: http://localhost:8080/actuator/health
+
+**Variables necesarias:** `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` y `JWT_SECRET` (sin valor por defecto). `JWT_EXPIRATION_MS`, `JPA_DDL_AUTO` y `JPA_SHOW_SQL` tienen valor por defecto. Ver la tabla de la sección 6.
+
+**Notas:**
+
+- Al arrancar, Spring puede mostrar `Using generated security password`. Es un aviso inocuo: SIGRA no usa `UserDetailsService`; la autenticación real es `AuthService` + `PasswordEncoder` + JWT.
+- Mientras RF-05 no esté implementado, `SecurityConfig` deja pasar el resto de rutas (`anyRequest().permitAll()`). No hay filtro JWT ni `@PreAuthorize` activos.
+
+**Deudas que no bloquean RF-04** (ver «Pendientes conocidos» más abajo): `FAILED_ATTEMPTS_CONCURRENCY` (DEFERRED), y `PASSWORD_PROVISIONING_FLOW` (decidido, pendiente de implementar). `AUTH_RUNTIME_ROLES` quedó resuelta: `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04).
 
 ---
 
 ## Pendientes conocidos del repositorio
 
-Al momento de escribir este README, el repositorio está en fase de esqueleto. Quedan por resolver:
+Estado de RF-04 (autenticación) y lo que sigue abierto:
 
-1. **Paquete de `SigraApplication.java`.** La clase declara `package com.sigra.SIGRA;` pero el archivo vive en `src/main/java/co/edu/uco/sigra/`. Spring Boot no arrancará hasta que el paquete declarado coincida con la ruta; además, el escaneo de componentes debe partir de `co.edu.uco.sigra` para que encuentre los módulos. Lo mismo aplica a la clase de prueba, que está bajo `com/sigra/SIGRA/`.
-2. **Gradle Wrapper incompleto.** Faltan `gradle/wrapper/gradle-wrapper.jar` y `gradle-wrapper.properties`. Sin ellos `./gradlew` falla; regenéralos con `gradle wrapper` y haz commit de la carpeta `gradle/`.
-3. **Configuración de base de datos.** `application.yaml` solo declara el nombre de la aplicación. Falta el bloque `spring.datasource`, la configuración de JPA y la de Redis.
-4. **Dependencia de JWT.** `build.gradle` aún no incluye una librería JWT (por ejemplo `io.jsonwebtoken:jjwt`) ni el starter de OpenAPI para Swagger.
-5. **JaCoCo.** El plugin de cobertura todavía no está declarado, aunque el plan de pruebas exige un 70 % mínimo.
-6. **Inconsistencia documental pendiente.** El diagrama de clases dice que la cédula del profesor no se puede modificar una vez registrada, pero el criterio de aceptación de RF-01c valida la cédula al modificarla. Debe unificarse antes de implementar el módulo de profesores.
+1. **Cédula modificable: contradicción documental.** El diagrama de clases indica que `(tipoDocumento, numeroDocumento)` es una identidad no modificable, pero el criterio de aceptación de RF-01c valida la cédula al modificarla. Mientras el equipo no lo unifique, `modificarProfesor` conserva el comportamiento actual: el número de documento no cambia y el tipo de documento sí.
+2. **Concurrencia de intentos fallidos (`FAILED_ATTEMPTS_CONCURRENCY: DEFERRED`).** Dos inicios de sesión incorrectos simultáneos pueden perder un incremento del contador. Es deuda técnica de seguridad: requiere bloqueo pesimista o versionado, probado contra PostgreSQL con herencia JOINED.
+3. **Aprovisionamiento de contraseñas (`PASSWORD_PROVISIONING_FLOW`).** `POST /api/v1/profesores` y `POST /api/v1/estudiantes` no reciben contraseña, así que un profesor o un estudiante registrado por la API no puede iniciar sesión todavía (lo mismo aplica a los estudiantes migrados desde el diseño anterior). Decisión: el administrador asigna la contraseña mediante un endpoint propio, `PUT /api/v1/usuarios/{id}/contrasena` (RNF-10: nunca se devuelve ni se registra); pendiente de implementar. Para desarrollo se usan los seeds de Bruno.
+4. **Roles en tiempo de ejecución (resuelto).** `Profesor`, `Administrador` y `Estudiante` extienden `Usuario` (RF-04), así que los tres pueden autenticarse si tienen contraseña (ver el punto 3).
+5. **Alineación de esquema.** Si una base tiene `profesor_asignatura` (modelo antiguo) en lugar de `asignacion_docente`, el preflight lo marca como `ALINEACION_ASIGNACIONES_REQUERIDA`. No se renombra ninguna tabla sin revisión del módulo de asignaciones. La base de referencia no lo tiene. Ver `docs/db/RF04_schema_preflight.sql`.
+6. **Unicidad de (tipoDocumento, numeroDocumento).** El UNIQUE compuesto del diagrama no puede declararse solo en `profesor`, porque `tipo_documento_id` vive en `usuario`. Se verifica en la migración y en el servicio, pero no como restricción de base de datos.
+7. **JaCoCo.** El plugin de cobertura todavía no está declarado, aunque el plan de pruebas exige un 70 % mínimo.
+8. **Redis.** Está desactivado temporalmente: comentado en `build.gradle` y `docker-compose.yml`.
+9. **Seguridad abierta (RF-05).** `SecurityConfig` permite todas las peticiones salvo el login, y el filtro JWT no está activado. Tampoco hay `@PreAuthorize` activos hasta implementar RF-05.
 
 ---
 
@@ -366,11 +478,27 @@ Al momento de escribir este README, el repositorio está en fase de esqueleto. Q
 
 ## Flujo de trabajo con Git
 
+Cada integrante trabaja en su propia rama (por ejemplo `bernal` o `jean`) o en una rama `feature/RF-XX-nombre-corto`:
+
 ```bash
-git checkout -b feature/RF-XX-nombre-corto
+git checkout bernal
+git pull origin develop
 # ... desarrollo ...
-git commit -m "RF-XX: descripción del cambio"
-git push origin feature/RF-XX-nombre-corto
+git commit -m "feat(asignaturas): servicio de registro, modificación y activación/inactivación"
+git push origin bernal
 ```
 
-Toda rama se integra a `main` mediante Pull Request revisado por al menos otro integrante. `main` debe permanecer siempre estable y desplegable.
+- **Toda integración se hace por Pull Request hacia `develop`**, revisado por al menos otro integrante.
+- Nunca se abre un Pull Request de una rama personal hacia `main`.
+- `develop` debe mantenerse siempre estable y compilando.
+- `main` se actualiza solo desde `develop`, en las entregas.
+
+### Convención de commits
+
+Se usa [Conventional Commits](https://www.conventionalcommits.org/es/): `tipo(ámbito): descripción`, con los tipos `feat`, `fix`, `test`, `docs`, `chore`, `ci` y `refactor`. Ejemplos reales del repositorio:
+
+```
+feat(asignaturas): servicio de registro, modificación y activación/inactivación
+fix(asignaturas): al inactivar una asignatura se inactivan en cascada sus RA activos
+test(semestres): agregar pruebas unitarias de servicio y controlador
+```

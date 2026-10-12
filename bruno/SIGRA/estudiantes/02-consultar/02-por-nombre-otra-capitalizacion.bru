@@ -1,0 +1,27 @@
+meta {
+  name: 02 Por fragmento del nombre en otra capitalizacion
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/estudiantes?filtro=ESPERANZA
+  body: none
+  auth: none
+}
+
+params:query {
+  filtro: ESPERANZA
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("encuentra el estudiante aunque el filtro este en mayusculas", function () {
+    expect(res.body).to.be.an("array");
+    const documentos = res.body.map(e => e.numeroDocumento);
+    expect(documentos).to.include("1000000002");
+  });
+}

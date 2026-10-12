@@ -1,0 +1,39 @@
+meta {
+  name: 09 Anio del codigo distinto al de inicio
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/semestres
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "2099-1",
+    "fechaInicio": "2097-01-20",
+    "fechaFin": "2097-06-10"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("El año del código debe coincidir con el año de la fecha de inicio");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,15 @@
+meta {
+  name: 03-consultar-por-documento
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/profesores?filtro=1017123456
+  body: none
+  auth: inherit
+}
+
+params:query {
+  filtro: 1017123456
+}

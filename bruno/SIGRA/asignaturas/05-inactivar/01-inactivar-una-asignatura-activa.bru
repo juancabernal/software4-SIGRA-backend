@@ -1,0 +1,17 @@
+meta {
+  name: 01 Inactivar una asignatura ACTIVA
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU10}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVA
+  res.body.cantidadRa: eq 0
+}

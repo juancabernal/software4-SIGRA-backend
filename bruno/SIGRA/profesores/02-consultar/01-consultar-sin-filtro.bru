@@ -1,0 +1,11 @@
+meta {
+  name: 01-consultar-sin-filtro
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/profesores
+  body: none
+  auth: inherit
+}

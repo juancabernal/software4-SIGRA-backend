@@ -1,0 +1,33 @@
+meta {
+  name: 15 Codigo en minusculas y con espacios se normaliza
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "  {{codigoSaneado}}  ",
+    "nombre": "Saneamiento de codigo",
+    "programaId": "{{programaActivoId}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("codigoSaneado", "bru" + Date.now());
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("se guarda en mayusculas y sin espacios", function () {
+    expect(res.body.codigo).to.equal(bru.getVar("codigoSaneado").toUpperCase());
+  });
+}

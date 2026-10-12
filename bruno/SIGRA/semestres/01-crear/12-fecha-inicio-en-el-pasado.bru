@@ -1,0 +1,39 @@
+meta {
+  name: 12 Fecha inicio en el pasado
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/v1/semestres
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "2000-1",
+    "fechaInicio": "2000-01-20",
+    "fechaFin": "2000-06-10"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("La fecha de inicio debe ser hoy o una fecha futura");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

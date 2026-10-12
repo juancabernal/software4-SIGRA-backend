@@ -1,0 +1,36 @@
+meta {
+  name: 01 Crear semestre valido
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/semestres
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "2098-1",
+    "fechaInicio": "2098-01-20",
+    "fechaFin": "2098-06-10"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("datos del semestre", function () {
+    expect(res.body.codigo).to.equal("2098-1");
+    expect(res.body.fechaInicio).to.equal("2098-01-20");
+    expect(res.body.fechaFin).to.equal("2098-06-10");
+    expect(res.body.estado).to.equal("INACTIVO");
+  });
+
+  test("devuelve el id generado", function () {
+    expect(res.body.id).to.be.a("string").and.not.be.empty;
+  });
+}

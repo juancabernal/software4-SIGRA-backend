@@ -1,0 +1,36 @@
+meta {
+  name: 14 Minimo mayor que maximo
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?raMin=7&raMax=5
+  body: none
+  auth: none
+}
+
+params:query {
+  raMin: 7
+  raMax: 5
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("La cantidad mínima de RA no puede ser mayor que la máxima.");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

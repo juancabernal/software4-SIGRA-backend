@@ -1,0 +1,21 @@
+meta {
+  name: 04 Asignatura sin RA (RAP-BOR0)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor0Id}}/resultados-aprendizaje
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve 0 RA", function () {
+    expect(res.body).to.be.an("array").with.lengthOf(0);
+  });
+}

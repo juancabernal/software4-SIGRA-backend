@@ -1,0 +1,28 @@
+meta {
+  name: 10 Quinto intento fallido
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "correoInstitucional": "{{authCorreoBloqueo}}",
+    "contrasena": "{{authPasswordIncorrecto}}"
+  }
+}
+
+assert {
+  res.status: eq 401
+}
+
+tests {
+  test("intento 5 rechazado y bloquea al usuario", function () {
+    expect(res.body.mensaje).to.equal("Correo o contraseña incorrectos");
+  });
+}

@@ -1,0 +1,37 @@
+meta {
+  name: 05 RA inactivo (RAP-ACT6 RA-07)
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raAct6Ra07Id}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "descripcion": "Nueva descripcion"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No se puede modificar la descripci");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

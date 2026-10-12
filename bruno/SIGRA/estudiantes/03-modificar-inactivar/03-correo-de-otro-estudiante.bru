@@ -1,0 +1,40 @@
+meta {
+  name: 03 Correo de otro estudiante
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/v1/estudiantes/{{idEstudianteModificar}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "tipoDocumentoId": "{{tipoDocCc}}",
+    "numeroDocumento": "1000000003",
+    "nombreCompleto": "Bruno Modificar Actualizado",
+    "correoInstitucional": "bruno.otrocorreo@uco.net.co"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Ya existe un estudiante registrado con el correo bruno.otrocorreo@uco.net.co");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

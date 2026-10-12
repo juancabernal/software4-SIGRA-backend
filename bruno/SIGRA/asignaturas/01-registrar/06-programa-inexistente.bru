@@ -1,0 +1,39 @@
+meta {
+  name: 06 Programa inexistente
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "BRUPROGNO",
+    "nombre": "Programa inexistente",
+    "programaId": "{{idInexistente}}"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe un programa académico");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

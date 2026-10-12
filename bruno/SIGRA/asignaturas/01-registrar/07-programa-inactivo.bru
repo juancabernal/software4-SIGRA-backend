@@ -1,0 +1,40 @@
+meta {
+  name: 07 Programa inactivo
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "BRUPROGINA",
+    "nombre": "Programa inactivo",
+    "programaId": "{{programaInactivoId}}"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("inactivo");
+    expect(res.body.mensaje).to.include("no admite nuevas asignaturas");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

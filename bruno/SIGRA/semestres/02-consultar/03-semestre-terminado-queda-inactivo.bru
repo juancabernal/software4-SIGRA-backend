@@ -1,0 +1,21 @@
+meta {
+  name: 03 Semestre terminado queda inactivo
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/semestres/1990-1
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("datos del semestre", function () {
+    expect(res.body.estado).to.equal("INACTIVO");
+  });
+}

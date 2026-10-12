@@ -1,0 +1,35 @@
+meta {
+  name: 01 Registrar RA valido (RAP-BOR0)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor0Id}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "RA-01",
+    "descripcion": "Analiza los requisitos de un sistema de informacion"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.codigo: eq RA-01
+  res.body.estado: eq ACTIVO
+  res.body.asignaturaId: eq {{raAsigBor0Id}}
+}
+
+script:post-response {
+  bru.setVar("raCreadoId", res.body.id);
+}
+
+tests {
+  test("devuelve el id generado", function () {
+    expect(res.body.id).to.be.a("string").and.not.be.empty;
+  });
+}

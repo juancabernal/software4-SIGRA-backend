@@ -1,0 +1,40 @@
+meta {
+  name: 02 Documento duplicado
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/estudiantes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "tipoDocumentoId": "{{tipoDocCc}}",
+    "numeroDocumento": "1000000001",
+    "nombreCompleto": "Bruno Copia Documento",
+    "correoInstitucional": "bruno.copia.documento@uco.net.co"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("El estudiante con el documento 1000000001 ya está registrado en el sistema");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: 10 Por estado INACTIVA
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?estado=INACTIVA
+  body: none
+  auth: none
+}
+
+params:query {
+  estado: INACTIVA
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("codigos esperados", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    expect(codigos).to.include("BRU11");
+  });
+}

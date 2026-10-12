@@ -1,0 +1,38 @@
+meta {
+  name: 09 Asignatura inexistente
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raIdInexistente}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "RA-09",
+    "descripcion": "Analiza los requisitos de un sistema de informacion"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe una asignatura con id");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

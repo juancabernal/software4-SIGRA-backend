@@ -1,0 +1,21 @@
+meta {
+  name: 08 La extension quedo guardada
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/semestres/2090-1
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("datos del semestre", function () {
+    expect(res.body.fechaFin).to.equal("2090-06-30");
+  });
+}

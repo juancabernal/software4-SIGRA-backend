@@ -1,0 +1,28 @@
+meta {
+  name: 16 Nombre con espacios multiples se reduce
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "{{codigoEspacios}}",
+    "nombre": "  Nombre   con \t  espacios   multiples  ",
+    "programaId": "{{programaActivoId}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("codigoEspacios", "BRUESP" + Date.now());
+}
+
+assert {
+  res.status: eq 201
+  res.body.nombre: eq Nombre con espacios multiples
+}

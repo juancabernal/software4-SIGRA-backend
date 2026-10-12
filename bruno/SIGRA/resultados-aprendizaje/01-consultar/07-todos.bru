@@ -1,0 +1,23 @@
+meta {
+  name: 07 Todos los RA
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("incluye los RA de prueba", function () {
+    const ids = res.body.map(function (ra) { return ra.id; });
+    expect(ids).to.include(bru.getEnvVar("raBor7Ra01Id"));
+    expect(ids).to.include(bru.getEnvVar("raBor7Ra08Id"));
+  });
+}

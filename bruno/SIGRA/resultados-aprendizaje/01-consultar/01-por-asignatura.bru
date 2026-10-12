@@ -1,0 +1,27 @@
+meta {
+  name: 01 Por asignatura (RAP-BOR7)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor7Id}}/resultados-aprendizaje
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve 8 RA", function () {
+    expect(res.body).to.be.an("array").with.lengthOf(8);
+  });
+
+  test("ordenados por codigo y con la asignatura de la URL", function () {
+    expect(res.body[0].codigo).to.equal("RA-01");
+    expect(res.body[7].codigo).to.equal("RA-08");
+    expect(res.body[0].asignaturaId).to.equal(bru.getEnvVar("raAsigBor7Id"));
+  });
+}

@@ -1,0 +1,40 @@
+meta {
+  name: 01 Matricular valido
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudianteId": "{{idEstudianteMatriculaValida}}",
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstActivo}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("matriculaValidaId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("datos de la matricula", function () {
+    expect(res.body.estudianteId).to.equal(bru.getEnvVar("idEstudianteMatriculaValida"));
+    expect(res.body.asignaturaId).to.equal(bru.getEnvVar("idAsigBruEstActiva"));
+    expect(res.body.semestreId).to.equal(bru.getEnvVar("idSemBruEstActivo"));
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+
+  test("devuelve el id generado", function () {
+    expect(res.body.id).to.be.a("string").and.not.be.empty;
+  });
+}

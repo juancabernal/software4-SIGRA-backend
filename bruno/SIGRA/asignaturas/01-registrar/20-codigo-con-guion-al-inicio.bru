@@ -1,0 +1,44 @@
+meta {
+  name: 20 Codigo con guion al inicio
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "-BRU20",
+    "nombre": "Nombre valido",
+    "programaId": "{{programaActivoId}}"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("detalle esperado", function () {
+    expect(res.body.detalles).to.include("codigo: El código solo admite letras sin tilde, números y guiones entre ellos (por ejemplo MAT-401)");
+  });
+
+  test("el error no repite el valor enviado", function () {
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("-BRU20");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,35 @@
+meta {
+  name: 04 Sin token responde 401
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/mias
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  req.deleteHeader("Authorization");
+}
+
+assert {
+  res.status: eq 401
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Debe iniciar sesión");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,39 @@
+meta {
+  name: 05 Semestre no activo
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudianteId": "{{idEstudianteMatriculaValida}}",
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstInactivo}}"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("El semestre con id " + bru.getEnvVar("idSemBruEstInactivo") + " no está activo");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

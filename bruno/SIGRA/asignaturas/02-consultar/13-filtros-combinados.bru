@@ -1,0 +1,35 @@
+meta {
+  name: 13 Filtros combinados
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?programaId={{programaActivoId}}&estado=BORRADOR&raMin=5
+  body: none
+  auth: none
+}
+
+params:query {
+  programaId: {{programaActivoId}}
+  estado: BORRADOR
+  raMin: 5
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("codigos esperados", function () {
+    const codigos = res.body.map((a) => a.codigo);
+    expect(codigos).to.include("BRU05");
+    expect(codigos).to.include("BRU07");
+    expect(codigos).to.include("BRU08");
+    expect(codigos).to.not.include("BRU10");
+  });
+}

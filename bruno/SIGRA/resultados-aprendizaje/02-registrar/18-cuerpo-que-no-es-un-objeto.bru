@@ -1,0 +1,31 @@
+meta {
+  name: 18 Cuerpo que no es un objeto
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor0Id}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  [1, 2, 3]
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

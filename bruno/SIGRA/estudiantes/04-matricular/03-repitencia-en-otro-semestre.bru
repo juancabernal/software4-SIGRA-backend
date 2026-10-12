@@ -1,0 +1,32 @@
+meta {
+  name: 03 Repitencia en otro semestre
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudianteId": "{{idEstudianteMatriculaValida}}",
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstActivo2}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("se matricula de nuevo en la misma asignatura, en otro semestre", function () {
+    expect(res.body.estudianteId).to.equal(bru.getEnvVar("idEstudianteMatriculaValida"));
+    expect(res.body.asignaturaId).to.equal(bru.getEnvVar("idAsigBruEstActiva"));
+    expect(res.body.semestreId).to.equal(bru.getEnvVar("idSemBruEstActivo2"));
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+}

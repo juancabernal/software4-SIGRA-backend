@@ -1,0 +1,15 @@
+meta {
+  name: 04-consultar-asignaturas-profesor
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/profesores/{{idProfesorPrueba}}/asignaturas?estado=ACTIVO
+  body: none
+  auth: inherit
+}
+
+params:query {
+  estado: ACTIVO
+}

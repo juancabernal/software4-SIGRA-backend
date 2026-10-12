@@ -1,0 +1,31 @@
+meta {
+  name: 02 Retiro repetido
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/matriculas/{{matriculaValidaId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("ya no está activa");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

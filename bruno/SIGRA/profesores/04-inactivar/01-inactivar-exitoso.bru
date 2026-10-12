@@ -1,0 +1,11 @@
+meta {
+  name: 01-inactivar-exitoso
+  type: http
+  seq: 1
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/profesores/{{idProfesorPrueba}}
+  body: none
+  auth: inherit
+}

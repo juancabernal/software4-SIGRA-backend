@@ -1,0 +1,11 @@
+meta {
+  name: 03-inactivar-inexistente
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/profesores/{{idInexistente}}
+  body: none
+  auth: inherit
+}

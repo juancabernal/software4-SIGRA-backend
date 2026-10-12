@@ -1,0 +1,43 @@
+meta {
+  name: 02 Codigo duplicado
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/semestres
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "2090-1",
+    "fechaInicio": "2090-01-20",
+    "fechaFin": "2090-06-10"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("tipo de error", function () {
+    expect(res.body.error).to.equal("CONFLICT");
+  });
+
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Ya existe un semestre con el código 2090-1");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,18 @@
+meta {
+  name: 09 Por id
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raBor7Ra01Id}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq RA-01
+  res.body.estado: eq ACTIVO
+  res.body.asignaturaId: eq {{raAsigBor7Id}}
+}

@@ -1,0 +1,29 @@
+meta {
+  name: 08 Por programa sin asignaturas
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?programaId={{programaInactivoId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  programaId: {{programaInactivoId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("responde un arreglo", function () {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("arreglo vacio", function () {
+    expect(res.body).to.have.lengthOf(0);
+  });
+}

@@ -1,0 +1,42 @@
+meta {
+  name: 09 Profesor no obtiene una asignatura ajena
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU05}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+script:pre-request {
+  // Solo corre con el control por rol encendido (backend y variable controlPorRol=true).
+  if (String(bru.getEnvVar("controlPorRol")) !== "true") {
+    bru.runner.skipRequest();
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No tiene permisos suficientes");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

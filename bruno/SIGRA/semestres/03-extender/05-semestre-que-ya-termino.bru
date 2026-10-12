@@ -1,0 +1,37 @@
+meta {
+  name: 05 Semestre que ya termino
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/semestres/1990-1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "fechaFin": "1990-12-01"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No se puede modificar un semestre que ya terminó");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

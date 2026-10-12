@@ -1,0 +1,23 @@
+meta {
+  name: 01 Consultar sin filtro
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/estudiantes
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve una lista con los estudiantes de prueba", function () {
+    expect(res.body).to.be.an("array");
+    const documentos = res.body.map(e => e.numeroDocumento);
+    expect(documentos).to.include.members(["1000000001", "1000000002", "1000000003"]);
+  });
+}

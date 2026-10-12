@@ -1,0 +1,32 @@
+meta {
+  name: 01 Activar con 0 RA
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{idBRU00}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("al menos 5");
+    expect(res.body.mensaje).to.include("actualmente tiene 0");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,35 @@
+meta {
+  name: 09 Cuerpo mal formado
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/estudiantes
+  body: json
+  auth: none
+}
+
+body:json {
+  [1, 2, 3]
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("El cuerpo de la petición no es válido o está mal formado");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}
