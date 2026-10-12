@@ -13,8 +13,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * SecurityConfig activa {@code http.cors(...)}, que toma esta misma configuración para las
  * peticiones preflight.
  * <p>
- * También registra el control de acceso por rol del módulo de asignaturas (temporal hasta RF-05),
- * solo para /api/v1/asignaturas/**; con el interruptor apagado no cambia ninguna respuesta.
+ * También registra el control de acceso por rol (temporal hasta RF-05): nació en el módulo de
+ * asignaturas pero es genérico (solo mira la anotación {@code RolesPermitidos} del método), así que
+ * también se usa para las conclusiones automáticas (RF-16) y lo que se agregue de resultados de
+ * aprendizaje; con el interruptor apagado no cambia ninguna respuesta.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -31,7 +33,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(controlAccesoAsignaturas)
-                .addPathPatterns("/api/v1/asignaturas", "/api/v1/asignaturas/**");
+                .addPathPatterns("/api/v1/asignaturas", "/api/v1/asignaturas/**",
+                        "/api/v1/conclusiones", "/api/v1/conclusiones/**",
+                        "/api/v1/resultados-aprendizaje/**");
     }
 
     @Override

@@ -202,4 +202,48 @@ CREATE TABLE IF NOT EXISTS sigra.matricula (
 CREATE INDEX IF NOT EXISTS idx_matricula_estudiante ON sigra.matricula (estudiante_id);
 CREATE INDEX IF NOT EXISTS idx_matricula_asignatura_semestre ON sigra.matricula (asignatura_id, semestre_id);
 
+-- -----------------------------------------------------------------------------
+-- Conclusión automática (RF-16): alerta de desempeño insuficiente por (RA, semestre).
+-- Sin unicidad de (resultado_aprendizaje_id, semestre_id): puede haber varias en el tiempo (una
+-- Atendida y luego una nueva Vigente); la regla de no duplicar la Vigente la aplica el servicio.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.conclusion (
+    id                        UUID            NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id  UUID            NOT NULL,
+    semestre_id               UUID            NOT NULL,
+    mensaje                   VARCHAR(200)    NOT NULL,
+    tiene_datos_suficientes   BOOLEAN         NOT NULL,
+    fecha_generacion          TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    porcentaje_insuficiente   DOUBLE PRECISION NOT NULL,
+    estado                    VARCHAR(20)     NOT NULL DEFAULT 'VIGENTE',
+    CONSTRAINT conclusion_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_conclusion_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_conclusion_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT chk_conclusion_estado CHECK (estado IN ('VIGENTE', 'ATENDIDA'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_conclusion_ra_semestre ON sigra.conclusion (resultado_aprendizaje_id, semestre_id);
+
+-- -----------------------------------------------------------------------------
+-- Nivel de logro por estudiante en un (RA, semestre) — DATO DE PRUEBA (RF-16).
+-- El equipo de Estadísticas todavía no calcula el nivel de logro real a partir de las
+-- calificaciones (módulo "calificaciones" sin implementar); esta tabla es el puente temporal que
+-- lee ProveedorNivelesLogroPruebaImpl. Se retira cuando esa integración exista.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.registro_nivel_logro_prueba (
+    id                        UUID        NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id  UUID        NOT NULL,
+    semestre_id               UUID        NOT NULL,
+    estudiante_id             UUID        NOT NULL,
+    nivel_logro               VARCHAR(20) NOT NULL,
+    CONSTRAINT registro_nivel_logro_prueba_pkey PRIMARY KEY (id),
+    CONSTRAINT uk_nivel_logro_prueba_terna UNIQUE (resultado_aprendizaje_id, semestre_id, estudiante_id),
+    CONSTRAINT fk_nivel_logro_prueba_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_nivel_logro_prueba_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT fk_nivel_logro_prueba_estudiante FOREIGN KEY (estudiante_id) REFERENCES sigra.estudiante (id),
+    CONSTRAINT chk_nivel_logro_prueba_nivel CHECK (nivel_logro IN ('BAJO', 'MEDIO', 'ALTO', 'SOBRESALIENTE'))
+);
+
 COMMIT;
