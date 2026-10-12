@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estadisticas.entity;
 
+import co.edu.uco.sigra.estadisticas.exception.TransicionEstadoInvalidaException;
 import co.edu.uco.sigra.resultadosaprendizaje.entity.ResultadoAprendizaje;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import jakarta.persistence.Column;
@@ -75,5 +76,14 @@ public class Conclusion {
         this.fechaGeneracion = LocalDateTime.now();
         this.porcentajeInsuficiente = porcentajeInsuficiente;
         this.estado = EstadoConclusion.VIGENTE;
+    }
+
+    /** VIGENTE → ATENDIDA al registrarse una acción de mejora sobre esta conclusión (RF-17). */
+    public void marcarAtendida() {
+        if (estado != EstadoConclusion.VIGENTE) {
+            throw new TransicionEstadoInvalidaException(estado, "atender",
+                    "Solo se pueden atender conclusiones en estado VIGENTE.");
+        }
+        estado = EstadoConclusion.ATENDIDA;
     }
 }
