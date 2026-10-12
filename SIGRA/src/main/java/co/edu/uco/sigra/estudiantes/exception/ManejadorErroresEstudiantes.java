@@ -32,7 +32,8 @@ public class ManejadorErroresEstudiantes {
     }
 
     @ExceptionHandler({EstudianteYaRegistradoException.class, CorreoEstudianteDuplicadoException.class,
-            MatriculaDuplicadaException.class, MatriculaYaInactivaException.class})
+            MatriculaDuplicadaException.class, MatriculaYaInactivaException.class,
+            ConfirmacionRequeridaException.class})
     public ResponseEntity<Map<String, Object>> manejarDuplicado(RuntimeException ex) {
         return ConstructorRespuestaError.construir(HttpStatus.CONFLICT, ex.getMessage());
     }

@@ -6,6 +6,7 @@ import co.edu.uco.sigra.common.exception.AsercionesContratoError;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.estudiantes.exception.ConfirmacionRequeridaException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaDuplicadaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaNoEncontradaException;
@@ -335,14 +336,15 @@ class MatriculaControllerTest {
                     .andExpect(status().isNoContent())
                     .andExpect(content().string(""));
 
-            verify(matriculaService).desvincular(ID_MATRICULA);
+            // Sin parámetro confirmar, el controlador llama al servicio con confirmado=false.
+            verify(matriculaService).desvincular(ID_MATRICULA, false);
         }
 
         @Test
         @DisplayName("Matrícula ya inactiva devuelve 409 sin detalles")
         void matriculaYaInactivaDevuelve409() throws Exception {
             willThrow(MatriculaYaInactivaException.porId(ID_MATRICULA))
-                    .given(matriculaService).desvincular(ID_MATRICULA);
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
 
             MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)).andReturn();
 
@@ -353,11 +355,97 @@ class MatriculaControllerTest {
         @DisplayName("Matrícula inexistente devuelve 404 sin detalles")
         void matriculaInexistenteDevuelve404() throws Exception {
             willThrow(MatriculaNoEncontradaException.porId(ID_MATRICULA))
-                    .given(matriculaService).desvincular(ID_MATRICULA);
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
 
             MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)).andReturn();
 
             AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("Matrícula con calificaciones y sin confirmar devuelve 409 pidiendo confirmación")
+        void matriculaConCalificacionesSinConfirmarDevuelve409() throws Exception {
+            willThrow(ConfirmacionRequeridaException.porCalificacionesRegistradas(ID_MATRICULA, 3))
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)).andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+
+            assertThat(cuerpo.get("mensaje").stringValue())
+                    .as("El mensaje debe informar la cantidad de calificaciones registradas")
+                    .contains("3");
+
+            // Sin parámetro confirmar en la URL, el controlador llama al servicio con confirmado=false.
+            verify(matriculaService).desvincular(ID_MATRICULA, false);
+        }
+
+        @Test
+        @DisplayName("Matrícula con calificaciones y confirmar=false explícito se comporta igual que sin el parámetro")
+        void matriculaConCalificacionesConConfirmarFalseExplicitoDevuelve409() throws Exception {
+            willThrow(ConfirmacionRequeridaException.porCalificacionesRegistradas(ID_MATRICULA, 3))
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "false"))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+
+            verify(matriculaService).desvincular(ID_MATRICULA, false);
+        }
+
+        @Test
+        @DisplayName("Matrícula con calificaciones y confirmar=true devuelve 204")
+        void matriculaConCalificacionesConConfirmarTrueDevuelve204() throws Exception {
+            // No se stubea excepción: el mock de un método void por defecto no hace nada, como si el
+            // servicio aceptara la desvinculación confirmada.
+            mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "true"))
+                    .andExpect(status().isNoContent())
+                    .andExpect(content().string(""));
+
+            verify(matriculaService).desvincular(ID_MATRICULA, true);
+        }
+
+        @Test
+        @DisplayName("Matrícula ya inactiva con confirmar=true sigue devolviendo 409, no 204")
+        void matriculaYaInactivaConConfirmarTrueDevuelve409() throws Exception {
+            willThrow(MatriculaYaInactivaException.porId(ID_MATRICULA))
+                    .given(matriculaService).desvincular(ID_MATRICULA, true);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "true"))
+                    .andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+
+            // Este 409 es por estado, no por confirmación pendiente: el mensaje debe distinguirse
+            // claramente del de ConfirmacionRequeridaException.
+            assertThat(cuerpo.get("mensaje").stringValue())
+                    .as("El mensaje debe hablar del estado de la matrícula, no de calificaciones pendientes")
+                    .doesNotContain("calificaci");
+        }
+
+        @Test
+        @DisplayName("Matrícula inexistente con confirmar=true sigue devolviendo 404")
+        void matriculaInexistenteConConfirmarTrueDevuelve404() throws Exception {
+            willThrow(MatriculaNoEncontradaException.porId(ID_MATRICULA))
+                    .given(matriculaService).desvincular(ID_MATRICULA, true);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "true"))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("confirmar con un valor no booleano devuelve un error 4xx, no 500")
+        void confirmarConValorNoBooleanoDevuelveErrorCliente() throws Exception {
+            mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "si"))
+                    .andExpect(status().is4xxClientError());
         }
     }
 

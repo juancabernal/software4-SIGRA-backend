@@ -8,6 +8,7 @@ import co.edu.uco.sigra.estudiantes.config.MatriculaConfig;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.estudiantes.exception.ConfirmacionRequeridaException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaDuplicadaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaNoEncontradaException;
@@ -16,6 +17,7 @@ import co.edu.uco.sigra.estudiantes.exception.ReferenciaNoEncontradaException;
 import co.edu.uco.sigra.estudiantes.exception.ReglaDeMatriculaException;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.estudiantes.service.CalificacionesDeMatricula;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.semestres.repository.SemestreRepository;
@@ -36,18 +38,21 @@ public class MatriculaServiceImpl implements MatriculaService {
     private final AsignaturaRepository asignaturaRepository;
     private final SemestreRepository semestreRepository;
     private final Clock reloj;
+    private final CalificacionesDeMatricula calificacionesDeMatricula;
 
     // Constructor explícito (no @RequiredArgsConstructor) porque Lombok no copia @Qualifier.
     public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
                                 EstudianteRepository estudianteRepository,
                                 AsignaturaRepository asignaturaRepository,
                                 SemestreRepository semestreRepository,
-                                @Qualifier(MatriculaConfig.RELOJ_MATRICULAS) Clock reloj) {
+                                @Qualifier(MatriculaConfig.RELOJ_MATRICULAS) Clock reloj,
+                                CalificacionesDeMatricula calificacionesDeMatricula) {
         this.matriculaRepository = matriculaRepository;
         this.estudianteRepository = estudianteRepository;
         this.asignaturaRepository = asignaturaRepository;
         this.semestreRepository = semestreRepository;
         this.reloj = reloj;
+        this.calificacionesDeMatricula = calificacionesDeMatricula;
     }
 
     @Override
@@ -114,12 +119,17 @@ public class MatriculaServiceImpl implements MatriculaService {
 
     @Override
     @Transactional
-    public void desvincular(UUID matriculaId) {
+    public void desvincular(UUID matriculaId, boolean confirmado) {
         Matricula matricula = matriculaRepository.findById(matriculaId)
                 .orElseThrow(() -> MatriculaNoEncontradaException.porId(matriculaId));
 
         if (matricula.getEstado() == EstadoMatricula.DESVINCULADA) {
             throw MatriculaYaInactivaException.porId(matriculaId);
+        }
+
+        long cantidadCalificaciones = calificacionesDeMatricula.contarPorMatricula(matriculaId);
+        if (cantidadCalificaciones > 0 && !confirmado) {
+            throw ConfirmacionRequeridaException.porCalificacionesRegistradas(matriculaId, cantidadCalificaciones);
         }
 
         matricula.setEstado(EstadoMatricula.DESVINCULADA);

@@ -15,9 +15,20 @@ public interface MatriculaService {
     ResultadoMatricula matricular(UUID estudianteId, UUID asignaturaId, UUID semestreId);
 
     /**
-     * Desvincula (retira) una matrícula, dejándola en estado {@code INACTIVO} sin borrarla.
+     * Desvincula (retira) una matrícula, dejándola en estado {@code DESVINCULADA} sin borrarla.
+     * <p>
+     * Si la matrícula no tiene calificaciones registradas, se desvincula sin más. Si tiene
+     * alguna y {@code confirmado} es {@code false}, se rechaza con
+     * {@link co.edu.uco.sigra.estudiantes.exception.ConfirmacionRequeridaException} y la
+     * matrícula queda intacta. Si tiene alguna y {@code confirmado} es {@code true}, se
+     * desvincula igual que en el primer caso: la confirmación no exime de las demás reglas
+     * (la matrícula debe existir y estar activa).
+     *
+     * @param matriculaId identificador de la matrícula a desvincular
+     * @param confirmado  {@code true} si el cliente ya confirmó la desvinculación a pesar de
+     *                    que la matrícula tenga calificaciones registradas
      */
-    void desvincular(UUID matriculaId);
+    void desvincular(UUID matriculaId, boolean confirmado);
 
     /**
      * Lista las matrículas de una asignatura en un semestre. Si {@code incluirInactivas} es

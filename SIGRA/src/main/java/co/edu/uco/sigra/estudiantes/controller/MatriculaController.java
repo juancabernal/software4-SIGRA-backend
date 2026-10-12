@@ -34,8 +34,9 @@ public class MatriculaController {
 
     @DeleteMapping("/{id}")
     //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
-    public ResponseEntity<Void> desvincular(@PathVariable UUID id) {
-        matriculaService.desvincular(id);
+    public ResponseEntity<Void> desvincular(@PathVariable UUID id,
+                                             @RequestParam(defaultValue = "false") boolean confirmar) {
+        matriculaService.desvincular(id, confirmar);
         return ResponseEntity.noContent().build();
     }
 

@@ -7,6 +7,7 @@ import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.estudiantes.exception.ConfirmacionRequeridaException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaDuplicadaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaNoEncontradaException;
@@ -70,6 +71,9 @@ class MatriculaServiceImplTest {
     @Mock
     private SemestreRepository semestreRepository;
 
+    @Mock
+    private CalificacionesDeMatricula calificacionesDeMatricula;
+
     private RelojAjustable reloj;
 
     private MatriculaServiceImpl service;
@@ -77,7 +81,7 @@ class MatriculaServiceImplTest {
     @BeforeEach
     void setUp() {
         reloj = new RelojAjustable(HOY);
-        service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository, reloj);
+        service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository, reloj, calificacionesDeMatricula);
     }
 
     private static Estudiante estudiante(EstadoRegistro estado) {
@@ -475,7 +479,7 @@ class MatriculaServiceImplTest {
             when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
             saveDevuelveArgumento();
 
-            service.desvincular(ID_MATRICULA);
+            service.desvincular(ID_MATRICULA, false);
 
             ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
             verify(matriculaRepository, times(1)).save(captor.capture());
@@ -488,29 +492,167 @@ class MatriculaServiceImplTest {
         }
 
         @Test
-        @DisplayName("Con una matrícula inexistente lanza excepción")
+        @DisplayName("PN-36 Con una matrícula inexistente lanza excepción sin consultar las calificaciones")
         void matriculaInexistente() {
             when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.desvincular(ID_MATRICULA))
+            assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, true))
                     .isInstanceOf(MatriculaNoEncontradaException.class)
                     .hasMessageContaining(ID_MATRICULA.toString());
 
             verify(matriculaRepository, never()).save(any());
+            verifyNoInteractions(calificacionesDeMatricula);
         }
 
         @Test
-        @DisplayName("Con una matrícula ya DESVINCULADA lanza excepción y no guarda")
+        @DisplayName("PN-36 Con una matrícula ya DESVINCULADA lanza excepción y no guarda ni consulta las calificaciones")
         void matriculaYaInactiva() {
             Matricula existente = matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
                     asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.DESVINCULADA);
             when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
 
-            assertThatThrownBy(() -> service.desvincular(ID_MATRICULA))
+            assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, true))
                     .isInstanceOf(MatriculaYaInactivaException.class)
                     .hasMessageContaining(ID_MATRICULA.toString());
 
             verify(matriculaRepository, never()).save(any());
+            verifyNoInteractions(calificacionesDeMatricula);
+        }
+
+        @Nested
+        @DisplayName("PN-36 Confirmación adicional para desvincular con calificaciones registradas")
+        class ConCalificaciones {
+
+            private Matricula existenteActiva() {
+                return matricula(ID_MATRICULA, estudiante(EstadoRegistro.ACTIVO),
+                        asignatura(EstadoAsignatura.ACTIVA), semestre(EstadoSemestre.ACTIVO), EstadoMatricula.ACTIVA);
+            }
+
+            @Test
+            @DisplayName("PN-36 Con 1 calificación registrada y sin confirmar, rechaza indicando la cantidad y no guarda")
+            void unaCalificacionSinConfirmarRechaza() {
+                Matricula existente = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(1L);
+
+                assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, false))
+                        .isInstanceOf(ConfirmacionRequeridaException.class)
+                        .hasMessageContaining(ID_MATRICULA.toString())
+                        .hasMessageContaining("1");
+
+                verify(matriculaRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("PN-36 Con varias calificaciones registradas y sin confirmar, el mensaje usa la cantidad real, no un literal fijo")
+            void variasCalificacionesSinConfirmarRechazaConLaCantidadReal() {
+                Matricula existente = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(5L);
+
+                assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, false))
+                        .isInstanceOf(ConfirmacionRequeridaException.class)
+                        .hasMessageContaining(ID_MATRICULA.toString())
+                        .hasMessageContaining("5");
+
+                verify(matriculaRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("PN-36 Con calificaciones registradas y confirmando, desvincula la matrícula")
+            void conCalificacionesYConfirmandoDesvincula() {
+                Matricula existente = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(3L);
+                saveDevuelveArgumento();
+
+                service.desvincular(ID_MATRICULA, true);
+
+                ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
+                verify(matriculaRepository, times(1)).save(captor.capture());
+                assertThat(captor.getValue().getEstado()).isEqualTo(EstadoMatricula.DESVINCULADA);
+            }
+
+            @Test
+            @DisplayName("Sin calificaciones registradas y confirmando de todos modos, desvincula sin error")
+            void sinCalificacionesConfirmandoDesvinculaIgual() {
+                Matricula existente = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(0L);
+                saveDevuelveArgumento();
+
+                service.desvincular(ID_MATRICULA, true);
+
+                verify(matriculaRepository, times(1)).save(any(Matricula.class));
+            }
+
+            @Test
+            @DisplayName("PN-36 Con calificaciones registradas y confirmando, no invoca ningún método de borrado")
+            void conCalificacionesYConfirmandoNoInvocaBorrado() {
+                Matricula existente = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(2L);
+                saveDevuelveArgumento();
+
+                service.desvincular(ID_MATRICULA, true);
+
+                verify(matriculaRepository, never()).delete(any());
+                verify(matriculaRepository, never()).deleteById(any());
+                verify(matriculaRepository, never()).deleteAll();
+            }
+
+            @Test
+            @DisplayName("Tras desvincular con calificaciones y confirmando, el objeto guardado conserva el mismo id y la misma fecha de matrícula")
+            void conCalificacionesYConfirmandoConservaIdentidadYFecha() {
+                Matricula existente = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(4L);
+                saveDevuelveArgumento();
+
+                service.desvincular(ID_MATRICULA, true);
+
+                ArgumentCaptor<Matricula> captor = ArgumentCaptor.forClass(Matricula.class);
+                verify(matriculaRepository, times(1)).save(captor.capture());
+                assertThat(captor.getValue()).isSameAs(existente);
+                assertThat(captor.getValue().getId()).isEqualTo(ID_MATRICULA);
+                assertThat(captor.getValue().getFechaMatricula()).isEqualTo(HOY);
+            }
+
+            @Test
+            @DisplayName("Consulta las calificaciones exactamente una vez, tanto al rechazar sin confirmar como al desvincular confirmando")
+            void consultaLasCalificacionesExactamenteUnaVez() {
+                Matricula existenteParaRechazo = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existenteParaRechazo));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(1L);
+
+                assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, false))
+                        .isInstanceOf(ConfirmacionRequeridaException.class);
+
+                verify(calificacionesDeMatricula, times(1)).contarPorMatricula(ID_MATRICULA);
+
+                Matricula existenteParaConfirmar = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existenteParaConfirmar));
+                saveDevuelveArgumento();
+
+                service.desvincular(ID_MATRICULA, true);
+
+                verify(calificacionesDeMatricula, times(2)).contarPorMatricula(ID_MATRICULA);
+            }
+
+            @Test
+            @DisplayName("Sin confirmar, reintentar la desvinculación dos veces seguidas rechaza ambas veces por igual, sin memoria del intento anterior")
+            void reintentarSinConfirmarRechazaLasDosVeces() {
+                Matricula existente = existenteActiva();
+                when(matriculaRepository.findById(ID_MATRICULA)).thenReturn(Optional.of(existente));
+                when(calificacionesDeMatricula.contarPorMatricula(ID_MATRICULA)).thenReturn(1L);
+
+                assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, false))
+                        .isInstanceOf(ConfirmacionRequeridaException.class);
+                assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, false))
+                        .isInstanceOf(ConfirmacionRequeridaException.class);
+
+                verify(matriculaRepository, never()).save(any());
+            }
         }
     }
 
