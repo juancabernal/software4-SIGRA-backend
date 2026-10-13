@@ -27,8 +27,12 @@ tests {
     expect(documentos).to.include("1000000007");
   });
 
-  test("la matricula sembrada como inactiva conserva su estado", function () {
-    const inactiva = res.body.find(m => m.numeroDocumento === "1000000007");
-    expect(inactiva.estado).to.equal("INACTIVO");
+  test("la matricula sembrada como desvinculada conserva su estado", function () {
+    const desvinculada = res.body.find(m => m.numeroDocumento === "1000000007");
+    expect(desvinculada.estado).to.equal("DESVINCULADA");
+  });
+
+  test("cada fila trae su fecha de matricula", function () {
+    res.body.forEach((m) => expect(m.fechaMatricula).to.match(/^\d{4}-\d{2}-\d{2}$/));
   });
 }

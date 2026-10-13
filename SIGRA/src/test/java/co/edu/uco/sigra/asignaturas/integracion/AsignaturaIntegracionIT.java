@@ -12,6 +12,7 @@ import co.edu.uco.sigra.auth.service.JwtService;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
@@ -248,7 +249,7 @@ class AsignaturaIntegracionIT {
         ResultadoAprendizaje raManual = raRepository.findById(manual).orElseThrow();
         assertThat(raManual.getEstado()).isEqualTo(EstadoRegistro.INACTIVO);
         assertThat(raManual.isInactivadoConAsignatura()).isFalse();
-        assertThat(matriculaRepository.findById(matricula).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(matriculaRepository.findById(matricula).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
         assertThat(asignacionRepository.findById(asignacion).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
 
         MvcResult reactivar = enviar(patch(URL + "/" + asignatura.getId() + "/activar"), tokenAdmin, null);
@@ -260,7 +261,7 @@ class AsignaturaIntegracionIT {
             assertThat(raRepository.findById(id).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
         }
         assertThat(raRepository.findById(manual).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.INACTIVO);
-        assertThat(matriculaRepository.findById(matricula).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(matriculaRepository.findById(matricula).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
         assertThat(asignacionRepository.findById(asignacion).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
     }
 
@@ -455,7 +456,8 @@ class AsignaturaIntegracionIT {
         m.setEstudiante(estudiante);
         m.setAsignatura(asignatura);
         m.setSemestre(semestre);
-        m.setEstado(EstadoRegistro.ACTIVO);
+        m.setFechaMatricula(LocalDate.now());
+        m.setEstado(EstadoMatricula.ACTIVA);
         return matriculaRepository.save(m);
     }
 

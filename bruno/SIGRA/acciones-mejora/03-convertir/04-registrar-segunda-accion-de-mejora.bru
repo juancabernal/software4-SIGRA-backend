@@ -1,0 +1,27 @@
+meta {
+  name: 04 Setup - registrar una segunda accion de mejora
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/conclusiones/{{conclusionVigente2Id}}/acciones-mejora
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Segunda accion de mejora",
+    "descripcion": "Accion de mejora independiente para probar el limite del 100% por RA y semestre."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.convertida: eq false
+}
+
+script:post-response {
+  bru.setVar("accionMejora2Id", res.body.id);
+}

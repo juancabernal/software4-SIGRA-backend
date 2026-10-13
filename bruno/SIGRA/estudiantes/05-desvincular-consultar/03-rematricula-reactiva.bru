@@ -25,6 +25,19 @@ assert {
 tests {
   test("reactiva la misma matricula en vez de crear una nueva", function () {
     expect(res.body.id).to.equal(bru.getVar("matriculaValidaId"));
-    expect(res.body.estado).to.equal("ACTIVO");
+    expect(res.body.estado).to.equal("ACTIVA");
+  });
+
+  test("la fecha de matricula se recalcula al reactivar", function () {
+    // La rematricula SIEMPRE recalcula fechaMatricula con el reloj del servicio (no conserva
+    // la fecha vieja "congelada"). Dentro de una misma corrida de Bruno, el retiro (05/02) y
+    // esta reactivacion ocurren el mismo dia calendario que la creacion original (04/01), asi
+    // que el valor coincide con el capturado en fechaMatriculaOriginal: es el riesgo aceptado
+    // y documentado en design.md D2 ("la fecha como LocalDate no distingue dos matriculas del
+    // mismo dia"). La prueba que demuestra el cambio de fecha de verdad, moviendo un reloj
+    // fijo a otro dia, es MatriculaServiceImplTest ("Al reactivar una matricula retirada, su
+    // fecha pasa a ser la del dia de la rematricula").
+    expect(res.body.fechaMatricula).to.match(/^\d{4}-\d{2}-\d{2}$/);
+    expect(res.body.fechaMatricula).to.equal(bru.getVar("fechaMatriculaOriginal"));
   });
 }

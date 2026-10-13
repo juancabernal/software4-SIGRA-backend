@@ -1,0 +1,34 @@
+meta {
+  name: 03 Setup - generar una segunda conclusion sobre el mismo RA y semestre
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raConcMas40Id}}/semestres/{{semBruConcId}}/conclusiones
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+docs {
+  La conclusion original (conclusionVigenteId) ya quedo ATENDIDA en
+  01-registrar, asi que ya no hay una VIGENTE para este (RA, semestre) y
+  generar() crea una nueva. Esta peticion es infraestructura para poder
+  probar, en los siguientes dos casos, que la SUMA de porcentajes convertidos
+  de un mismo (RA, semestre) no puede superar el 100%: se necesita una
+  segunda accion de mejora, independiente de la ya convertida al 60% en
+  "01 Convertir con un porcentaje valido".
+}
+
+assert {
+  res.status: eq 200
+  res.body.generada: eq true
+}
+
+script:post-response {
+  bru.setVar("conclusionVigente2Id", res.body.conclusion.id);
+}

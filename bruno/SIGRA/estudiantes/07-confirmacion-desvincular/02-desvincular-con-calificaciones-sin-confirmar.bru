@@ -1,0 +1,57 @@
+meta {
+  name: 02 Desvincular con calificaciones sin confirmar
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/matriculas/{{matriculaConfirmacionSinConfirmarId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  # No ejecutable contra el backend real todavia
+
+  `CalificacionesDeMatricula` (el puerto que decide si una matricula tiene calificaciones
+  registradas) solo tiene publicado el bean por defecto `CalificacionesDeMatriculaPorDefecto`,
+  que **siempre** devuelve `0` (design.md, decision D4, y el riesgo documentado en
+  `proposal.md`). Como no hay entidad `Calificacion` todavia (el modulo `calificaciones` es de
+  Simon Tabares y sigue vacio), ninguna matricula puede tener calificaciones de verdad, asi que
+  `MatriculaServiceImpl.desvincular` nunca entra a la rama que exige confirmacion: la respuesta
+  real de esta peticion hoy es **204**, no 409.
+
+  Esta peticion queda escrita con el assert de **409** -la respuesta correcta una vez que
+  `calificaciones` publique su propio bean de `CalificacionesDeMatricula`- a proposito, y se
+  reporta como **no ejecutable** mientras tanto. La regla si esta implementada y probada hoy,
+  pero contra el puerto simulado con Mockito en
+  `MatriculaServiceImplTest` (clase anidada "Confirmacion adicional para desvincular con
+  calificaciones registradas", casos PN-36) y en `MatriculaControllerTest`
+  ("Matricula con calificaciones y sin confirmar devuelve 409 pidiendo confirmacion"), no contra
+  datos reales.
+
+  Cuando el modulo `calificaciones` exista y registre al menos una calificacion para la
+  matricula creada en `01-matricular-para-la-prueba-sin-confirmar.bru`, esta peticion debe
+  empezar a devolver 409 sin tocar una linea de este archivo.
+}
+
+tests {
+  test("mensaje esperado (quedara en verde cuando exista el modulo calificaciones)", function () {
+    // El assert de arriba (res.status: eq 409) ya es la senal roja y clara de que esta
+    // peticion no es ejecutable hoy (ver el docs). Esta guarda evita que el script se
+    // caiga con un error de tipo confuso al leer res.body.mensaje de una respuesta 204
+    // sin cuerpo, en lugar de reportar con claridad por que el mensaje no se puede revisar
+    // todavia.
+    if (res.status !== 409) {
+      console.log("No ejecutable hoy: CalificacionesDeMatriculaPorDefecto devuelve 0, "
+        + "asi que la respuesta real es " + res.status + ", no 409 (ver el docs de esta peticion).");
+      return;
+    }
+    expect(res.body.mensaje).to.include("calificación(es) registrada(s)");
+    expect(res.body.mensaje).to.include("Debe confirmar la desvinculación");
+  });
+}

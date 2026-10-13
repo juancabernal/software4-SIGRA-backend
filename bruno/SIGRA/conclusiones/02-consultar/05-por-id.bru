@@ -1,0 +1,17 @@
+meta {
+  name: 05 Por id
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/conclusiones/{{conclusionVigenteId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{conclusionVigenteId}}
+  res.body.estado: eq VIGENTE
+}

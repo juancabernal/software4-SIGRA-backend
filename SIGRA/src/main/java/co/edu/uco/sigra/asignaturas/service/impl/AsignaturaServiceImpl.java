@@ -21,6 +21,7 @@ import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.ProfesorDeAsignatura;
 import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
@@ -191,7 +192,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     public List<MiAsignaturaDTO> misAsignaturas(IdentidadActual identidad) {
         List<Asignatura> asignaturas = switch (identidad.rol()) {
             case PROFESOR -> asignaturaRepository.findAsignadasAProfesor(identidad.id(), EstadoRegistro.ACTIVO);
-            case ESTUDIANTE -> asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoRegistro.ACTIVO);
+            case ESTUDIANTE -> asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoMatricula.ACTIVA);
             default -> throw new PermisoInsuficienteException();
         };
         if (asignaturas.isEmpty()) {
@@ -201,7 +202,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         // Tres consultas agrupadas para todas las asignaturas a la vez (sin N+1).
         Set<UUID> ids = asignaturas.stream().map(Asignatura::getId).collect(Collectors.toSet());
         Map<UUID, Long> ra = porAsignatura(asignaturaRepository.contarRaDe(ids, EstadoRegistro.ACTIVO));
-        Map<UUID, Long> estudiantes = porAsignatura(asignaturaRepository.contarMatriculasDe(ids, EstadoRegistro.ACTIVO));
+        Map<UUID, Long> estudiantes = porAsignatura(asignaturaRepository.contarMatriculasDe(ids, EstadoMatricula.ACTIVA));
         Map<UUID, List<String>> profesores = asignaturaRepository.profesoresDe(ids, EstadoRegistro.ACTIVO).stream()
                 .collect(Collectors.groupingBy(ProfesorDeAsignatura::getAsignaturaId,
                         Collectors.mapping(ProfesorDeAsignatura::getNombre, Collectors.toList())));
