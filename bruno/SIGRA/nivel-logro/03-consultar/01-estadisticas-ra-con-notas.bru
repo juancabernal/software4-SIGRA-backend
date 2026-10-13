@@ -1,0 +1,38 @@
+meta {
+  name: 01 Estadisticas del RA con notas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raNivConNotasId}}/semestres/{{semBruNivId}}/estadisticas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.resultadoAprendizajeId: eq {{raNivConNotasId}}
+  res.body.codigoResultadoAprendizaje: eq RA-NIV-01
+  res.body.semestreId: eq {{semBruNivId}}
+  res.body.codigoSemestre: eq BRUNIV-A1
+  res.body.totalEstudiantes: eq 6
+  res.body.evaluados: eq 4
+  res.body.sinDatosSuficientes: eq 1
+  res.body.sinEvaluar: eq 1
+  res.body.promedioNota: eq 3.66
+  res.body.promedioPorcentaje: eq 73.2
+  res.body.distribucion.length: eq 4
+}
+
+tests {
+  test("distribucion: un estudiante por nivel, siempre en orden y con % sobre los evaluados", function () {
+    const d = res.body.distribucion;
+    expect(d.map(x => x.nivel)).to.deep.equal(["BAJO", "MEDIO", "ALTO", "SOBRESALIENTE"]);
+    expect(d.map(x => x.cantidad)).to.deep.equal([1, 1, 1, 1]);
+    expect(d.map(x => x.porcentaje)).to.deep.equal([25, 25, 25, 25]);
+  });
+  test("trae la fecha del ultimo recalculo", function () {
+    expect(res.body.fechaCalculo).to.be.a("string").and.not.be.empty;
+  });
+}

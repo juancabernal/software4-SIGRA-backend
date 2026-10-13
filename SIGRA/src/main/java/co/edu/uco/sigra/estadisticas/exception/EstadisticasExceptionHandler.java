@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.Map;
 
 /**
- * Excepciones del módulo de estadísticas (RF-16).
+ * Excepciones del módulo de estadísticas: nivel de logro y estadísticas (RF-14, RF-15) y conclusiones
+ * automáticas (RF-16).
  * <p>
  * - Solo aplica a los controladores de este paquete (basePackages).
  * - Tiene la máxima prioridad para que el manejador global no las convierta en 500.
@@ -32,9 +33,13 @@ public class EstadisticasExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), null);
     }
 
-    /** 401 del control por rol compartido con asignaturas (temporal hasta RF-05). */
-    @ExceptionHandler(AutenticacionRequeridaException.class)
-    public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AutenticacionRequeridaException ex) {
+    /**
+     * 401 del control por rol compartido con asignaturas (temporal hasta RF-05). El interceptor lanza la
+     * excepción del paquete {@code asignaturas.exception}; sin incluirla aquí, la petición terminaba en 500.
+     */
+    @ExceptionHandler({AutenticacionRequeridaException.class,
+            co.edu.uco.sigra.asignaturas.exception.AutenticacionRequeridaException.class})
+    public ResponseEntity<Map<String, Object>> manejarNoAutenticado(RuntimeException ex) {
         ResponseEntity<Map<String, Object>> respuesta =
                 ErrorResponseBuilder.build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), null);
         return ResponseEntity.status(respuesta.getStatusCode())
@@ -42,9 +47,10 @@ public class EstadisticasExceptionHandler {
                 .body(respuesta.getBody());
     }
 
-    /** 403 del control por rol y del alcance del profesor (temporal hasta RF-05). */
-    @ExceptionHandler(PermisoInsuficienteException.class)
-    public ResponseEntity<Map<String, Object>> manejarSinPermiso(PermisoInsuficienteException ex) {
+    /** 403 del control por rol (interceptor, paquete asignaturas) y del alcance del profesor (temporal hasta RF-05). */
+    @ExceptionHandler({PermisoInsuficienteException.class,
+            co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException.class})
+    public ResponseEntity<Map<String, Object>> manejarSinPermiso(RuntimeException ex) {
         return ErrorResponseBuilder.build(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), null);
     }
 }

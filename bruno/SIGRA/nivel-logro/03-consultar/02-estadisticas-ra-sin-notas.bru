@@ -1,0 +1,26 @@
+meta {
+  name: 02 Estadisticas del RA sin notas (todos Sin evaluar)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raNivSinNotasId}}/semestres/{{semBruNivId}}/estadisticas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.totalEstudiantes: eq 6
+  res.body.evaluados: eq 0
+  res.body.sinEvaluar: eq 6
+  res.body.promedioNota: isNull
+  res.body.promedioPorcentaje: isNull
+}
+
+tests {
+  test("los 4 niveles aparecen en 0", function () {
+    expect(res.body.distribucion.map(x => x.cantidad)).to.deep.equal([0, 0, 0, 0]);
+  });
+}

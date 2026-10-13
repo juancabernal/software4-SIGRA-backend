@@ -1,0 +1,15 @@
+meta {
+  name: 05 Id de RA que no es UUID 400
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/abc/semestres/{{semBruNivId}}/estadisticas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+}

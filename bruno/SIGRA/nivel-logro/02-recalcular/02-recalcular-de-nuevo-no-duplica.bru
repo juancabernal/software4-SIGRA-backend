@@ -1,0 +1,19 @@
+meta {
+  name: 02 Recalcular de nuevo es idempotente y no duplica la conclusion
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raNivConNotasId}}/semestres/{{semBruNivId}}/estadisticas/recalculo
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estadisticas.evaluados: eq 4
+  res.body.estadisticas.promedioNota: eq 3.66
+  res.body.conclusion.generada: eq false
+  res.body.conclusion.motivo: eq Ya existe una conclusión vigente para este resultado de aprendizaje y semestre.
+}
