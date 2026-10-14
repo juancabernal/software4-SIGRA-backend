@@ -161,14 +161,16 @@ class ProfesorIntegracionIT {
             programaRepository.deleteAll(programasPropios);
             programaRepository.flush();
 
-            // Finalmente los usuarios/profesores propios.
-            List<co.edu.uco.sigra.auth.entity.Usuario> usuariosPropios =
-                    usuarioRepository.findAll().stream()
+            // Finalmente los profesores propios. Se consulta por ProfesorRepository (y no por
+            // UsuarioRepository.findAll) para no cargar filas de usuario ajenas a esta prueba:
+            // un usuario sin fila de subtipo en la base impide instanciar la clase abstracta Usuario.
+            List<Profesor> profesoresPropios =
+                    profesorRepository.findAll().stream()
                             .filter(usuarioItp)
                             .toList();
 
-            usuarioRepository.deleteAll(usuariosPropios);
-            usuarioRepository.flush();
+            profesorRepository.deleteAll(profesoresPropios);
+            profesorRepository.flush();
 
             // Y el tipo de documento creado exclusivamente para estas pruebas.
             tipoDocumentoRepository.deleteAll(
@@ -838,6 +840,74 @@ class ProfesorIntegracionIT {
                 .isEqualTo(404);
 
         assertSinDetallesTecnicos(cuerpo(inexistente));
+    }
+
+    // -------------------------------------------------------------------------
+    // IT-06
+    // -------------------------------------------------------------------------
+
+    @Test
+    @WithMockUser(roles = "ESTUDIANTE")
+    @DisplayName("IT-06 Un ESTUDIANTE no puede usar ningún endpoint de profesores (403)")
+    void it06EstudianteNoTieneAcceso() throws Exception {
+        verificarRolSinAcceso();
+    }
+
+    @Test
+    @WithMockUser(roles = "PROFESOR")
+    @DisplayName("IT-06 Un PROFESOR no puede usar ningún endpoint de profesores (403)")
+    void it06ProfesorNoTieneAcceso() throws Exception {
+        verificarRolSinAcceso();
+    }
+
+    /**
+     * Se ejecuta con el rol que declara cada prueba (la anotación del método reemplaza la de la
+     * clase). El profesor de apoyo se crea por repositorio porque la API le estaría vedada.
+     */
+    private void verificarRolSinAcceso() throws Exception {
+
+        Profesor existente = new Profesor();
+        existente.setTipoDocumento(tipoDocumento);
+        existente.setNumeroDocumento("990000050");
+        existente.setNombreCompleto("ITP Profesor Roles");
+        existente.setCorreoInstitucional("itp-050@uco.net.co");
+        existente.setEstado(EstadoRegistro.ACTIVO);
+        existente = profesorRepository.save(existente);
+
+        UUID id = existente.getId();
+        long profesoresAntes = profesorRepository.count();
+
+        assertProhibido("POST", enviar(
+                post(URL),
+                json(tipoDocumento.getId(), "990000051", "ITP Profesor Nuevo", "itp-051@uco.net.co")
+        ));
+
+        assertProhibido("GET lista", enviar(get(URL), null));
+
+        assertProhibido("GET asignaturas", enviar(get(URL + "/" + id + "/asignaturas"), null));
+
+        assertProhibido("PUT", enviar(
+                put(URL + "/" + id),
+                json(tipoDocumento.getId(), "990000050", "ITP Profesor Cambiado", "itp-050@uco.net.co")
+        ));
+
+        assertProhibido("DELETE", enviar(delete(URL + "/" + id), null));
+
+        // Ninguna de las llamadas rechazadas debe haber modificado la base.
+        assertThat(profesorRepository.count()).isEqualTo(profesoresAntes);
+
+        Profesor despues = profesorRepository.findById(id).orElseThrow();
+
+        assertThat(despues.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(despues.getNombreCompleto()).isEqualTo("ITP Profesor Roles");
+    }
+
+    private static void assertProhibido(String endpoint, MvcResult resultado) throws Exception {
+        assertThat(resultado.getResponse().getStatus())
+                .as(endpoint)
+                .isEqualTo(403);
+
+        assertSinDetallesTecnicos(cuerpo(resultado));
     }
 
     // -------------------------------------------------------------------------
