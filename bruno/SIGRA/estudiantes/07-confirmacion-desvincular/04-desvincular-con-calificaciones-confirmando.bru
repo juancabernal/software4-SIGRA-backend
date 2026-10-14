@@ -1,0 +1,31 @@
+meta {
+  name: 04 Desvincular con calificaciones confirmando
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/matriculas/{{matriculaConfirmacionConfirmandoId}}?confirmar=true
+  body: none
+  auth: none
+}
+
+params:query {
+  confirmar: true
+}
+
+docs {
+  # Si ejecutable, aunque con el alcance limitado al parametro
+
+  A diferencia de `02-desvincular-con-calificaciones-sin-confirmar.bru`, esta peticion **si**
+  se puede ejercer hoy contra el backend real: `confirmar=true` salta por completo la rama que
+  pregunta por calificaciones (ver `MatriculaServiceImpl.desvincular`), asi que la respuesta es
+  204 sin importar si la matricula tiene calificaciones de verdad o no. Lo que esta peticion
+  demuestra es que el parametro `confirmar` llega, se interpreta y desvincula; **no** demuestra
+  que la advertencia por calificaciones reales se dispare, porque ese conteo sigue siendo 0
+  (ver el `docs` de `02-...`).
+}
+
+assert {
+  res.status: eq 204
+}

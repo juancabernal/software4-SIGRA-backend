@@ -1,0 +1,34 @@
+meta {
+  name: 03 Matricular para la prueba confirmando
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudianteId": "{{idEstudianteConfirmacion}}",
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstActivo2}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("matriculaConfirmacionConfirmandoId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("matricula creada para el caso de confirmacion (terna distinta de 01, mismo estudiante)", function () {
+    expect(res.body.id).to.be.a("string").and.not.be.empty;
+    expect(res.body.estado).to.equal("ACTIVA");
+  });
+}

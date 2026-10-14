@@ -1,0 +1,22 @@
+meta {
+  name: 03 No genera con menos de 3 calificaciones
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raConcPocosDatosId}}/semestres/{{semBruConcId}}/conclusiones
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.generada: eq false
+  res.body.motivo: eq El resultado de aprendizaje no tiene datos suficientes para evaluarlo (mínimo 3 calificaciones).
+  res.body.conclusion: isNull
+}

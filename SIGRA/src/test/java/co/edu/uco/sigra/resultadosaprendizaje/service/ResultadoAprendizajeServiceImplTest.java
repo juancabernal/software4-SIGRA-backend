@@ -5,6 +5,7 @@ import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.resultadosaprendizaje.dto.ResultadoAprendizajeActualizarRequestDTO;
 import co.edu.uco.sigra.resultadosaprendizaje.dto.ResultadoAprendizajeCrearRequestDTO;
@@ -60,13 +61,17 @@ class ResultadoAprendizajeServiceImplTest {
     @Mock
     private AsignaturaRepository asignaturaRepository;
 
+    @Mock
+    private EvaluacionService evaluacionService;
+
     private final ResultadoAprendizajeMapper mapper = Mappers.getMapper(ResultadoAprendizajeMapper.class);
 
     private ResultadoAprendizajeServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new ResultadoAprendizajeServiceImpl(resultadoAprendizajeRepository, asignaturaRepository, mapper);
+        service = new ResultadoAprendizajeServiceImpl(resultadoAprendizajeRepository, asignaturaRepository, mapper,
+                evaluacionService);
     }
 
     // ------------------------------------------------------------------ datos de prueba
@@ -196,6 +201,7 @@ class ResultadoAprendizajeServiceImplTest {
                     .isInstanceOf(ResultadoAprendizajeReglaNegocioException.class)
                     .hasMessageContaining("máximo");
             verify(resultadoAprendizajeRepository, never()).save(any());
+            verifyNoInteractions(evaluacionService);
         }
 
         @Test
@@ -377,6 +383,7 @@ class ResultadoAprendizajeServiceImplTest {
             ResultadoAprendizajeResponseDTO respuesta = service.inactivar(ID_RA);
 
             assertThat(respuesta.estado()).isEqualTo(EstadoRegistro.INACTIVO.name());
+            verify(evaluacionService).inactivarPorResultadoAprendizaje(ID_RA);
         }
 
         @Test
@@ -390,6 +397,7 @@ class ResultadoAprendizajeServiceImplTest {
                     .hasMessageContaining("mínimo " + Asignatura.MIN_RA_ACTIVOS);
             assertThat(ra.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
             verify(resultadoAprendizajeRepository, never()).save(any());
+            verifyNoInteractions(evaluacionService);
         }
 
         @Test
@@ -442,6 +450,7 @@ class ResultadoAprendizajeServiceImplTest {
             ResultadoAprendizajeResponseDTO respuesta = service.reactivar(ID_RA);
 
             assertThat(respuesta.estado()).isEqualTo(EstadoRegistro.ACTIVO.name());
+            verify(evaluacionService).restaurarPorResultadoAprendizaje(ID_RA);
         }
 
         @Test
@@ -454,6 +463,7 @@ class ResultadoAprendizajeServiceImplTest {
                     .isInstanceOf(ResultadoAprendizajeReglaNegocioException.class)
                     .hasMessageContaining("máximo");
             verify(resultadoAprendizajeRepository, never()).save(any());
+            verifyNoInteractions(evaluacionService);
         }
 
         @Test
@@ -485,6 +495,34 @@ class ResultadoAprendizajeServiceImplTest {
 
             assertThatThrownBy(() -> service.reactivar(ID_RA))
                     .isInstanceOf(ResultadoAprendizajeNoEncontradoException.class);
+        }
+    }
+    // ------------------------------------------------------------------ cascada desde la asignatura
+
+    @Nested
+    @DisplayName("Cascada desde la asignatura (RF-03d / RF-10)")
+    class CascadaAsignatura {
+
+        @Test
+        @DisplayName("Al inactivar la asignatura inactiva sus RA activos y luego sus evaluaciones")
+        void inactivarPorAsignatura() {
+            service.inactivarPorAsignatura(ID_ASIGNATURA);
+
+            var orden = inOrder(resultadoAprendizajeRepository, evaluacionService);
+            orden.verify(resultadoAprendizajeRepository)
+                    .inactivarActivosPorAsignatura(ID_ASIGNATURA, EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
+            orden.verify(evaluacionService).inactivarPorAsignatura(ID_ASIGNATURA);
+        }
+
+        @Test
+        @DisplayName("Al reactivar la asignatura restaura primero sus RA y después las evaluaciones")
+        void restaurarPorAsignatura() {
+            service.restaurarPorAsignatura(ID_ASIGNATURA);
+
+            var orden = inOrder(resultadoAprendizajeRepository, evaluacionService);
+            orden.verify(resultadoAprendizajeRepository)
+                    .restaurarInactivadosConAsignatura(ID_ASIGNATURA, EstadoRegistro.ACTIVO);
+            orden.verify(evaluacionService).restaurarPorAsignatura(ID_ASIGNATURA);
         }
     }
 }

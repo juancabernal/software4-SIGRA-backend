@@ -32,10 +32,37 @@ bruno/
         ├── 06-cors/                CORS para el frontend en http://localhost:4200 (2)
         ├── 07-roles/               Control por rol; solo corre con controlPorRol=true (11)
         └── 08-mis-asignaturas/     «Mis asignaturas» del profesor y del estudiante (4)
-    └── auth/                       Pruebas de RF-04, en orden
+    ├── auth/                       Pruebas de RF-04, en orden
         ├── 01-login/               Login correcto y validaciones de entrada
         ├── 02-intentos-fallidos/   Bloqueo tras 5 intentos fallidos (423)
         └── 03-seguridad-respuestas/ Respuestas de error sin detalles técnicos (RNF-17)
+    ├── conclusiones/               RF-16: conclusiones automáticas
+        ├── 00-sesion/              Login de administrador (1)
+        ├── 01-generar/             Generar: con/sin umbral, datos insuficientes, no duplica (4)
+        └── 02-consultar/           Consulta con filtros y por id (6)
+    └── acciones-mejora/            RF-17 (registrar) y RF-18 (convertir en evaluación)
+        ├── 00-sesion/              Login de administrador (1)
+        ├── 01-registrar/           Registrar sobre una conclusión VIGENTE y sus validaciones (5)
+        ├── 02-consultar/           Consulta con filtros (incluido semestreId) y por id (5)
+        └── 03-convertir/           Conversión, límite del 100% y validaciones de porcentaje (10)
+```
+
+### Datos de nivel de logro (RF-16): dato de prueba, no el módulo real
+
+`conclusiones/01-generar` depende de `sigra.registro_nivel_logro_prueba`, cargada por
+`seed/seed-conclusiones.sql`. Esa tabla **no es el módulo real de niveles de logro**: ese módulo
+está a cargo de otro compañero del equipo y todavía no existe. Mientras tanto,
+`ProveedorNivelesLogroPruebaImpl` lee esta tabla-puente para decidir si una conclusión se genera
+(más del 40% de los registros en Bajo o Medio, con al menos 3 registros). Cuando el módulo real
+de niveles de logro se integre, esta tabla y su seed se retiran sin que las pruebas de
+`conclusiones/01-generar` tengan que cambiar su forma de pedir el cálculo (siguen llamando al
+mismo endpoint `POST /resultados-aprendizaje/{raId}/semestres/{semestreId}/conclusiones`).
+
+Antes de correr `conclusiones/` o `acciones-mejora/`, carga `seed/seed-conclusiones.sql` (es
+idempotente y usa su propio prefijo `BRUCONC`, independiente de los demás seeds):
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -p <PUERTO> -d postgres -v ON_ERROR_STOP=1 -f bruno/SIGRA/seed/seed-conclusiones.sql
 ```
 
 Cada carpeta tiene un `folder.bru` con su `seq`, que fija el orden de ejecución, y cada petición lleva un prefijo numérico (`01-...`, `02-...`) con su `seq` dentro de la carpeta. **El orden importa**: algunas pruebas cambian el estado de las asignaturas de prueba (por ejemplo, `04-activar` deja `BRU05` en ACTIVA y `05-inactivar` la inactiva después; `04-activar` reactiva `BRU11` y `05-inactivar` reactiva `BRU10` y la vuelve a inactivar).

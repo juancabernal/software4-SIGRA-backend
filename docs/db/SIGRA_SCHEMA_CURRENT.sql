@@ -144,6 +144,36 @@ CREATE TABLE IF NOT EXISTS sigra.semestre (
 );
 
 -- -----------------------------------------------------------------------------
+-- Evaluación (RF-10 / RF-11): mide un RA en un semestre. Eliminación lógica (ACTIVA/INACTIVA).
+-- La suma de porcentajes de las ACTIVAS de un (RA, semestre) <= 100 la valida el servicio.
+-- inactivada_con_ra: inactivada en cascada con su RA; se restaura al reactivar el RA.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.evaluacion (
+    id                       UUID          NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id UUID          NOT NULL,
+    semestre_id              UUID          NOT NULL,
+    nombre                   VARCHAR(150)  NOT NULL,
+    fecha_tentativa          DATE          NOT NULL,
+    porcentaje               NUMERIC(5,2)  NOT NULL,
+    descripcion              VARCHAR(500)  NOT NULL,
+    estado                   VARCHAR(10)   NOT NULL DEFAULT 'ACTIVA',
+    inactivada_con_ra        BOOLEAN       NOT NULL DEFAULT FALSE,
+    CONSTRAINT evaluacion_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_evaluacion_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_evaluacion_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT chk_evaluacion_porcentaje CHECK (porcentaje > 0 AND porcentaje <= 100),
+    CONSTRAINT chk_evaluacion_estado CHECK (estado IN ('ACTIVA', 'INACTIVA'))
+);
+
+-- Nombre único por (RA, semestre) sin distinguir mayúsculas. Es un índice funcional (lower), por eso
+-- no se declara en la entidad JPA; con ddl-auto=validate Hibernate no revisa índices.
+CREATE UNIQUE INDEX IF NOT EXISTS uk_evaluacion_ra_semestre_nombre
+    ON sigra.evaluacion (resultado_aprendizaje_id, semestre_id, lower(nombre));
+CREATE INDEX IF NOT EXISTS idx_evaluacion_ra_semestre
+    ON sigra.evaluacion (resultado_aprendizaje_id, semestre_id);
+
+-- -----------------------------------------------------------------------------
 -- Asignación docente (módulo de asignaciones). Se referencia desde profesor.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sigra.asignacion_docente (
@@ -187,19 +217,109 @@ CREATE TABLE IF NOT EXISTS sigra.estudiante (
 -- La terna es única sin importar el estado: desvincular pasa el registro a INACTIVO.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sigra.matricula (
-    id            UUID         NOT NULL DEFAULT gen_random_uuid(),
-    estudiante_id UUID         NOT NULL,
-    asignatura_id UUID         NOT NULL,
-    semestre_id   UUID         NOT NULL,
-    estado        VARCHAR(255) NOT NULL DEFAULT 'ACTIVO',
+    id              UUID         NOT NULL DEFAULT gen_random_uuid(),
+    estudiante_id   UUID         NOT NULL,
+    asignatura_id   UUID         NOT NULL,
+    semestre_id     UUID         NOT NULL,
+    fecha_matricula DATE         NOT NULL,
+    estado          VARCHAR(255) NOT NULL DEFAULT 'ACTIVA',
     CONSTRAINT matricula_pkey PRIMARY KEY (id),
     CONSTRAINT uk_matricula_terna UNIQUE (estudiante_id, asignatura_id, semestre_id),
     CONSTRAINT fk_matricula_estudiante FOREIGN KEY (estudiante_id) REFERENCES sigra.estudiante (id),
     CONSTRAINT fk_matricula_asignatura FOREIGN KEY (asignatura_id) REFERENCES sigra.asignatura (id),
     CONSTRAINT fk_matricula_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
-    CONSTRAINT chk_matricula_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
+    CONSTRAINT chk_matricula_estado CHECK (estado IN ('ACTIVA', 'DESVINCULADA'))
 );
 CREATE INDEX IF NOT EXISTS idx_matricula_estudiante ON sigra.matricula (estudiante_id);
 CREATE INDEX IF NOT EXISTS idx_matricula_asignatura_semestre ON sigra.matricula (asignatura_id, semestre_id);
+
+-- -----------------------------------------------------------------------------
+-- Conclusión automática (RF-16): alerta de desempeño insuficiente por (RA, semestre).
+-- Sin unicidad de (resultado_aprendizaje_id, semestre_id): puede haber varias en el tiempo (una
+-- Atendida y luego una nueva Vigente); la regla de no duplicar la Vigente la aplica el servicio.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.conclusion (
+    id                        UUID            NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id  UUID            NOT NULL,
+    semestre_id               UUID            NOT NULL,
+    mensaje                   VARCHAR(200)    NOT NULL,
+    tiene_datos_suficientes   BOOLEAN         NOT NULL,
+    fecha_generacion          TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    porcentaje_insuficiente   DOUBLE PRECISION NOT NULL,
+    estado                    VARCHAR(20)     NOT NULL DEFAULT 'VIGENTE',
+    CONSTRAINT conclusion_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_conclusion_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_conclusion_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT chk_conclusion_estado CHECK (estado IN ('VIGENTE', 'ATENDIDA'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_conclusion_ra_semestre ON sigra.conclusion (resultado_aprendizaje_id, semestre_id);
+
+-- -----------------------------------------------------------------------------
+-- Acción de mejora (RF-17): propuesta sobre una conclusión, convertible luego en evaluación (RF-18).
+-- evaluacion_generada_id no tiene FK: la evaluación real la crea el módulo evaluaciones, que todavía
+-- no existe; cuando exista, este id apuntará a su tabla sin necesidad de migrar una foreign key.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.accion_mejora (
+    id                        UUID         NOT NULL DEFAULT gen_random_uuid(),
+    nombre                    VARCHAR(150) NOT NULL,
+    descripcion               VARCHAR(500) NOT NULL,
+    fecha_propuesta           TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    resultado_aprendizaje_id  UUID         NOT NULL,
+    conclusion_origen_id      UUID         NOT NULL,
+    evaluacion_generada_id    UUID,
+    CONSTRAINT accion_mejora_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_accion_mejora_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_accion_mejora_conclusion FOREIGN KEY (conclusion_origen_id)
+        REFERENCES sigra.conclusion (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_accion_mejora_ra ON sigra.accion_mejora (resultado_aprendizaje_id);
+CREATE INDEX IF NOT EXISTS idx_accion_mejora_conclusion ON sigra.accion_mejora (conclusion_origen_id);
+
+-- -----------------------------------------------------------------------------
+-- Nivel de logro por estudiante en un (RA, semestre) — DATO DE PRUEBA (RF-16).
+-- El equipo de Estadísticas todavía no calcula el nivel de logro real a partir de las
+-- calificaciones (módulo "calificaciones" sin implementar); esta tabla es el puente temporal que
+-- lee ProveedorNivelesLogroPruebaImpl. Se retira cuando esa integración exista.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.registro_nivel_logro_prueba (
+    id                        UUID        NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id  UUID        NOT NULL,
+    semestre_id               UUID        NOT NULL,
+    estudiante_id             UUID        NOT NULL,
+    nivel_logro               VARCHAR(20) NOT NULL,
+    CONSTRAINT registro_nivel_logro_prueba_pkey PRIMARY KEY (id),
+    CONSTRAINT uk_nivel_logro_prueba_terna UNIQUE (resultado_aprendizaje_id, semestre_id, estudiante_id),
+    CONSTRAINT fk_nivel_logro_prueba_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_nivel_logro_prueba_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT fk_nivel_logro_prueba_estudiante FOREIGN KEY (estudiante_id) REFERENCES sigra.estudiante (id),
+    CONSTRAINT chk_nivel_logro_prueba_nivel CHECK (nivel_logro IN ('BAJO', 'MEDIO', 'ALTO', 'SOBRESALIENTE'))
+);
+
+-- -----------------------------------------------------------------------------
+-- Evaluación generada al convertir una acción de mejora (RF-18) — DATO DE PRUEBA.
+-- El módulo "evaluaciones" todavía no existe (solo tiene el .gitkeep); mientras tanto, esta tabla
+-- hace de evaluación real solo para validar que la suma de porcentajes de un (RA, semestre) no
+-- supere el 100%. Se retira cuando el equipo de evaluaciones entregue el módulo real.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.registro_evaluacion_prueba (
+    id                        UUID         NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id  UUID         NOT NULL,
+    semestre_id               UUID         NOT NULL,
+    descripcion               VARCHAR(500) NOT NULL,
+    porcentaje                DOUBLE PRECISION NOT NULL,
+    fecha_generacion          TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    CONSTRAINT registro_evaluacion_prueba_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_evaluacion_prueba_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_evaluacion_prueba_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_evaluacion_prueba_ra_semestre
+    ON sigra.registro_evaluacion_prueba (resultado_aprendizaje_id, semestre_id);
 
 COMMIT;

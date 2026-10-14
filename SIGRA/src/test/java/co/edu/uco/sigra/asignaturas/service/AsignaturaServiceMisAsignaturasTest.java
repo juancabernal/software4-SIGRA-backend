@@ -13,9 +13,11 @@ import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
+import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,9 @@ class AsignaturaServiceMisAsignaturasTest {
     @Mock
     private AsignacionDocenteRepository asignacionDocenteRepository;
 
+    @Mock
+    private ResultadoAprendizajeService resultadoAprendizajeService;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
     private AsignaturaServiceImpl service;
     private Asignatura siete;
@@ -57,7 +62,8 @@ class AsignaturaServiceMisAsignaturasTest {
     @BeforeEach
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
-                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
+                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
+                resultadoAprendizajeService);
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setId(UUID.randomUUID());
         programa.setNombre("Programa Bruno Activo");
@@ -102,7 +108,7 @@ class AsignaturaServiceMisAsignaturasTest {
     private void conteosYProfesores() {
         when(asignaturaRepository.contarRaDe(anyCollection(), eq(EstadoRegistro.ACTIVO)))
                 .thenReturn(List.of(conteo(siete, 7), conteo(activa, 5)));
-        when(asignaturaRepository.contarMatriculasDe(anyCollection(), eq(EstadoRegistro.ACTIVO)))
+        when(asignaturaRepository.contarMatriculasDe(anyCollection(), eq(EstadoMatricula.ACTIVA)))
                 .thenReturn(List.of(conteo(activa, 1)));
         when(asignaturaRepository.profesoresDe(anyCollection(), eq(EstadoRegistro.ACTIVO)))
                 .thenReturn(List.of(profesor(activa, "Profesor Bruno"), profesor(activa, "Ana Docente"),
@@ -132,7 +138,7 @@ class AsignaturaServiceMisAsignaturasTest {
     @Test
     @DisplayName("El ESTUDIANTE recibe las asignaturas donde tiene matrícula ACTIVA")
     void estudiante() {
-        when(asignaturaRepository.findMatriculadasPorEstudiante(USUARIO, EstadoRegistro.ACTIVO))
+        when(asignaturaRepository.findMatriculadasPorEstudiante(USUARIO, EstadoMatricula.ACTIVA))
                 .thenReturn(List.of(activa));
         conteosYProfesores();
 

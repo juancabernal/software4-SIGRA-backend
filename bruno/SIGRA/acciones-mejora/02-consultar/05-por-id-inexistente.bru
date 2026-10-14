@@ -1,0 +1,21 @@
+meta {
+  name: 05 Por id inexistente
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{idAccionMejoraInexistente}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe una acción de mejora con id");
+  });
+}
