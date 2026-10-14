@@ -163,8 +163,8 @@ jobs:
       - name: Dar permiso de ejecución a gradlew
         run: chmod +x gradlew
 
-      - name: Ejecutar las pruebas de integración
-        run: ./gradlew integrationTest --no-daemon
+      - name: Compilar, ejecutar pruebas unitarias y verificar cobertura (JaCoCo)
+        run: ./gradlew clean test jacocoTestCoverageVerification --no-daemon
 
       - name: Guardar el reporte de pruebas de integración
         if: always()
