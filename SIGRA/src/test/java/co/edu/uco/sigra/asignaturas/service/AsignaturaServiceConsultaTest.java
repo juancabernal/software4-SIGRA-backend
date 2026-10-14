@@ -13,6 +13,7 @@ import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
+import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +52,9 @@ class AsignaturaServiceConsultaTest {
     @Mock
     private AsignacionDocenteRepository asignacionDocenteRepository;
 
+    @Mock
+    private ResultadoAprendizajeService resultadoAprendizajeService;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
 
     private AsignaturaServiceImpl service;
@@ -63,7 +67,8 @@ class AsignaturaServiceConsultaTest {
     @BeforeEach
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
-                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
+                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
+                resultadoAprendizajeService);
 
         ProgramaAcademico sistemas = programa(ID_SISTEMAS, "Ingeniería de Sistemas");
         ProgramaAcademico matematicas = programa(ID_MATEMATICAS, "Matemáticas");

@@ -24,4 +24,10 @@ public interface ResultadoAprendizajeService {
     ResultadoAprendizajeResponseDTO inactivar(UUID id);
 
     ResultadoAprendizajeResponseDTO reactivar(UUID id);
+
+    /** Cascada al inactivar una asignatura: sus RA activos y las evaluaciones activas de esos RA. */
+    void inactivarPorAsignatura(UUID asignaturaId);
+
+    /** Al reactivar una asignatura: restaura sus RA inactivados con ella y luego las evaluaciones de esos RA. */
+    void restaurarPorAsignatura(UUID asignaturaId);
 }

@@ -67,8 +67,9 @@ public class AccionMejoraController {
         return ResponseEntity.ok(accionMejoraService.consultarPorId(id));
     }
 
+    /** RF-18: solo el PROFESOR (matriz RBAC); el servicio de evaluaciones tampoco admite otro rol. */
     @PostMapping("/acciones-mejora/{id}/conversion")
-    @RolesPermitidos({RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR})
+    @RolesPermitidos({RolUsuario.PROFESOR})
     public ResponseEntity<AccionMejoraResponseDTO> convertirEnEvaluacion(
             @PathVariable UUID id,
             @Valid @RequestBody ConvertirEvaluacionRequestDTO datos,

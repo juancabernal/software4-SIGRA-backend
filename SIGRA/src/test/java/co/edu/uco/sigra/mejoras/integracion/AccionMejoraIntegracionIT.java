@@ -1,6 +1,8 @@
 package co.edu.uco.sigra.mejoras.integracion;
 
+import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.entity.Administrador;
@@ -17,10 +19,11 @@ import co.edu.uco.sigra.estadisticas.entity.RegistroNivelLogroPrueba;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import co.edu.uco.sigra.estadisticas.repository.RegistroNivelLogroPruebaRepository;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
+import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
+import co.edu.uco.sigra.evaluaciones.entity.Evaluacion;
+import co.edu.uco.sigra.evaluaciones.repository.EvaluacionRepository;
 import co.edu.uco.sigra.mejoras.entity.AccionMejora;
-import co.edu.uco.sigra.mejoras.entity.RegistroEvaluacionPrueba;
 import co.edu.uco.sigra.mejoras.repository.AccionMejoraRepository;
-import co.edu.uco.sigra.mejoras.repository.RegistroEvaluacionPruebaRepository;
 import co.edu.uco.sigra.profesores.entity.Profesor;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
@@ -41,10 +44,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
@@ -84,7 +89,7 @@ class AccionMejoraIntegracionIT {
     @Autowired private ConclusionRepository conclusionRepository;
     @Autowired private RegistroNivelLogroPruebaRepository nivelLogroRepository;
     @Autowired private AccionMejoraRepository accionMejoraRepository;
-    @Autowired private RegistroEvaluacionPruebaRepository evaluacionPruebaRepository;
+    @Autowired private EvaluacionRepository evaluacionRepository;
 
     private TransactionTemplate tx;
     private TipoDocumento tipoDocumento;
@@ -109,9 +114,9 @@ class AccionMejoraIntegracionIT {
             Predicate<Usuario> usuarioItm = u -> u.getCorreoInstitucional().startsWith(PREFIJO_CORREO)
                     && u.getCorreoInstitucional().endsWith(DOMINIO_CORREO);
 
-            evaluacionPruebaRepository.deleteAll(evaluacionPruebaRepository.findAll().stream()
-                    .filter(r -> deItm.test(r.getResultadoAprendizaje().getAsignatura())).toList());
-            evaluacionPruebaRepository.flush();
+            evaluacionRepository.deleteAll(evaluacionRepository.findAll().stream()
+                    .filter(e -> deItm.test(e.getResultadoAprendizaje().getAsignatura())).toList());
+            evaluacionRepository.flush();
             accionMejoraRepository.deleteAll(accionMejoraRepository.findAll().stream()
                     .filter(a -> deItm.test(a.getResultadoAprendizaje().getAsignatura())).toList());
             accionMejoraRepository.flush();
@@ -196,21 +201,22 @@ class AccionMejoraIntegracionIT {
     // ---------------------------------------------------------------- IM-03
 
     @Test
-    @DisplayName("IM-03 Convertir con un porcentaje que supera el 100% del (RA, semestre): se rechaza")
+    @DisplayName("IM-03 Convertir con un porcentaje que supera el 100% de las evaluaciones activas: se rechaza")
     void im03PorcentajeExcedeLimiteSeRechaza() throws Exception {
         Asignatura asignatura = crearAsignatura("ITM-301");
         ResultadoAprendizaje ra = crearRa(asignatura, "RA1");
         Semestre semestre = crearSemestre();
         AccionMejora accion = crearAccionSobreConclusionVigente(ra, semestre);
-        tx.executeWithoutResult(s -> evaluacionPruebaRepository.save(
-                new RegistroEvaluacionPrueba(ra, semestre, "ITM evaluacion previa", 60.0)));
+        crearEvaluacionActiva(ra, semestre, "ITM previa", "60");
+        String tokenProfesor = token(profesorAsignadoA(asignatura));
 
-        MvcResult r = convertir(accion.getId(), 50.0, tokenAdmin);
+        MvcResult r = convertir(accion.getId(), 50.0, tokenProfesor);
         assertThat(r.getResponse().getStatus()).isEqualTo(400);
+        assertThat((String) JsonPath.read(cuerpo(r), "$.mensaje")).contains("Porcentaje disponible: 40%");
 
         AccionMejora accionEnBase = accionMejoraRepository.findById(accion.getId()).orElseThrow();
         assertThat(accionEnBase.estaConvertida()).isFalse();
-        assertThat(evaluacionPruebaRepository.sumarPorcentajes(ra.getId(), semestre.getId())).isEqualTo(60.0);
+        assertThat(sumaActivas(ra, semestre)).isEqualByComparingTo("60");
     }
 
     // ---------------------------------------------------------------- IM-04
@@ -222,23 +228,24 @@ class AccionMejoraIntegracionIT {
         ResultadoAprendizaje ra = crearRa(asignatura, "RA1");
         Semestre semestre = crearSemestre();
         AccionMejora accion = crearAccionSobreConclusionVigente(ra, semestre);
+        String tokenProfesor = token(profesorAsignadoA(asignatura));
 
-        MvcResult primera = convertir(accion.getId(), 30.0, tokenAdmin);
+        MvcResult primera = convertir(accion.getId(), 30.0, tokenProfesor);
         assertThat(primera.getResponse().getStatus()).isEqualTo(200);
         UUID evaluacionGeneradaId = UUID.fromString(JsonPath.read(cuerpo(primera), "$.evaluacionGeneradaId"));
 
-        MvcResult segunda = convertir(accion.getId(), 10.0, tokenAdmin);
+        MvcResult segunda = convertir(accion.getId(), 10.0, tokenProfesor);
         assertThat(segunda.getResponse().getStatus()).isEqualTo(409);
 
         AccionMejora accionEnBase = accionMejoraRepository.findById(accion.getId()).orElseThrow();
         assertThat(accionEnBase.getEvaluacionGeneradaId()).isEqualTo(evaluacionGeneradaId);
-        assertThat(evaluacionPruebaRepository.sumarPorcentajes(ra.getId(), semestre.getId())).isEqualTo(30.0);
+        assertThat(sumaActivas(ra, semestre)).isEqualByComparingTo("30");
     }
 
     // ---------------------------------------------------------------- IM-05
 
     @Test
-    @DisplayName("IM-05 Flujo completo: generar conclusión, registrar acción y convertir en evaluación")
+    @DisplayName("IM-05 Flujo completo: generar conclusión, registrar acción y convertir en evaluación real")
     void im05FlujoCompleto() throws Exception {
         Asignatura asignatura = crearAsignatura("ITM-501");
         ResultadoAprendizaje ra = crearRa(asignatura, "RA1");
@@ -258,7 +265,7 @@ class AccionMejoraIntegracionIT {
         Conclusion conclusionEnBase = conclusionRepository.findById(conclusionId).orElseThrow();
         assertThat(conclusionEnBase.getEstado()).isEqualTo(EstadoConclusion.ATENDIDA);
 
-        MvcResult convertida = convertir(accionId, 40.0, tokenAdmin);
+        MvcResult convertida = convertir(accionId, 40.0, token(profesorAsignadoA(asignatura)));
         assertThat(convertida.getResponse().getStatus()).isEqualTo(200);
         String cuerpoConvertida = cuerpo(convertida);
         assertThat((Boolean) JsonPath.read(cuerpoConvertida, "$.convertida")).isTrue();
@@ -268,17 +275,37 @@ class AccionMejoraIntegracionIT {
         assertThat(accionEnBase.estaConvertida()).isTrue();
         assertThat(accionEnBase.getEvaluacionGeneradaId()).isEqualTo(evaluacionGeneradaId);
 
-        RegistroEvaluacionPrueba evaluacionEnBase = evaluacionPruebaRepository.findById(evaluacionGeneradaId)
-                .orElseThrow();
-        assertThat(evaluacionEnBase.getDescripcion()).isEqualTo("ITM Descripcion Flujo");
-        assertThat(evaluacionEnBase.getPorcentaje()).isEqualTo(40.0);
-        UUID[] raYsemestreEnBase = tx.execute(s -> {
-            RegistroEvaluacionPrueba recargada = evaluacionPruebaRepository.findById(evaluacionGeneradaId)
-                    .orElseThrow();
-            return new UUID[] {recargada.getResultadoAprendizaje().getId(), recargada.getSemestre().getId()};
+        // La evaluación queda en sigra.evaluacion con lo heredado de la acción y lo indicado por el profesor.
+        Object[] evaluacionEnBase = tx.execute(s -> {
+            Evaluacion e = evaluacionRepository.findById(evaluacionGeneradaId).orElseThrow();
+            return new Object[] {e.getNombre(), e.getDescripcion(), e.getPorcentaje(), e.getFechaTentativa(),
+                    e.getEstado(), e.getResultadoAprendizaje().getId(), e.getSemestre().getId()};
         });
-        assertThat(raYsemestreEnBase[0]).isEqualTo(ra.getId());
-        assertThat(raYsemestreEnBase[1]).isEqualTo(semestre.getId());
+        assertThat(evaluacionEnBase[0]).isEqualTo("ITM Accion Flujo");
+        assertThat(evaluacionEnBase[1]).isEqualTo("ITM Descripcion Flujo");
+        assertThat((BigDecimal) evaluacionEnBase[2]).isEqualByComparingTo("40");
+        assertThat(evaluacionEnBase[3]).isEqualTo(LocalDate.now());
+        assertThat(evaluacionEnBase[4]).isEqualTo(EstadoEvaluacion.ACTIVA);
+        assertThat(evaluacionEnBase[5]).isEqualTo(ra.getId());
+        assertThat(evaluacionEnBase[6]).isEqualTo(semestre.getId());
+    }
+
+    // ---------------------------------------------------------------- IM-06
+
+    @Test
+    @DisplayName("IM-06 El ADMINISTRADOR no puede convertir (RF-18 solo Profesor en la matriz RBAC)")
+    void im06AdministradorNoConvierte() throws Exception {
+        Asignatura asignatura = crearAsignatura("ITM-601");
+        ResultadoAprendizaje ra = crearRa(asignatura, "RA1");
+        Semestre semestre = crearSemestre();
+        AccionMejora accion = crearAccionSobreConclusionVigente(ra, semestre);
+
+        MvcResult r = convertir(accion.getId(), 30.0, tokenAdmin);
+        assertThat(r.getResponse().getStatus()).isEqualTo(403);
+
+        AccionMejora accionEnBase = accionMejoraRepository.findById(accion.getId()).orElseThrow();
+        assertThat(accionEnBase.estaConvertida()).isFalse();
+        assertThat(sumaActivas(ra, semestre)).isEqualByComparingTo("0");
     }
 
     // ---------------------------------------------------------------- utilidades
@@ -298,7 +325,7 @@ class AccionMejoraIntegracionIT {
     }
 
     private MvcResult convertir(UUID accionId, double porcentaje, String token) throws Exception {
-        String json = "{\"porcentaje\":" + porcentaje + "}";
+        String json = "{\"fechaTentativa\":\"" + LocalDate.now() + "\",\"porcentaje\":" + porcentaje + "}";
         return enviar(post("/api/v1/acciones-mejora/" + accionId + "/conversion"), token, json);
     }
 
@@ -318,6 +345,33 @@ class AccionMejoraIntegracionIT {
 
     private String token(Usuario usuario) {
         return jwtService.generarToken(usuario);
+    }
+
+    /** Profesor con asignación docente ACTIVA en la asignatura (requisito del servicio de evaluaciones). */
+    private Profesor profesorAsignadoA(Asignatura asignatura) {
+        Profesor profesor = crearUsuario(profesorNuevo(), "prof");
+        AsignacionDocente asignacion = new AsignacionDocente();
+        asignacion.setProfesor(profesor);
+        asignacion.setAsignatura(asignatura);
+        asignacion.setEstado(EstadoRegistro.ACTIVO);
+        asignacionRepository.save(asignacion);
+        return profesor;
+    }
+
+    private void crearEvaluacionActiva(ResultadoAprendizaje ra, Semestre semestre, String nombre, String porcentaje) {
+        Evaluacion e = new Evaluacion();
+        e.setResultadoAprendizaje(ra);
+        e.setSemestre(semestre);
+        e.setNombre(nombre);
+        e.setFechaTentativa(LocalDate.now());
+        e.setPorcentaje(new BigDecimal(porcentaje));
+        e.setDescripcion(nombre);
+        e.setEstado(EstadoEvaluacion.ACTIVA);
+        evaluacionRepository.save(e);
+    }
+
+    private BigDecimal sumaActivas(ResultadoAprendizaje ra, Semestre semestre) {
+        return evaluacionRepository.sumarPorcentajes(ra.getId(), semestre.getId(), EstadoEvaluacion.ACTIVA);
     }
 
     private ProgramaAcademico crearPrograma() {
@@ -354,14 +408,19 @@ class AccionMejoraIntegracionIT {
     private Semestre crearSemestre() {
         Semestre s = new Semestre();
         s.setCodigo(PREFIJO_SEMESTRE + ThreadLocalRandom.current().nextInt(1000, 1_000_000));
-        s.setFechaInicio(LocalDate.now().minusDays(10));
+        // Empieza hoy para que el servicio de evaluaciones lo tome como el semestre activo (el que contiene
+        // hoy con la fecha de inicio más reciente), aunque la base local tenga otro semestre en curso.
+        s.setFechaInicio(LocalDate.now());
         s.setFechaFin(LocalDate.now().plusDays(90));
         s.setEstado(EstadoSemestre.ACTIVO);
         return semestreRepository.save(s);
     }
 
+    /** ACTIVA directamente (sin los 5 RA que exige activar()): crear evaluaciones exige asignatura ACTIVA. */
     private Asignatura crearAsignatura(String codigo) {
-        return asignaturaRepository.save(new Asignatura(codigo, "ITM Asignatura " + codigo, programa));
+        Asignatura asignatura = new Asignatura(codigo, "ITM Asignatura " + codigo, programa);
+        ReflectionTestUtils.setField(asignatura, "estado", EstadoAsignatura.ACTIVA);
+        return asignaturaRepository.save(asignatura);
     }
 
     private ResultadoAprendizaje crearRa(Asignatura asignatura, String codigo) {

@@ -22,7 +22,10 @@ public interface AccionMejoraService {
 
     AccionMejoraResponseDTO consultarPorId(UUID id);
 
-    /** RF-18: convierte la acción en una evaluación nueva, validando el 100% del RA en el semestre. */
+    /**
+     * RF-18: convierte la acción en una evaluación nueva del módulo evaluaciones (semestre activo), con el
+     * nombre y la descripción de la acción y la fecha tentativa y el porcentaje indicados.
+     */
     AccionMejoraResponseDTO convertirEnEvaluacion(UUID accionId, ConvertirEvaluacionRequestDTO datos,
                                                    IdentidadActual identidad);
 }

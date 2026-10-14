@@ -144,6 +144,36 @@ CREATE TABLE IF NOT EXISTS sigra.semestre (
 );
 
 -- -----------------------------------------------------------------------------
+-- Evaluación (RF-10 / RF-11): mide un RA en un semestre. Eliminación lógica (ACTIVA/INACTIVA).
+-- La suma de porcentajes de las ACTIVAS de un (RA, semestre) <= 100 la valida el servicio.
+-- inactivada_con_ra: inactivada en cascada con su RA; se restaura al reactivar el RA.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.evaluacion (
+    id                       UUID          NOT NULL DEFAULT gen_random_uuid(),
+    resultado_aprendizaje_id UUID          NOT NULL,
+    semestre_id              UUID          NOT NULL,
+    nombre                   VARCHAR(150)  NOT NULL,
+    fecha_tentativa          DATE          NOT NULL,
+    porcentaje               NUMERIC(5,2)  NOT NULL,
+    descripcion              VARCHAR(500)  NOT NULL,
+    estado                   VARCHAR(10)   NOT NULL DEFAULT 'ACTIVA',
+    inactivada_con_ra        BOOLEAN       NOT NULL DEFAULT FALSE,
+    CONSTRAINT evaluacion_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_evaluacion_ra FOREIGN KEY (resultado_aprendizaje_id)
+        REFERENCES sigra.resultado_aprendizaje (id),
+    CONSTRAINT fk_evaluacion_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
+    CONSTRAINT chk_evaluacion_porcentaje CHECK (porcentaje > 0 AND porcentaje <= 100),
+    CONSTRAINT chk_evaluacion_estado CHECK (estado IN ('ACTIVA', 'INACTIVA'))
+);
+
+-- Nombre único por (RA, semestre) sin distinguir mayúsculas. Es un índice funcional (lower), por eso
+-- no se declara en la entidad JPA; con ddl-auto=validate Hibernate no revisa índices.
+CREATE UNIQUE INDEX IF NOT EXISTS uk_evaluacion_ra_semestre_nombre
+    ON sigra.evaluacion (resultado_aprendizaje_id, semestre_id, lower(nombre));
+CREATE INDEX IF NOT EXISTS idx_evaluacion_ra_semestre
+    ON sigra.evaluacion (resultado_aprendizaje_id, semestre_id);
+
+-- -----------------------------------------------------------------------------
 -- Asignación docente (módulo de asignaciones). Se referencia desde profesor.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sigra.asignacion_docente (
