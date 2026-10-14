@@ -19,6 +19,7 @@ import co.edu.uco.sigra.estadisticas.entity.RegistroNivelLogroPrueba;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import co.edu.uco.sigra.estadisticas.repository.RegistroNivelLogroPruebaRepository;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
+import co.edu.uco.sigra.evaluaciones.config.EvaluacionConfig;
 import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
 import co.edu.uco.sigra.evaluaciones.entity.Evaluacion;
 import co.edu.uco.sigra.evaluaciones.repository.EvaluacionRepository;
@@ -68,6 +69,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @SpringBootTest(properties = "sigra.seguridad.roles.habilitado=true")
 @AutoConfigureMockMvc
 class AccionMejoraIntegracionIT {
+    /** Hoy en la zona del servicio de evaluaciones (America/Bogota): el JVM de CI corre en UTC y el día puede diferir. */
+    private static final java.util.function.Supplier<LocalDate> HOY_COLOMBIA =
+            () -> LocalDate.now(EvaluacionConfig.ZONA_COLOMBIA);
+
 
     private static final String PREFIJO_CODIGO = "ITM-";
     private static final String PREFIJO_PROGRAMA = "ITM Programa ";
@@ -284,7 +289,7 @@ class AccionMejoraIntegracionIT {
         assertThat(evaluacionEnBase[0]).isEqualTo("ITM Accion Flujo");
         assertThat(evaluacionEnBase[1]).isEqualTo("ITM Descripcion Flujo");
         assertThat((BigDecimal) evaluacionEnBase[2]).isEqualByComparingTo("40");
-        assertThat(evaluacionEnBase[3]).isEqualTo(LocalDate.now());
+        assertThat(evaluacionEnBase[3]).isEqualTo(HOY_COLOMBIA.get());
         assertThat(evaluacionEnBase[4]).isEqualTo(EstadoEvaluacion.ACTIVA);
         assertThat(evaluacionEnBase[5]).isEqualTo(ra.getId());
         assertThat(evaluacionEnBase[6]).isEqualTo(semestre.getId());
@@ -325,7 +330,7 @@ class AccionMejoraIntegracionIT {
     }
 
     private MvcResult convertir(UUID accionId, double porcentaje, String token) throws Exception {
-        String json = "{\"fechaTentativa\":\"" + LocalDate.now() + "\",\"porcentaje\":" + porcentaje + "}";
+        String json = "{\"fechaTentativa\":\"" + HOY_COLOMBIA.get() + "\",\"porcentaje\":" + porcentaje + "}";
         return enviar(post("/api/v1/acciones-mejora/" + accionId + "/conversion"), token, json);
     }
 
@@ -363,7 +368,7 @@ class AccionMejoraIntegracionIT {
         e.setResultadoAprendizaje(ra);
         e.setSemestre(semestre);
         e.setNombre(nombre);
-        e.setFechaTentativa(LocalDate.now());
+        e.setFechaTentativa(HOY_COLOMBIA.get());
         e.setPorcentaje(new BigDecimal(porcentaje));
         e.setDescripcion(nombre);
         e.setEstado(EstadoEvaluacion.ACTIVA);
@@ -410,8 +415,8 @@ class AccionMejoraIntegracionIT {
         s.setCodigo(PREFIJO_SEMESTRE + ThreadLocalRandom.current().nextInt(1000, 1_000_000));
         // Empieza hoy para que el servicio de evaluaciones lo tome como el semestre activo (el que contiene
         // hoy con la fecha de inicio más reciente), aunque la base local tenga otro semestre en curso.
-        s.setFechaInicio(LocalDate.now());
-        s.setFechaFin(LocalDate.now().plusDays(90));
+        s.setFechaInicio(HOY_COLOMBIA.get());
+        s.setFechaFin(HOY_COLOMBIA.get().plusDays(90));
         s.setEstado(EstadoSemestre.ACTIVO);
         return semestreRepository.save(s);
     }
