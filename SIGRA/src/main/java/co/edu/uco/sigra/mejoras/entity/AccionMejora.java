@@ -49,7 +49,7 @@ public class AccionMejora {
     @JoinColumn(name = "conclusion_origen_id", nullable = false, updatable = false)
     private Conclusion conclusionOrigen;
 
-    /** Id de la evaluación creada por el módulo evaluaciones (aún no existe): sin relación JPA ni FK a propósito. */
+    /** Id de la evaluación (sigra.evaluacion) creada al convertir la acción (RF-18); sin relación JPA. */
     @Column(name = "evaluacion_generada_id")
     private UUID evaluacionGeneradaId;
 

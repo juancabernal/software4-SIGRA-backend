@@ -519,7 +519,7 @@ class EstudianteIntegracionIT {
         assertThat((String) JsonPath.read(cuerpoRespuesta, "$.estudiante.estado")).isEqualTo("ACTIVO");
         assertThat((String) JsonPath.read(cuerpoRespuesta, "$.matricula.estado")).isEqualTo("ACTIVA");
         String fechaMatricula = JsonPath.read(cuerpoRespuesta, "$.matricula.fechaMatricula");
-        assertThat(fechaMatricula).isEqualTo(LocalDate.now().toString());
+        assertThat(fechaMatricula).isEqualTo(LocalDate.now(java.time.ZoneId.of("America/Bogota")).toString());
 
         // El estudiante creado en el mismo paso se consulta igual que uno registrado por separado.
         MvcResult consultaEstudiante = enviar(get(URL_ESTUDIANTES + "/" + estudianteId), null);

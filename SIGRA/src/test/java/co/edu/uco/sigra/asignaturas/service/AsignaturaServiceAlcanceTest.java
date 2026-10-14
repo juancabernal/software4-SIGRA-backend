@@ -15,6 +15,7 @@ import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
+import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class AsignaturaServiceAlcanceTest {
     @Mock
     private AsignacionDocenteRepository asignacionDocenteRepository;
 
+    @Mock
+    private ResultadoAprendizajeService resultadoAprendizajeService;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
     private AsignaturaServiceImpl service;
     private Asignatura suya;
@@ -57,7 +61,8 @@ class AsignaturaServiceAlcanceTest {
     @BeforeEach
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
-                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
+                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
+                resultadoAprendizajeService);
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setId(UUID.randomUUID());
         programa.setNombre("Ingeniería de Sistemas");

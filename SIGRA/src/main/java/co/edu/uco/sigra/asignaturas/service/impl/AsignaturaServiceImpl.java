@@ -25,6 +25,7 @@ import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
+import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import jakarta.transaction.Transactional;
@@ -49,6 +50,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     private final ResultadoAprendizajeRepository resultadoAprendizajeRepository;
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final AsignaturaMapper asignaturaMapper;
+    private final ResultadoAprendizajeService resultadoAprendizajeService;
 
     @Override
     @Transactional
@@ -135,7 +137,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         if (asignatura.getEstado() == EstadoAsignatura.INACTIVA) {
             // Reactivar: primero vuelven a ACTIVO solo los RA inactivados con la asignatura. Si luego el
             // rango no es válido, activar() lanza la excepción y la transacción revierte la restauración.
-            resultadoAprendizajeRepository.restaurarInactivadosConAsignatura(id, EstadoRegistro.ACTIVO);
+            // RF-10: el servicio de RA restaura también las evaluaciones de esos RA.
+            resultadoAprendizajeService.restaurarPorAsignatura(id);
         }
         long cantidadRa = contarRaActivos(id);
         asignatura.activar(cantidadRa);
@@ -151,7 +154,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         // Cascada: el SRS (RF-06c) exime del mínimo de RA a la asignatura que se inactiva, así que sus RA
         // activos pasan a INACTIVO en la misma transacción, marcados para restaurarse si se reactiva.
         // No se borra nada.
-        resultadoAprendizajeRepository.inactivarActivosPorAsignatura(id, EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
+        // RF-10: el servicio de RA inactiva también las evaluaciones activas de esos RA.
+        resultadoAprendizajeService.inactivarPorAsignatura(id);
         return asignaturaMapper.toResponseDTO(guardada, contarRaActivos(id));
     }
 

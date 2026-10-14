@@ -2,13 +2,15 @@ package co.edu.uco.sigra.mejoras.controller;
 
 import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
 import co.edu.uco.sigra.estadisticas.exception.ConclusionNoEncontradaException;
+import co.edu.uco.sigra.evaluaciones.exception.EvaluacionReglaNegocioException;
+import co.edu.uco.sigra.evaluaciones.exception.NombreEvaluacionDuplicadoException;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
 import co.edu.uco.sigra.mejoras.exception.AccionMejoraNoEncontradaException;
+import co.edu.uco.sigra.mejoras.exception.AccionNoConvertibleException;
 import co.edu.uco.sigra.mejoras.exception.AccionYaConvertidaException;
 import co.edu.uco.sigra.mejoras.exception.ConclusionNoVigenteException;
 import co.edu.uco.sigra.mejoras.exception.MejorasExceptionHandler;
 import co.edu.uco.sigra.mejoras.exception.PermisoInsuficienteException;
-import co.edu.uco.sigra.mejoras.exception.PorcentajeExcedeLimiteException;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -53,7 +56,7 @@ class AccionMejoraControllerTest {
             {"nombre":"Capacitación","descripcion":"Taller de refuerzo"}
             """;
     private static final String CUERPO_CONVERTIR_VALIDO = """
-            {"porcentaje":30.0}
+            {"fechaTentativa":"2026-10-20","porcentaje":30.0}
             """;
 
     @Mock
@@ -156,15 +159,62 @@ class AccionMejoraControllerTest {
         }
 
         @Test
-        @DisplayName("Con un porcentaje que excede el límite devuelve 400")
+        @DisplayName("Si el servicio de evaluaciones rechaza el porcentaje (más del 100%) devuelve 400 con el disponible")
         void porcentajeExcedeLimite() throws Exception {
             when(service.convertirEnEvaluacion(eq(ID_ACCION), any(), any()))
-                    .thenThrow(new PorcentajeExcedeLimiteException(80.0, 30.0));
+                    .thenThrow(EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("20")));
+
+            mockMvc.perform(post(URL_CONVERTIR).contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_CONVERTIR_VALIDO))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("BAD_REQUEST"))
+                    .andExpect(jsonPath("$.mensaje").value(org.hamcrest.Matchers.containsString(
+                            "Porcentaje disponible: 20%")));
+        }
+
+        @Test
+        @DisplayName("Si el nombre o la descripción heredados no cumplen RF-11 devuelve 400")
+        void accionNoConvertible() throws Exception {
+            when(service.convertirEnEvaluacion(eq(ID_ACCION), any(), any()))
+                    .thenThrow(new AccionNoConvertibleException("El nombre debe tener máximo 30 caracteres"));
 
             mockMvc.perform(post(URL_CONVERTIR).contentType(MediaType.APPLICATION_JSON)
                             .content(CUERPO_CONVERTIR_VALIDO))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
+        }
+
+        @Test
+        @DisplayName("Si ya existe una evaluación con ese nombre en el RA y semestre devuelve 409")
+        void nombreEvaluacionDuplicado() throws Exception {
+            when(service.convertirEnEvaluacion(eq(ID_ACCION), any(), any()))
+                    .thenThrow(new NombreEvaluacionDuplicadoException());
+
+            mockMvc.perform(post(URL_CONVERTIR).contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_CONVERTIR_VALIDO))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error").value("CONFLICT"));
+        }
+
+        @Test
+        @DisplayName("Si el servicio de evaluaciones niega el permiso (profesor sin asignación) devuelve 403")
+        void sinPermisoDesdeEvaluaciones() throws Exception {
+            when(service.convertirEnEvaluacion(eq(ID_ACCION), any(), any()))
+                    .thenThrow(new co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException());
+
+            mockMvc.perform(post(URL_CONVERTIR).contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_CONVERTIR_VALIDO))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+        }
+
+        @Test
+        @DisplayName("Sin fecha tentativa devuelve 400 sin llamar al servicio")
+        void sinFechaTentativa() throws Exception {
+            mockMvc.perform(post(URL_CONVERTIR).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"porcentaje\":30.0}"))
+                    .andExpect(status().isBadRequest());
+            org.mockito.Mockito.verifyNoInteractions(service);
         }
 
         @Test
@@ -183,7 +233,7 @@ class AccionMejoraControllerTest {
         @DisplayName("Con un porcentaje no numérico devuelve 400 sin llamar al servicio")
         void porcentajeInvalido() throws Exception {
             mockMvc.perform(post(URL_CONVERTIR).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"porcentaje\":\"abc\"}"))
+                            .content("{\"fechaTentativa\":\"2026-10-20\",\"porcentaje\":\"abc\"}"))
                     .andExpect(status().isBadRequest());
         }
     }
