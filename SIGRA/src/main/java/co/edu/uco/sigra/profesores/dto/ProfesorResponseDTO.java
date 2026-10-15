@@ -9,6 +9,10 @@ public record ProfesorResponseDTO(
         @Schema(description = "Identificador (UUID) del profesor", example = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d")
         UUID id,
 
+        @Schema(description = "Identificador (UUID) del tipo de documento; permite precargar el formulario de modificación",
+                example = "6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05")
+        UUID tipoDocumentoId,
+
         @Schema(description = "Nombre del tipo de documento", example = "Cédula de Ciudadanía")
         String tipoDocumentoNombre,
 

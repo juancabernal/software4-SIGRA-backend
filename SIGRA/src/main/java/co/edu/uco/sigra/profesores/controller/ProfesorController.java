@@ -123,8 +123,8 @@ public class ProfesorController {
     @Operation(
             summary = "Consultar profesores",
             description = "Lista todos los profesores, activos e inactivos, con su estado. Si se envía «filtro», "
-                    + "devuelve solo los que coinciden en el nombre completo o en el número de documento, sin "
-                    + "distinguir mayúsculas. Sin profesores (o sin coincidencias) devuelve una lista vacía."
+                    + "devuelve solo los que coinciden en el nombre completo, el número de documento o el correo, sin "
+                    + "distinguir mayúsculas ni tildes. Sin profesores (o sin coincidencias) devuelve una lista vacía."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de profesores (puede estar vacía)",
@@ -142,8 +142,7 @@ public class ProfesorController {
     @GetMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<ProfesorResponseDTO>> consultarProfesores(
-            @Parameter(description = "Texto a buscar en el nombre completo o en el número de documento",
-                    example = "gómez")
+            @Parameter(description = "Texto a buscar en el nombre completo, el número de documento o el correo (ignora tildes)",                    example = "gómez")
             @RequestParam(required = false) String filtro) {
         return ResponseEntity.ok(profesorService.consultar(filtro));
     }
