@@ -97,13 +97,28 @@ jacocoTestReport {
 
 jacocoTestCoverageVerification {
 	violationRules {
+		// Mínimo global del proyecto.
 		rule {
 			limit {
-				minimum = 0.7 // 70% de cobertura mínima requerida
+				minimum = 0.7
+			}
+		}
+		// Módulos obligatorios: 70 % en cada paquete, no solo en el total, para que un módulo
+		// bien cubierto no esconda a otro que no lo está.
+		rule {
+			element = 'PACKAGE'
+			includes = [
+					'co.edu.uco.sigra.auth.service*',   // autenticación
+					'co.edu.uco.sigra.auth.controller',
+					'co.edu.uco.sigra.auth.security',   // RBAC (filtro JWT, CurrentUser, respuestas 401/403)
+					'co.edu.uco.sigra.config'
+					// Nivel de logro: agregar 'co.edu.uco.sigra.estadisticas.service*' cuando exista RF-14.
+			]
+			limit {
+				counter = 'INSTRUCTION'
+				minimum = 0.7
 			}
 		}
 	}
 }
-
-// Opcional: asegura que la validación de cobertura corra cuando ejecutes tareas de verificación (`check`)
 check.dependsOn jacocoTestCoverageVerification
