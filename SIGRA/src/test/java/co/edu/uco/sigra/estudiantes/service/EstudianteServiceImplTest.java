@@ -9,6 +9,7 @@ import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.exception.CorreoEstudianteDuplicadoException;
 import co.edu.uco.sigra.estudiantes.exception.DocumentoNoModificableException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
@@ -395,13 +396,13 @@ class EstudianteServiceImplTest {
                     profesorId, "profesor@uco.net.co", RolUsuario.PROFESOR);
             existe(EstadoRegistro.ACTIVO);
             when(estudianteRepository.existsVisibleToProfessor(
-                    ID_ESTUDIANTE, profesorId, EstadoRegistro.ACTIVO,
+                    ID_ESTUDIANTE, profesorId, EstadoMatricula.ACTIVA,
                     EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO)).thenReturn(true);
 
             service.consultarPorId(ID_ESTUDIANTE, profesor);
 
             verify(estudianteRepository).existsVisibleToProfessor(
-                    ID_ESTUDIANTE, profesorId, EstadoRegistro.ACTIVO,
+                    ID_ESTUDIANTE, profesorId, EstadoMatricula.ACTIVA,
                     EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO);
             verify(estudianteRepository, never()).buscarVisiblesParaProfesor(
                     any(), any(), any(), any(), any());
