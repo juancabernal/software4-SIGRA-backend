@@ -243,6 +243,7 @@ class SecurityRf05IntegrationIT {
         matricula.setEstudiante(estudiante);
         matricula.setAsignatura(asignatura);
         matricula.setSemestre(semestre);
+        matricula.setFechaMatricula(LocalDate.now());
         matricula.setEstado(EstadoMatricula.ACTIVA);
         matriculaRepository.save(matricula);
     }
