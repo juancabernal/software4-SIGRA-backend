@@ -1,7 +1,7 @@
 package co.edu.uco.sigra.estadisticas.service.impl;
 
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionFiltroDTO;
@@ -32,8 +32,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * RF-16: conclusiones automáticas. Mismo patrón de alcance por rol que {@code AsignaturaServiceImpl}
- * (temporal hasta RF-05): sin identidad se ve todo; con un PROFESOR, solo lo de sus asignaturas.
+ * RF-16: conclusiones automáticas. El ADMINISTRADOR ve todo; el PROFESOR solo opera sobre sus
+ * asignaturas con asignación docente ACTIVA. La ausencia de identidad se rechaza.
  */
 @Service
 @RequiredArgsConstructor
@@ -62,8 +62,10 @@ public class ConclusionServiceImpl implements ConclusionService {
 
     @Override
     @Transactional
-    public GenerarConclusionResponseDTO generarConclusion(UUID resultadoAprendizajeId, UUID semestreId) {
+    public GenerarConclusionResponseDTO generarConclusion(UUID resultadoAprendizajeId, UUID semestreId,
+                                                           UsuarioPrincipal principal) {
         ResultadoAprendizaje resultadoAprendizaje = buscarResultadoAprendizaje(resultadoAprendizajeId);
+        verificarAlcance(principal, resultadoAprendizaje.getAsignatura().getId());
         Semestre semestre = buscarSemestre(semestreId);
 
         // Solo se calcula si el RA tiene datos suficientes (mínimo 3 calificaciones).
@@ -92,14 +94,8 @@ public class ConclusionServiceImpl implements ConclusionService {
 
     @Override
     @Transactional
-    public List<ConclusionResponseDTO> consultarConclusiones(ConclusionFiltroDTO filtro) {
-        return consultarConclusiones(filtro, null);
-    }
-
-    @Override
-    @Transactional
-    public List<ConclusionResponseDTO> consultarConclusiones(ConclusionFiltroDTO filtro, IdentidadActual identidad) {
-        Set<UUID> alcance = alcanceDe(identidad);
+    public List<ConclusionResponseDTO> consultarConclusiones(ConclusionFiltroDTO filtro, UsuarioPrincipal principal) {
+        Set<UUID> alcance = alcanceDe(principal);
 
         // El volumen de conclusiones es pequeño (una por RA y semestre insuficiente), igual que el
         // catálogo de asignaturas: se filtra en memoria sobre la lista completa.
@@ -118,25 +114,37 @@ public class ConclusionServiceImpl implements ConclusionService {
 
     @Override
     @Transactional
-    public ConclusionResponseDTO consultarPorId(UUID id) {
-        return conclusionMapper.toResponseDTO(buscarConclusion(id));
+    public ConclusionResponseDTO consultarPorId(UUID id, UsuarioPrincipal principal) {
+        Conclusion conclusion = buscarConclusion(id);
+        verificarAlcance(principal, conclusion.getResultadoAprendizaje().getAsignatura().getId());
+        return conclusionMapper.toResponseDTO(conclusion);
     }
 
     /**
-     * Asignaturas visibles para la identidad: null significa «todas» (sin identidad, o ADMINISTRADOR).
+     * Asignaturas visibles para la identidad: el ADMINISTRADOR ve todas.
      * El PROFESOR solo ve las conclusiones de sus asignaturas con asignación docente ACTIVA.
      */
-    private Set<UUID> alcanceDe(IdentidadActual identidad) {
-        if (identidad == null || identidad.rol() == RolUsuario.ADMINISTRADOR) {
+    private Set<UUID> alcanceDe(UsuarioPrincipal principal) {
+        if (principal == null) {
+            throw new PermisoInsuficienteException();
+        }
+        if (principal.rol() == RolUsuario.ADMINISTRADOR) {
             return null;
         }
-        if (identidad.rol() == RolUsuario.PROFESOR) {
-            return asignacionDocenteRepository.findByProfesor_IdAndEstado(identidad.id(), EstadoRegistro.ACTIVO)
+        if (principal.rol() == RolUsuario.PROFESOR) {
+            return asignacionDocenteRepository.findByProfesor_IdAndEstado(principal.id(), EstadoRegistro.ACTIVO)
                     .stream()
                     .map(asignacion -> asignacion.getAsignatura().getId())
                     .collect(Collectors.toSet());
         }
         throw new PermisoInsuficienteException();
+    }
+
+    private void verificarAlcance(UsuarioPrincipal principal, UUID asignaturaId) {
+        Set<UUID> alcance = alcanceDe(principal);
+        if (alcance != null && !alcance.contains(asignaturaId)) {
+            throw new PermisoInsuficienteException();
+        }
     }
 
     private ResultadoAprendizaje buscarResultadoAprendizaje(UUID id) {

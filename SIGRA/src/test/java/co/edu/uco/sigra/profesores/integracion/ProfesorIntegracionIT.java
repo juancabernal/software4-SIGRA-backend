@@ -4,16 +4,22 @@ import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.auth.entity.Administrador;
 import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
+import co.edu.uco.sigra.auth.service.JwtService;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
+import co.edu.uco.sigra.estudiantes.entity.Estudiante;
+import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.profesores.entity.Profesor;
 import co.edu.uco.sigra.profesores.repository.ProfesorRepository;
 import com.jayway.jsonpath.JsonPath;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +41,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,8 +61,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * No utiliza @Transactional en la prueba: los servicios confirman realmente
  * los cambios en la base de datos.
  *
+ * Seguridad de punta a punta, igual que AsignaturaIntegracionIT: la cadena de filtros real corre
+ * (sin addFilters = false ni @WithMockUser) y cada petición lleva un JWT emitido por JwtService para
+ * un usuario real de la base. IT-01 a IT-05 usan el token de un ADMINISTRADOR; IT-06 prueba el 401
+ * sin token o con token alterado y el 403 con tokens de PROFESOR y ESTUDIANTE.
+ *
  * Todos los datos propios utilizan prefijos ITP / itp- y son eliminados
- * después de cada caso.
+ * después de cada caso (y antes, por si una corrida anterior se interrumpió).
  */
 @Tag("integration")
 @SpringBootTest
@@ -71,6 +84,9 @@ class ProfesorIntegracionIT {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private JwtService jwtService;
 
     @Autowired
     private PlatformTransactionManager transactionManager;
@@ -93,9 +109,18 @@ class ProfesorIntegracionIT {
     @Autowired
     private AsignacionDocenteRepository asignacionRepository;
 
+    @Autowired
+    private EstudianteRepository estudianteRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private TransactionTemplate tx;
 
     private TipoDocumento tipoDocumento;
+
+    /** JWT real de un ADMINISTRADOR creado en cada caso; es el que usan IT-01 a IT-05. */
+    private String tokenAdmin;
 
     @BeforeEach
     void preparar() {
@@ -106,6 +131,8 @@ class ProfesorIntegracionIT {
         TipoDocumento tipo = new TipoDocumento();
         tipo.setNombre(TIPO_DOCUMENTO);
         tipoDocumento = tipoDocumentoRepository.save(tipo);
+
+        tokenAdmin = token(crearUsuario(new Administrador(), "admin"));
     }
 
     @AfterEach
@@ -159,14 +186,35 @@ class ProfesorIntegracionIT {
             programaRepository.deleteAll(programasPropios);
             programaRepository.flush();
 
-            // Finalmente los usuarios/profesores propios.
-            List<co.edu.uco.sigra.auth.entity.Usuario> usuariosPropios =
-                    usuarioRepository.findAll().stream()
+            // Finalmente los profesores propios. Se consulta por ProfesorRepository (y no por
+            // UsuarioRepository.findAll) para no cargar filas de usuario ajenas a esta prueba:
+            // un usuario sin fila de subtipo en la base impide instanciar la clase abstracta Usuario.
+            List<Profesor> profesoresPropios =
+                    profesorRepository.findAll().stream()
                             .filter(usuarioItp)
                             .toList();
 
-            usuarioRepository.deleteAll(usuariosPropios);
-            usuarioRepository.flush();
+            profesorRepository.deleteAll(profesoresPropios);
+            profesorRepository.flush();
+
+            // Estudiantes y administradores de la prueba (dueños de los tokens). Igual que con los
+            // profesores, se consulta cada subtipo concreto y nunca Usuario.findAll().
+            estudianteRepository.deleteAll(
+                    estudianteRepository.findAll().stream()
+                            .filter(usuarioItp)
+                            .toList()
+            );
+            estudianteRepository.flush();
+
+            entityManager.createQuery(
+                            "select a from Administrador a where a.correoInstitucional like :prefijo "
+                                    + "or a.tipoDocumento.nombre = :tipo",
+                            Administrador.class)
+                    .setParameter("prefijo", PREFIJO_CORREO + "%")
+                    .setParameter("tipo", TIPO_DOCUMENTO)
+                    .getResultList()
+                    .forEach(entityManager::remove);
+            entityManager.flush();
 
             // Y el tipo de documento creado exclusivamente para estas pruebas.
             tipoDocumentoRepository.deleteAll(
@@ -544,6 +592,27 @@ class ProfesorIntegracionIT {
 
         asignacion = asignacionRepository.save(asignacion);
 
+        // La respuesta del PUT refleja la asignación activa y el tipo de documento (antes devolvía
+        // siempre tieneAsignacionesActivas = false y no traía el id del tipo de documento).
+        MvcResult modificado = enviar(
+                put(URL + "/" + profesorId),
+                json(
+                        tipoDocumento.getId(),
+                        "990000030",
+                        "ITP Profesor Asignado",
+                        "itp-030@uco.net.co"
+                )
+        );
+
+        assertThat(modificado.getResponse().getStatus())
+                .isEqualTo(200);
+
+        assertThat((Boolean) JsonPath.read(cuerpo(modificado), "$.tieneAsignacionesActivas"))
+                .isTrue();
+
+        assertThat((String) JsonPath.read(cuerpo(modificado), "$.tipoDocumentoId"))
+                .isEqualTo(tipoDocumento.getId().toString());
+
         // No debe permitir inactivar mientras exista una asignación activa.
         MvcResult rechazo = enviar(
                 delete(URL + "/" + profesorId),
@@ -717,6 +786,36 @@ class ProfesorIntegracionIT {
                         .get("numeroDocumento")
         ).isEqualTo("990000040");
 
+        // Filtro sin tildes y en mayúsculas: «CONSULTA DOS» con tilde en la «Ó» encuentra al segundo.
+        MvcResult filtroSinTildes = enviar(
+                get(URL).param("filtro", "CÓNSULTA DÓS"),
+                null
+        );
+
+        assertThat(filtroSinTildes.getResponse().getStatus())
+                .isEqualTo(200);
+
+        List<String> documentosSinTildes =
+                JsonPath.read(cuerpo(filtroSinTildes), "$[*].numeroDocumento");
+
+        assertThat(documentosSinTildes)
+                .containsExactly("990000041");
+
+        // Filtro por correo.
+        MvcResult filtroCorreo = enviar(
+                get(URL).param("filtro", "itp-040@"),
+                null
+        );
+
+        assertThat(filtroCorreo.getResponse().getStatus())
+                .isEqualTo(200);
+
+        List<String> documentosPorCorreo =
+                JsonPath.read(cuerpo(filtroCorreo), "$[*].numeroDocumento");
+
+        assertThat(documentosPorCorreo)
+                .containsExactly("990000040");
+
         // Crear programa y dos asignaturas.
         ProgramaAcademico programa = crearPrograma("Consulta");
 
@@ -839,8 +938,128 @@ class ProfesorIntegracionIT {
     }
 
     // -------------------------------------------------------------------------
+    // IT-06
+    // -------------------------------------------------------------------------
+
+    /** Una llamada a uno de los cinco endpoints; el builder se crea de nuevo en cada envío. */
+    private record Llamada(String nombre, Supplier<MockHttpServletRequestBuilder> peticion, String cuerpo) {
+    }
+
+    /** Los cinco endpoints del módulo, apuntando al profesor de apoyo {@code objetivo}. */
+    private List<Llamada> cincoEndpoints(Profesor objetivo) {
+        UUID id = objetivo.getId();
+        return List.of(
+                new Llamada("POST", () -> post(URL),
+                        json(tipoDocumento.getId(), "990000061", "ITP Profesor Nuevo", "itp-061@uco.net.co")),
+                new Llamada("GET lista", () -> get(URL), null),
+                new Llamada("GET asignaturas", () -> get(URL + "/" + id + "/asignaturas"), null),
+                new Llamada("PUT", () -> put(URL + "/" + id),
+                        json(tipoDocumento.getId(), objetivo.getNumeroDocumento(), "ITP Profesor Cambiado",
+                                objetivo.getCorreoInstitucional())),
+                new Llamada("DELETE", () -> delete(URL + "/" + id), null)
+        );
+    }
+
+    @Test
+    @DisplayName("IT-06a Sin token o con token alterado: 401 en los cinco endpoints y la base no cambia")
+    void it06aSinTokenOTokenInvalido() throws Exception {
+        Profesor objetivo = crearProfesorDeApoyo("990000060", "itp-060@uco.net.co");
+        long profesoresAntes = profesorRepository.count();
+
+        // Token del administrador con la firma alterada: el filtro debe rechazarlo aunque los
+        // claims (id, correo, rol) sean los de un usuario real y activo.
+        // Se cambia el primer carácter de la firma (todos sus bits cuentan, a diferencia del último).
+        int inicioFirma = tokenAdmin.lastIndexOf('.') + 1;
+        char original = tokenAdmin.charAt(inicioFirma);
+        String tokenAlterado = tokenAdmin.substring(0, inicioFirma)
+                + (original == 'A' ? 'B' : 'A')
+                + tokenAdmin.substring(inicioFirma + 1);
+
+        for (Llamada llamada : cincoEndpoints(objetivo)) {
+            assertEstado(llamada.nombre() + " sin token", 401,
+                    enviar(llamada.peticion().get(), null, llamada.cuerpo()));
+            assertEstado(llamada.nombre() + " con token alterado", 401,
+                    enviar(llamada.peticion().get(), tokenAlterado, llamada.cuerpo()));
+        }
+
+        assertSinCambios(objetivo, profesoresAntes);
+    }
+
+    @Test
+    @DisplayName("IT-06b Un PROFESOR con token real no puede usar ningún endpoint de profesores (403)")
+    void it06bProfesorConTokenReal() throws Exception {
+        Profesor duenoDelToken = crearProfesorDeApoyo("990000062", "itp-062@uco.net.co");
+        verificarRolSinAcceso(token(duenoDelToken));
+    }
+
+    @Test
+    @DisplayName("IT-06c Un ESTUDIANTE con token real no puede usar ningún endpoint de profesores (403)")
+    void it06cEstudianteConTokenReal() throws Exception {
+        Estudiante estudiante = new Estudiante();
+        estudiante.setNumeroDocumento("990000063");
+        verificarRolSinAcceso(token(crearUsuario(estudiante, "est")));
+    }
+
+    /**
+     * Con el token recibido llama a los cinco endpoints: todos deben dar 403 sin detalles técnicos
+     * y ninguno debe modificar la base. El profesor de apoyo se crea por repositorio porque la API
+     * le está vedada a estos roles.
+     */
+    private void verificarRolSinAcceso(String token) throws Exception {
+        Profesor objetivo = crearProfesorDeApoyo("990000050", "itp-050@uco.net.co");
+        long profesoresAntes = profesorRepository.count();
+
+        for (Llamada llamada : cincoEndpoints(objetivo)) {
+            assertEstado(llamada.nombre(), 403, enviar(llamada.peticion().get(), token, llamada.cuerpo()));
+        }
+
+        assertSinCambios(objetivo, profesoresAntes);
+    }
+
+    private void assertSinCambios(Profesor objetivo, long profesoresAntes) {
+        assertThat(profesorRepository.count()).isEqualTo(profesoresAntes);
+
+        Profesor despues = profesorRepository.findById(objetivo.getId()).orElseThrow();
+
+        assertThat(despues.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(despues.getNombreCompleto()).isEqualTo(objetivo.getNombreCompleto());
+    }
+
+    private static void assertEstado(String caso, int esperado, MvcResult resultado) throws Exception {
+        assertThat(resultado.getResponse().getStatus())
+                .as(caso)
+                .isEqualTo(esperado);
+
+        assertSinDetallesTecnicos(cuerpo(resultado));
+    }
+
+    // -------------------------------------------------------------------------
     // Utilidades
     // -------------------------------------------------------------------------
+
+    private String token(Usuario usuario) {
+        return jwtService.generarToken(usuario);
+    }
+
+    /** Guarda un usuario de la prueba (correo itp-...) con el tipo de documento propio. */
+    private <U extends Usuario> U crearUsuario(U usuario, String alias) {
+        usuario.setTipoDocumento(tipoDocumento);
+        usuario.setNombreCompleto("ITP Usuario " + alias);
+        usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-"
+                + ThreadLocalRandom.current().nextInt(100_000, 1_000_000) + DOMINIO_CORREO);
+        usuario.setEstado(EstadoRegistro.ACTIVO);
+        return usuarioRepository.save(usuario);
+    }
+
+    private Profesor crearProfesorDeApoyo(String numeroDocumento, String correo) {
+        Profesor profesor = new Profesor();
+        profesor.setTipoDocumento(tipoDocumento);
+        profesor.setNumeroDocumento(numeroDocumento);
+        profesor.setNombreCompleto("ITP Profesor " + numeroDocumento);
+        profesor.setCorreoInstitucional(correo);
+        profesor.setEstado(EstadoRegistro.ACTIVO);
+        return profesorRepository.save(profesor);
+    }
 
     private ProgramaAcademico crearPrograma(String sufijo) {
 
@@ -857,10 +1076,24 @@ class ProfesorIntegracionIT {
         return programaRepository.save(programa);
     }
 
+    /** Envía como ADMINISTRADOR (con su JWT real): es el caso de IT-01 a IT-05. */
     private MvcResult enviar(
             MockHttpServletRequestBuilder peticion,
             String json
     ) throws Exception {
+        return enviar(peticion, tokenAdmin, json);
+    }
+
+    /** Envía con el token indicado; con {@code token} nulo la petición va sin cabecera Authorization. */
+    private MvcResult enviar(
+            MockHttpServletRequestBuilder peticion,
+            String token,
+            String json
+    ) throws Exception {
+
+        if (token != null) {
+            peticion.header("Authorization", "Bearer " + token);
+        }
 
         if (json != null) {
             peticion

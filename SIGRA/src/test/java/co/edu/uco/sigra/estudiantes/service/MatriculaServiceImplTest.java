@@ -3,7 +3,9 @@ package co.edu.uco.sigra.estudiantes.service;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
@@ -27,6 +29,7 @@ import co.edu.uco.sigra.semestres.entity.EstadoSemestre;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.semestres.repository.SemestreRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,9 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -96,6 +102,9 @@ class MatriculaServiceImplTest {
     void setUp() {
         reloj = new RelojAjustable(HOY);
         service = new MatriculaServiceImpl(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository, reloj, calificacionesDeMatricula, estudianteService);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                new UsuarioPrincipal(UUID.randomUUID(), "admin@uco.net.co", RolUsuario.ADMINISTRADOR),
+                null, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
     }
 
     private static EstudianteRequestDTO estudianteRequestDTO() {
@@ -106,6 +115,11 @@ class MatriculaServiceImplTest {
         return new EstudianteResponseDTO(
                 ID_ESTUDIANTE, TIPO_DOCUMENTO_NOMBRE, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL,
                 EstadoRegistro.ACTIVO.name());
+    }
+
+    @AfterEach
+    void limpiarIdentidad() {
+        SecurityContextHolder.clearContext();
     }
 
     private static Estudiante estudiante(EstadoRegistro estado) {

@@ -4,9 +4,12 @@ import co.edu.uco.sigra.asignaturas.dto.AsignaturaFiltroDTO;
 import co.edu.uco.sigra.asignaturas.dto.ReglasEntrada;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaExceptionHandler;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
 import co.edu.uco.sigra.common.exception.ManejadorErroresTransversal;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +24,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationInterceptor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.UUID;
@@ -56,6 +62,10 @@ class AsignaturaControllerValidacionTest {
 
     @BeforeEach
     void setUp() {
+        UsuarioPrincipal principal = new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co",
+                RolUsuario.ADMINISTRADOR);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                principal, null, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
 
@@ -71,6 +81,11 @@ class AsignaturaControllerValidacionTest {
                 .build();
     }
 
+    @AfterEach
+    void limpiarContexto() {
+        SecurityContextHolder.clearContext();
+    }
+
     private static String cuerpo(String codigo, String nombre) {
         return """
                 {"codigo":%s,"nombre":%s,"programaId":"%s"}
@@ -84,7 +99,7 @@ class AsignaturaControllerValidacionTest {
     @Test
     @DisplayName("Un texto de búsqueda de 100 caracteres se acepta")
     void textoDe100() throws Exception {
-        when(service.consultar(any(AsignaturaFiltroDTO.class))).thenReturn(List.of());
+        when(service.consultar(any(AsignaturaFiltroDTO.class), any(UsuarioPrincipal.class))).thenReturn(List.of());
 
         mockMvc.perform(get(URL).param("texto", "a".repeat(100))).andExpect(status().isOk());
     }
@@ -117,7 +132,7 @@ class AsignaturaControllerValidacionTest {
     @ValueSource(strings = {"0", "999"})
     @DisplayName("Los límites 0 y 999 son válidos")
     void limitesValidos(String valor) throws Exception {
-        when(service.consultar(any(AsignaturaFiltroDTO.class))).thenReturn(List.of());
+        when(service.consultar(any(AsignaturaFiltroDTO.class), any(UsuarioPrincipal.class))).thenReturn(List.of());
 
         mockMvc.perform(get(URL).param("raMin", valor).param("raMax", valor)).andExpect(status().isOk());
     }

@@ -48,15 +48,15 @@ INSERT INTO asignatura (id, codigo, nombre, programa_id, estado) VALUES
 -- Resultados de aprendizaje de prueba
 -- Cantidad de RA ACTIVOS por asignatura: BRU00=0, BRU04=4, BRU4I=4 (+3 inactivos),
 -- BRU05=5, BRU07=7, BRU08=8, BRU10=5 (ACTIVA), BRU11=0 (INACTIVA, con 5 RA ya inactivos).
-INSERT INTO resultado_aprendizaje (id, asignatura_id, codigo, descripcion, estado)
-SELECT gen_random_uuid(), a.id, 'RA-0' || g, 'RA de prueba ' || g, 'ACTIVO'
+INSERT INTO resultado_aprendizaje (id, asignatura_id, codigo, descripcion, estado, inactivado_con_asignatura)
+SELECT gen_random_uuid(), a.id, 'RA-0' || g, 'RA de prueba ' || g, 'ACTIVO', false
   FROM (VALUES ('BRU04', 4), ('BRU4I', 4), ('BRU05', 5), ('BRU07', 7), ('BRU08', 8), ('BRU10', 5)) AS cfg(cod, n)
   JOIN asignatura a ON a.codigo = cfg.cod
   CROSS JOIN LATERAL generate_series(1, cfg.n) AS g;
 
 -- BRU4I: 3 RA INACTIVOS adicionales (suman 7 en total, pero solo 4 cuentan)
-INSERT INTO resultado_aprendizaje (id, asignatura_id, codigo, descripcion, estado)
-SELECT gen_random_uuid(), a.id, 'RA-0' || g, 'RA de prueba ' || g, 'INACTIVO'
+INSERT INTO resultado_aprendizaje (id, asignatura_id, codigo, descripcion, estado, inactivado_con_asignatura)
+SELECT gen_random_uuid(), a.id, 'RA-0' || g, 'RA de prueba ' || g, 'INACTIVO', false
   FROM asignatura a CROSS JOIN generate_series(5, 7) AS g
  WHERE a.codigo = 'BRU4I';
 

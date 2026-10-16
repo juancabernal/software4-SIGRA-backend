@@ -3,29 +3,32 @@ package co.edu.uco.sigra.mejoras.service;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
+import co.edu.uco.sigra.evaluaciones.dto.EvaluacionCrearRequestDTO;
+import co.edu.uco.sigra.evaluaciones.dto.EvaluacionResponseDTO;
+import co.edu.uco.sigra.evaluaciones.exception.EvaluacionReglaNegocioException;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
 import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.entity.AccionMejora;
-import co.edu.uco.sigra.mejoras.entity.RegistroEvaluacionPrueba;
+import co.edu.uco.sigra.mejoras.exception.AccionNoConvertibleException;
 import co.edu.uco.sigra.mejoras.exception.AccionYaConvertidaException;
 import co.edu.uco.sigra.mejoras.exception.ConclusionNoVigenteException;
 import co.edu.uco.sigra.mejoras.exception.PermisoInsuficienteException;
-import co.edu.uco.sigra.mejoras.exception.PorcentajeExcedeLimiteException;
 import co.edu.uco.sigra.mejoras.mapper.AccionMejoraMapper;
 import co.edu.uco.sigra.mejoras.repository.AccionMejoraRepository;
-import co.edu.uco.sigra.mejoras.repository.RegistroEvaluacionPruebaRepository;
 import co.edu.uco.sigra.mejoras.service.impl.AccionMejoraServiceImpl;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.resultadosaprendizaje.entity.ResultadoAprendizaje;
 import co.edu.uco.sigra.semestres.entity.Semestre;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +40,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -44,6 +49,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -51,11 +57,15 @@ import static org.mockito.Mockito.when;
 
 /**
  * Pruebas unitarias del servicio de acciones de mejora (RF-17) y su conversión en evaluación
- * (RF-18). Los repositorios se simulan con Mockito; el mapper es el real generado por MapStruct.
+ * (RF-18). Los repositorios y el servicio de evaluaciones se simulan con Mockito; el mapper es el real
+ * generado por MapStruct y el validador es el real de Bean Validation.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Servicio de acciones de mejora (RF-17/RF-18)")
 class AccionMejoraServiceImplTest {
+
+    private static final UsuarioPrincipal ADMIN =
+            new UsuarioPrincipal(UUID.randomUUID(), "admin@uco.net.co", RolUsuario.ADMINISTRADOR);
 
     private static final UUID ID_RA = UUID.randomUUID();
     private static final UUID ID_ASIGNATURA = UUID.randomUUID();
@@ -68,7 +78,7 @@ class AccionMejoraServiceImplTest {
     @Mock
     private AsignacionDocenteRepository asignacionDocenteRepository;
     @Mock
-    private RegistroEvaluacionPruebaRepository registroEvaluacionPruebaRepository;
+    private EvaluacionService evaluacionService;
 
     private final AccionMejoraMapper mapper = Mappers.getMapper(AccionMejoraMapper.class);
 
@@ -80,7 +90,8 @@ class AccionMejoraServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new AccionMejoraServiceImpl(accionMejoraRepository, conclusionRepository,
-                asignacionDocenteRepository, mapper, registroEvaluacionPruebaRepository);
+                asignacionDocenteRepository, mapper, evaluacionService,
+                Validation.buildDefaultValidatorFactory().getValidator());
 
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setId(UUID.randomUUID());
@@ -104,6 +115,18 @@ class AccionMejoraServiceImplTest {
         return new Conclusion(resultadoAprendizaje, semestre, 60.0);
     }
 
+    private static final LocalDate FECHA = LocalDate.now();
+
+    private static ConvertirEvaluacionRequestDTO conversion(String porcentaje) {
+        return new ConvertirEvaluacionRequestDTO(FECHA, new BigDecimal(porcentaje));
+    }
+
+    /** Respuesta del servicio de evaluaciones con los datos que recibió y el id generado. */
+    private static EvaluacionResponseDTO evaluacionCreada(UUID idEvaluacion, EvaluacionCrearRequestDTO dto) {
+        return new EvaluacionResponseDTO(idEvaluacion, ID_RA, UUID.randomUUID(), "2026-2", dto.nombre(),
+                dto.fechaTentativa(), dto.porcentaje(), dto.descripcion(), "ACTIVA", false);
+    }
+
     @Nested
     @DisplayName("registrarAccionMejora (RF-17)")
     class Registrar {
@@ -119,7 +142,7 @@ class AccionMejoraServiceImplTest {
             RegistrarAccionMejoraRequestDTO datos =
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
 
-            assertThatThrownBy(() -> service.registrarAccionMejora(idConclusion, datos, null))
+            assertThatThrownBy(() -> service.registrarAccionMejora(idConclusion, datos, ADMIN))
                     .isInstanceOf(ConclusionNoVigenteException.class);
             verify(accionMejoraRepository, never()).save(any());
         }
@@ -135,7 +158,7 @@ class AccionMejoraServiceImplTest {
             RegistrarAccionMejoraRequestDTO datos =
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
 
-            AccionMejoraResponseDTO respuesta = service.registrarAccionMejora(idConclusion, datos, null);
+            AccionMejoraResponseDTO respuesta = service.registrarAccionMejora(idConclusion, datos, ADMIN);
 
             assertThat(respuesta.nombre()).isEqualTo("Capacitación");
             assertThat(respuesta.descripcion()).isEqualTo("Taller de refuerzo");
@@ -163,7 +186,7 @@ class AccionMejoraServiceImplTest {
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
 
             assertThatThrownBy(() -> service.registrarAccionMejora(idConclusion, datos,
-                    new IdentidadActual(profesorId, RolUsuario.PROFESOR)))
+                    new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR)))
                     .isInstanceOf(PermisoInsuficienteException.class);
             verify(accionMejoraRepository, never()).save(any());
         }
@@ -178,55 +201,85 @@ class AccionMejoraServiceImplTest {
         }
 
         @Test
-        @DisplayName("Un porcentaje que hace superar el 100% se rechaza")
-        void porcentajeExcedeLimiteSeRechaza() {
+        @DisplayName("Crea la evaluación con el servicio de evaluaciones heredando nombre y descripción")
+        void creaEvaluacionHeredandoNombreYDescripcion() {
+            UUID idAccion = UUID.randomUUID();
+            UUID idEvaluacion = UUID.randomUUID();
+            AccionMejora accion = accionNoConvertida(conclusionVigente());
+            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
+            when(evaluacionService.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any()))
+                    .thenAnswer(inv -> evaluacionCreada(idEvaluacion, inv.getArgument(1)));
+            when(accionMejoraRepository.save(any(AccionMejora.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            AccionMejoraResponseDTO respuesta = service.convertirEnEvaluacion(idAccion, conversion("30"), ADMIN);
+
+            assertThat(respuesta.convertida()).isTrue();
+            assertThat(respuesta.evaluacionGeneradaId()).isEqualTo(idEvaluacion);
+
+            ArgumentCaptor<EvaluacionCrearRequestDTO> captor = ArgumentCaptor.forClass(EvaluacionCrearRequestDTO.class);
+            verify(evaluacionService).crear(eq(ID_RA), captor.capture(), any());
+            assertThat(captor.getValue().nombre()).isEqualTo("Capacitación");
+            assertThat(captor.getValue().descripcion()).isEqualTo("Taller de refuerzo");
+            assertThat(captor.getValue().fechaTentativa()).isEqualTo(FECHA);
+            assertThat(captor.getValue().porcentaje()).isEqualByComparingTo("30");
+        }
+
+        @Test
+        @DisplayName("Si el servicio de evaluaciones rechaza el porcentaje (más del 100%), la acción no queda convertida")
+        void porcentajeExcedidoNoMarcaLaAccion() {
             UUID idAccion = UUID.randomUUID();
             AccionMejora accion = accionNoConvertida(conclusionVigente());
             when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
-            when(registroEvaluacionPruebaRepository.sumarPorcentajes(ID_RA, ID_SEMESTRE)).thenReturn(80.0);
+            when(evaluacionService.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any()))
+                    .thenThrow(EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("20")));
 
-            ConvertirEvaluacionRequestDTO datos = new ConvertirEvaluacionRequestDTO(25.0);
-
-            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, datos, null))
-                    .isInstanceOf(PorcentajeExcedeLimiteException.class);
-            verify(registroEvaluacionPruebaRepository, never()).save(any());
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("25"), ADMIN))
+                    .isInstanceOf(EvaluacionReglaNegocioException.class)
+                    .hasMessageContaining("Porcentaje disponible: 20%");
+            assertThat(accion.estaConvertida()).isFalse();
             verify(accionMejoraRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Si la suma queda exactamente en 100% no se rechaza")
-        void enElLimiteExactoNoSeRechaza() {
-            UUID idAccion = UUID.randomUUID();
-            AccionMejora accion = accionNoConvertida(conclusionVigente());
-            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
-            when(registroEvaluacionPruebaRepository.sumarPorcentajes(ID_RA, ID_SEMESTRE)).thenReturn(70.0);
-            when(registroEvaluacionPruebaRepository.save(any(RegistroEvaluacionPrueba.class))).thenAnswer(inv -> {
-                RegistroEvaluacionPrueba registro = inv.getArgument(0);
-                ReflectionTestUtils.setField(registro, "id", UUID.randomUUID());
-                return registro;
-            });
-            when(accionMejoraRepository.save(any(AccionMejora.class))).thenAnswer(inv -> inv.getArgument(0));
-
-            ConvertirEvaluacionRequestDTO datos = new ConvertirEvaluacionRequestDTO(30.0);
-
-            AccionMejoraResponseDTO respuesta = service.convertirEnEvaluacion(idAccion, datos, null);
-
-            assertThat(respuesta.convertida()).isTrue();
-        }
-
-        @Test
-        @DisplayName("Una acción ya convertida se rechaza sin consultar la suma de porcentajes")
+        @DisplayName("Una acción ya convertida se rechaza sin llamar al servicio de evaluaciones")
         void accionYaConvertidaSeRechaza() {
             UUID idAccion = UUID.randomUUID();
             AccionMejora accion = accionNoConvertida(conclusionVigente());
             accion.marcarConvertida(UUID.randomUUID());
             when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
 
-            ConvertirEvaluacionRequestDTO datos = new ConvertirEvaluacionRequestDTO(10.0);
-
-            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, datos, null))
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), ADMIN))
                     .isInstanceOf(AccionYaConvertidaException.class);
-            verifyNoInteractions(registroEvaluacionPruebaRepository);
+            verifyNoInteractions(evaluacionService);
+        }
+
+        @Test
+        @DisplayName("Un nombre heredado de más de 30 caracteres no cumple RF-11: se rechaza sin crear la evaluación")
+        void nombreHeredadoMuyLargoSeRechaza() {
+            UUID idAccion = UUID.randomUUID();
+            AccionMejora accion = new AccionMejora("Taller intensivo de refuerzo para el RA-01",
+                    "Taller de refuerzo", resultadoAprendizaje, conclusionVigente());
+            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
+
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), ADMIN))
+                    .isInstanceOf(AccionNoConvertibleException.class)
+                    .hasMessageContaining("El nombre debe tener máximo 30 caracteres");
+            verifyNoInteractions(evaluacionService);
+            verify(accionMejoraRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Una descripción heredada con < o > no cumple RF-11: se rechaza sin crear la evaluación")
+        void descripcionHeredadaConCaracteresNoPermitidosSeRechaza() {
+            UUID idAccion = UUID.randomUUID();
+            AccionMejora accion = new AccionMejora("Capacitación", "Taller <b>de refuerzo</b>",
+                    resultadoAprendizaje, conclusionVigente());
+            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
+
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), ADMIN))
+                    .isInstanceOf(AccionNoConvertibleException.class)
+                    .hasMessageContaining("La descripción no puede contener los caracteres < o >");
+            verifyNoInteractions(evaluacionService);
         }
     }
 
@@ -251,7 +304,7 @@ class AccionMejoraServiceImplTest {
 
             AccionMejoraFiltroDTO filtro = new AccionMejoraFiltroDTO(null, null, ID_SEMESTRE, null);
 
-            List<AccionMejoraResponseDTO> resultado = service.consultarAcciones(filtro);
+            List<AccionMejoraResponseDTO> resultado = service.consultarAcciones(filtro, ADMIN);
 
             assertThat(resultado).hasSize(1);
             assertThat(resultado.get(0).semestreId()).isEqualTo(ID_SEMESTRE);
@@ -276,7 +329,7 @@ class AccionMejoraServiceImplTest {
 
             RegistrarAccionMejoraRequestDTO datosRegistro =
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
-            service.registrarAccionMejora(idConclusion, datosRegistro, null);
+            service.registrarAccionMejora(idConclusion, datosRegistro, ADMIN);
 
             ArgumentCaptor<AccionMejora> captor = ArgumentCaptor.forClass(AccionMejora.class);
             verify(accionMejoraRepository).save(captor.capture());
@@ -286,24 +339,21 @@ class AccionMejoraServiceImplTest {
             assertThat(conclusion.getEstado()).isEqualTo(EstadoConclusion.ATENDIDA);
 
             when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accionCreada));
-            when(registroEvaluacionPruebaRepository.sumarPorcentajes(ID_RA, ID_SEMESTRE)).thenReturn(0.0);
-            when(registroEvaluacionPruebaRepository.save(any(RegistroEvaluacionPrueba.class))).thenAnswer(inv -> {
-                RegistroEvaluacionPrueba registro = inv.getArgument(0);
-                ReflectionTestUtils.setField(registro, "id", idEvaluacion);
-                return registro;
-            });
+            when(evaluacionService.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any()))
+                    .thenAnswer(inv -> evaluacionCreada(idEvaluacion, inv.getArgument(1)));
 
             AccionMejoraResponseDTO respuestaConversion =
-                    service.convertirEnEvaluacion(idAccion, new ConvertirEvaluacionRequestDTO(30.0), null);
+                    service.convertirEnEvaluacion(idAccion, conversion("30"), ADMIN);
 
             assertThat(respuestaConversion.convertida()).isTrue();
             assertThat(respuestaConversion.evaluacionGeneradaId()).isEqualTo(idEvaluacion);
             assertThat(accionCreada.estaConvertida()).isTrue();
 
-            ArgumentCaptor<RegistroEvaluacionPrueba> evaluacionCaptor =
-                    ArgumentCaptor.forClass(RegistroEvaluacionPrueba.class);
-            verify(registroEvaluacionPruebaRepository).save(evaluacionCaptor.capture());
-            assertThat(evaluacionCaptor.getValue().getDescripcion()).isEqualTo(datosRegistro.descripcion());
+            ArgumentCaptor<EvaluacionCrearRequestDTO> evaluacionCaptor =
+                    ArgumentCaptor.forClass(EvaluacionCrearRequestDTO.class);
+            verify(evaluacionService).crear(eq(ID_RA), evaluacionCaptor.capture(), any());
+            assertThat(evaluacionCaptor.getValue().nombre()).isEqualTo(datosRegistro.nombre());
+            assertThat(evaluacionCaptor.getValue().descripcion()).isEqualTo(datosRegistro.descripcion());
         }
     }
 }
