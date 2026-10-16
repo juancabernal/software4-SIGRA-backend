@@ -64,14 +64,19 @@ versión contra una copia respaldada; no se ejecutó sobre Neon ni otra base de 
 | `integrationTest` | BLOQUEADA por entorno: no existe `SIGRA/.env` ni URL JDBC disponible; 97 tests no pudieron crear `entityManagerFactory` |
 | PostgreSQL/migración | No se ejecutó contra una base real en esta sesión; requiere credenciales y PostgreSQL local/CI |
 
-El fallo de integración es verificable como externo al código: Hibernate reportó que no pudo
-determinar el dialecto por ausencia de `jakarta.persistence.jdbc.url`. No se reporta como PASS ni se
-crea un `.env` con credenciales inventadas.
+La validación remota equivalente sí se ejecutó en PostgreSQL aislado mediante [CI #97](https://github.com/juancabernal/software4-SIGRA-backend/actions/runs/38975618473), sobre el tip
+`1b53d78`: las 832 pruebas unitarias pasaron y las 97 pruebas de integración pasaron sin fallos.
+Los dos controles SCA permanecen bloqueados externamente: OWASP no tiene `NVD_API_KEY` válida y
+Dependency Review informa que el Dependency Graph del repositorio está deshabilitado.
+
+El bloqueo local de integración es verificable como externo al código: Hibernate reportó que no pudo
+determinar el dialecto por ausencia de `jakarta.persistence.jdbc.url`. No se reporta ese intento local
+como PASS ni se crea un `.env` con credenciales inventadas; el PASS de integración corresponde al CI
+aislado con PostgreSQL.
 
 ## Operación y revisión
 
-Antes de fusionar a `develop`, el equipo debe ejecutar `integrationTest` con PostgreSQL aislado,
-`.env` local seguro, el esquema base y la migración RF08 aplicada; después debe revisar los checks
-del SHA final del PR. Los controles de OWASP/Dependency Review que dependan de secretos NVD,
-Dependency Graph o permisos administrativos deben permanecer visibles como bloqueos de CI si GitHub
-no los puede ejecutar. Esta rama no realiza el merge definitivo.
+Antes de fusionar a `develop`, el equipo debe resolver `NVD_API_KEY` y habilitar Dependency Graph o
+ajustar esos controles con permisos administrativos. También puede repetir `integrationTest` con un
+`.env` local seguro, el esquema base y la migración RF08 aplicada. Esta rama no realiza el merge
+definitivo.
