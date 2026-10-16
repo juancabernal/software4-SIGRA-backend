@@ -8,7 +8,7 @@ import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
@@ -96,7 +96,7 @@ class AsignaturaServiceAlcanceTest {
         profesorTieneAsignada(suya);
 
         List<AsignaturaResponseDTO> resultado =
-                service.consultar(SIN_FILTROS, new IdentidadActual(PROFESOR, RolUsuario.PROFESOR));
+                service.consultar(SIN_FILTROS, new UsuarioPrincipal(PROFESOR, RolUsuario.PROFESOR));
 
         assertThat(resultado).extracting(AsignaturaResponseDTO::codigo).containsExactly("BRU10");
     }
@@ -107,19 +107,19 @@ class AsignaturaServiceAlcanceTest {
         catalogo();
 
         List<AsignaturaResponseDTO> resultado =
-                service.consultar(SIN_FILTROS, new IdentidadActual(UUID.randomUUID(), RolUsuario.ADMINISTRADOR));
+                service.consultar(SIN_FILTROS, new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ADMINISTRADOR));
 
         assertThat(resultado).hasSize(2);
         verifyNoInteractions(asignacionDocenteRepository);
     }
 
     @Test
-    @DisplayName("Sin identidad (control por rol apagado) se ve todo, como siempre")
+    @DisplayName("Sin identidad el servicio falla cerrado y no consulta el catálogo")
     void sinIdentidad() {
-        catalogo();
-
-        assertThat(service.consultar(SIN_FILTROS)).hasSize(2);
-        assertThat(service.consultar(SIN_FILTROS, null)).hasSize(2);
+        assertThatThrownBy(() -> service.consultar(SIN_FILTROS))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        assertThatThrownBy(() -> service.consultar(SIN_FILTROS, null))
+                .isInstanceOf(PermisoInsuficienteException.class);
         verifyNoInteractions(asignacionDocenteRepository);
     }
 
@@ -130,7 +130,7 @@ class AsignaturaServiceAlcanceTest {
         when(asignaturaRepository.findById(suya.getId())).thenReturn(Optional.of(suya));
 
         AsignaturaResponseDTO dto =
-                service.obtenerAsignatura(suya.getId(), new IdentidadActual(PROFESOR, RolUsuario.PROFESOR));
+                service.obtenerAsignatura(suya.getId(), new UsuarioPrincipal(PROFESOR, RolUsuario.PROFESOR));
 
         assertThat(dto.codigo()).isEqualTo("BRU10");
     }
@@ -141,7 +141,7 @@ class AsignaturaServiceAlcanceTest {
         profesorTieneAsignada(suya);
 
         assertThatThrownBy(() -> service.obtenerAsignatura(ajena.getId(),
-                new IdentidadActual(PROFESOR, RolUsuario.PROFESOR)))
+                new UsuarioPrincipal(PROFESOR, RolUsuario.PROFESOR)))
                 .isInstanceOf(PermisoInsuficienteException.class);
         verify(asignaturaRepository, never()).findById(any());
     }
@@ -149,7 +149,7 @@ class AsignaturaServiceAlcanceTest {
     @Test
     @DisplayName("Un ESTUDIANTE no consulta el catálogo de asignaturas")
     void estudianteNoConsulta() {
-        IdentidadActual estudiante = new IdentidadActual(UUID.randomUUID(), RolUsuario.ESTUDIANTE);
+        UsuarioPrincipal estudiante = new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ESTUDIANTE);
 
         assertThatThrownBy(() -> service.consultar(SIN_FILTROS, estudiante))
                 .isInstanceOf(PermisoInsuficienteException.class);

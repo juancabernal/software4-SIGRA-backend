@@ -23,20 +23,20 @@ public class ProfesorController {
     private final ProfesorService profesorService;
 
     @PostMapping
-    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<ProfesorResponseDTO> registrarProfesor(@Valid @RequestBody ProfesorRequestDTO dto) {
         var creado = profesorService.registrarProfesor(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @GetMapping
-    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<ProfesorResponseDTO>> consultarProfesores(@RequestParam(required = false) String filtro) {
         return ResponseEntity.ok(profesorService.consultar(filtro));
     }
 
     @GetMapping("/{id}/asignaturas")
-    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<AsignaturaProfesorResponseDTO>> consultarAsignaturasProfesor(
             @PathVariable UUID id,
             @RequestParam(required = false) EstadoRegistro estado) {
@@ -44,13 +44,13 @@ public class ProfesorController {
     }
 
     @PutMapping("/{id}")
-    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<ProfesorResponseDTO> modificarProfesor(@PathVariable UUID id, @Valid @RequestBody ProfesorRequestDTO dto) {
         return ResponseEntity.ok(profesorService.modificarProfesor(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    //@PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> inactivarProfesor(@PathVariable UUID id) {
         profesorService.inactivar(id);
         return ResponseEntity.noContent().build();

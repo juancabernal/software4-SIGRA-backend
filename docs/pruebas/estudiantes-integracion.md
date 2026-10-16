@@ -6,7 +6,7 @@ Levantan el contexto completo de Spring Boot contra **PostgreSQL real** y llaman
 
 **Datos de referencia.** `@BeforeEach` crea directamente por repositorio (sin pasar por los endpoints de otros módulos, para no acoplar esta prueba a su comportamiento): un `TipoDocumento` propio, una `Asignatura` ya `ACTIVA` (código `ITE-ASIG-1`, activada con `Asignatura.activar(5)` sin crear ningún `ResultadoAprendizaje` real) con su `ProgramaAcademico` de apoyo, y dos `Semestre` ya `ACTIVO` (`ITE-SEM-1` y `ITE-SEM-2`, el segundo solo para probar repitencia en IT-05).
 
-**Seguridad.** Los `@PreAuthorize` de `EstudianteController` y `MatriculaController` siguen comentados hasta RF-05 y `SecurityConfig` usa `permitAll()`, así que estas pruebas no cubren roles. Cuando se active RF-05 para este módulo hay que añadir un caso de 401/403, igual que ya lo advierte `semestres-integracion.md` para el suyo.
+**Seguridad.** Estas pruebas de persistencia usan `@AutoConfigureMockMvc(addFilters = false)` para conservar su alcance histórico. La cadena real y los casos 401/403/RBAC se validan en `SecurityFilterMockMvcTest` y `AsignaturaIntegracionIT`; no representan rutas públicas en producción.
 
 | ID | Capacidad | Escenario | Datos de entrada | Resultado esperado (respuesta) | Resultado esperado (base) |
 | --- | --- | --- | --- | --- | --- |

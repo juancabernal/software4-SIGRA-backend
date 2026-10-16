@@ -10,11 +10,14 @@ import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,6 +27,9 @@ import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.UUID;
@@ -70,12 +76,22 @@ class AsignaturaServiceConsultaTest {
                 resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
                 resultadoAprendizajeService);
 
+        UsuarioPrincipal principal = new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co",
+                RolUsuario.ADMINISTRADOR);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                principal, null, java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
+
         ProgramaAcademico sistemas = programa(ID_SISTEMAS, "Ingeniería de Sistemas");
         ProgramaAcademico matematicas = programa(ID_MATEMATICAS, "Matemáticas");
         software = asignatura("ISW4", "Ingeniería de Software IV", sistemas, EstadoAsignatura.ACTIVA);
         arquitectura = asignatura("ARQ-1", "arquitectura de Software", sistemas, EstadoAsignatura.BORRADOR);
         basesDeDatos = asignatura("BD2", "Bases de Datos", matematicas, EstadoAsignatura.BORRADOR);
         calculo = asignatura("MAT1", "Cálculo", matematicas, EstadoAsignatura.INACTIVA);
+    }
+
+    @AfterEach
+    void limpiarContexto() {
+        SecurityContextHolder.clearContext();
     }
 
     private static ProgramaAcademico programa(UUID id, String nombre) {

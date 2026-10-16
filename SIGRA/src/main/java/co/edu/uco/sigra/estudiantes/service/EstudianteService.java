@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.service;
 
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
 
@@ -9,7 +10,9 @@ import java.util.UUID;
 public interface EstudianteService {
     EstudianteResponseDTO registrar(EstudianteRequestDTO dto);
     List<EstudianteResponseDTO> consultar(String filtro);
+    List<EstudianteResponseDTO> consultar(String filtro, UsuarioPrincipal principal);
     EstudianteResponseDTO consultarPorId(UUID id);
+    EstudianteResponseDTO consultarPorId(UUID id, UsuarioPrincipal principal);
     EstudianteResponseDTO modificar(UUID id, EstudianteRequestDTO dto);
     void inactivar(UUID id);
 }

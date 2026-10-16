@@ -2,8 +2,12 @@ package co.edu.uco.sigra.estudiantes.service.impl;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
+import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estudiantes.config.MatriculaConfig;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
@@ -25,7 +29,9 @@ import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.semestres.repository.SemestreRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -43,15 +49,20 @@ public class MatriculaServiceImpl implements MatriculaService {
     private final Clock reloj;
     private final CalificacionesDeMatricula calificacionesDeMatricula;
     private final EstudianteService estudianteService;
+    private final AsignacionDocenteRepository asignacionDocenteRepository;
+    private final CurrentUser currentUser;
 
-    // Constructor explícito (no @RequiredArgsConstructor) porque Lombok no copia @Qualifier.
+    // Constructor explícito porque Lombok no copia @Qualifier al parámetro del reloj.
+    @Autowired
     public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
                                 EstudianteRepository estudianteRepository,
                                 AsignaturaRepository asignaturaRepository,
                                 SemestreRepository semestreRepository,
                                 @Qualifier(MatriculaConfig.RELOJ_MATRICULAS) Clock reloj,
                                 CalificacionesDeMatricula calificacionesDeMatricula,
-                                EstudianteService estudianteService) {
+                                EstudianteService estudianteService,
+                                AsignacionDocenteRepository asignacionDocenteRepository,
+                                CurrentUser currentUser) {
         this.matriculaRepository = matriculaRepository;
         this.estudianteRepository = estudianteRepository;
         this.asignaturaRepository = asignaturaRepository;
@@ -59,11 +70,48 @@ public class MatriculaServiceImpl implements MatriculaService {
         this.reloj = reloj;
         this.calificacionesDeMatricula = calificacionesDeMatricula;
         this.estudianteService = estudianteService;
+        this.asignacionDocenteRepository = asignacionDocenteRepository;
+        this.currentUser = currentUser;
+    }
+
+    /** Constructor reducido para las pruebas del flujo funcional de matrículas. */
+    public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
+                                EstudianteRepository estudianteRepository,
+                                AsignaturaRepository asignaturaRepository,
+                                SemestreRepository semestreRepository,
+                                Clock reloj,
+                                CalificacionesDeMatricula calificacionesDeMatricula,
+                                EstudianteService estudianteService) {
+        this(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository,
+                reloj, calificacionesDeMatricula, estudianteService, null, new CurrentUser());
+    }
+
+    /** Constructor reducido conservado para pruebas que solo ejercitan autorización y consultas. */
+    public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
+                                EstudianteRepository estudianteRepository,
+                                AsignaturaRepository asignaturaRepository,
+                                SemestreRepository semestreRepository) {
+        this(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository,
+                Clock.system(MatriculaConfig.ZONA_COLOMBIA), new CalificacionesDeMatriculaPorDefecto(),
+                null, null, new CurrentUser());
     }
 
     @Override
     @Transactional
     public ResultadoMatricula matricular(UUID estudianteId, UUID asignaturaId, UUID semestreId) {
+        return matricularInterno(estudianteId, asignaturaId, semestreId, currentUser.required());
+    }
+
+    @Override
+    @Transactional
+    public ResultadoMatricula matricular(UUID estudianteId, UUID asignaturaId, UUID semestreId,
+                                         UsuarioPrincipal principal) {
+        return matricularInterno(estudianteId, asignaturaId, semestreId, principal);
+    }
+
+    private ResultadoMatricula matricularInterno(UUID estudianteId, UUID asignaturaId, UUID semestreId,
+                                                 UsuarioPrincipal principal) {
+        asegurarAlcance(asignaturaId, principal);
         Estudiante estudiante = estudianteRepository.findById(estudianteId)
                 .orElseThrow(() -> EstudianteNoEncontradoException.porId(estudianteId));
 
@@ -73,43 +121,27 @@ public class MatriculaServiceImpl implements MatriculaService {
         Semestre semestre = semestreRepository.findById(semestreId)
                 .orElseThrow(() -> ReferenciaNoEncontradaException.semestre(semestreId));
 
-        // El estado de la ficha del estudiante sí es EstadoRegistro: es una baja de registro,
-        // no una matrícula retirada.
         if (estudiante.getEstado() != EstadoRegistro.ACTIVO) {
             throw ReglaDeMatriculaException.estudianteInactivo(estudianteId);
         }
-
         if (asignatura.getEstado() != EstadoAsignatura.ACTIVA) {
             throw ReglaDeMatriculaException.asignaturaNoActiva(asignaturaId);
         }
 
         LocalDate hoy = LocalDate.now(reloj);
-
-        // La vigencia del semestre se juzga por sus fechas, no por su marca de estado
-        // almacenada: EstadoSemestre se recalcula de forma perezosa, solo cuando el módulo
-        // de semestres consulta ese semestre, así que el valor guardado puede estar obsoleto
-        // en cualquier dirección. Las fechas son la fuente de verdad de la que ese estado se
-        // deriva, y consultarlas aquí evita además una llamada hacia otro módulo (y su posible
-        // escritura lateral) como efecto de una matrícula.
         if (hoy.isBefore(semestre.getFechaInicio()) || hoy.isAfter(semestre.getFechaFin())) {
             throw ReglaDeMatriculaException.semestreNoVigente(semestreId);
         }
 
         var existente = matriculaRepository.buscarPorTerna(estudianteId, asignaturaId, semestreId);
-
         if (existente.isPresent()) {
             Matricula matricula = existente.get();
-
             if (matricula.getEstado() == EstadoMatricula.ACTIVA) {
                 throw MatriculaDuplicadaException.porTerna(estudianteId, asignaturaId, semestreId);
             }
-
-            // Reactiva la matrícula retirada de la misma terna en lugar de crear una fila nueva,
-            // y actualiza la fecha a la de la rematrícula: es cuando el vínculo vigente empezó.
             matricula.setEstado(EstadoMatricula.ACTIVA);
             matricula.setFechaMatricula(hoy);
-            Matricula reactivada = matriculaRepository.save(matricula);
-            return new ResultadoMatricula(reactivada, true);
+            return new ResultadoMatricula(matriculaRepository.save(matricula), true);
         }
 
         Matricula matricula = new Matricula();
@@ -118,16 +150,21 @@ public class MatriculaServiceImpl implements MatriculaService {
         matricula.setSemestre(semestre);
         matricula.setFechaMatricula(hoy);
         matricula.setEstado(EstadoMatricula.ACTIVA);
-
-        Matricula creada = matriculaRepository.save(matricula);
-        return new ResultadoMatricula(creada, false);
+        return new ResultadoMatricula(matriculaRepository.save(matricula), false);
     }
 
     @Override
     @Transactional
     public void desvincular(UUID matriculaId, boolean confirmado) {
+        desvincular(matriculaId, confirmado, currentUser.required());
+    }
+
+    @Override
+    @Transactional
+    public void desvincular(UUID matriculaId, boolean confirmado, UsuarioPrincipal principal) {
         Matricula matricula = matriculaRepository.findById(matriculaId)
                 .orElseThrow(() -> MatriculaNoEncontradaException.porId(matriculaId));
+        asegurarAlcance(matricula.getAsignatura().getId(), principal);
 
         if (matricula.getEstado() == EstadoMatricula.DESVINCULADA) {
             throw MatriculaYaInactivaException.porId(matriculaId);
@@ -145,40 +182,80 @@ public class MatriculaServiceImpl implements MatriculaService {
     @Override
     @Transactional
     public List<Matricula> listarMatriculados(UUID asignaturaId, UUID semestreId, boolean incluirInactivas) {
+        return listarMatriculadosInterno(asignaturaId, semestreId, incluirInactivas, currentUser.required());
+    }
+
+    @Override
+    @Transactional
+    public List<Matricula> listarMatriculados(UUID asignaturaId, UUID semestreId, boolean incluirInactivas,
+                                              UsuarioPrincipal principal) {
+        return listarMatriculadosInterno(asignaturaId, semestreId, incluirInactivas, principal);
+    }
+
+    private List<Matricula> listarMatriculadosInterno(UUID asignaturaId, UUID semestreId,
+                                                      boolean incluirInactivas, UsuarioPrincipal principal) {
+        asegurarAlcance(asignaturaId, principal);
         if (!asignaturaRepository.existsById(asignaturaId)) {
             throw ReferenciaNoEncontradaException.asignatura(asignaturaId);
         }
-
         if (!semestreRepository.existsById(semestreId)) {
             throw ReferenciaNoEncontradaException.semestre(semestreId);
         }
-
         EstadoMatricula estado = incluirInactivas ? null : EstadoMatricula.ACTIVA;
         return matriculaRepository.buscarPorAsignaturaYSemestre(asignaturaId, semestreId, estado);
+    }
+
+    private void asegurarAlcance(UUID asignaturaId, UsuarioPrincipal principal) {
+        if (principal == null) {
+            throw new AccessDeniedException("No hay una identidad autenticada válida");
+        }
+        if (principal.rol() == RolUsuario.ADMINISTRADOR) {
+            return;
+        }
+        if (principal.rol() != RolUsuario.PROFESOR
+                || asignacionDocenteRepository == null
+                || !asignacionDocenteRepository.existsByProfesor_IdAndAsignatura_IdAndEstado(
+                principal.id(), asignaturaId, EstadoRegistro.ACTIVO)) {
+            throw new AccessDeniedException("El profesor no tiene asignada esta asignatura");
+        }
     }
 
     @Override
     @Transactional
     public List<Matricula> listarAsignaturasDeEstudiante(UUID estudianteId) {
-        if (!estudianteRepository.existsById(estudianteId)) {
-            throw EstudianteNoEncontradoException.porId(estudianteId);
-        }
-
-        return matriculaRepository.buscarPorEstudiante(estudianteId);
+        return listarAsignaturasDeEstudiante(estudianteId, currentUser.required());
     }
 
     @Override
     @Transactional
-    public ResultadoAltaConMatricula registrarYMatricular(EstudianteRequestDTO estudianteDTO, UUID asignaturaId, UUID semestreId) {
-        // Registrar primero y matricular después es lo que hace que un fallo de matrícula
-        // deshaga el alta: EstudianteServiceImpl.registrar también es @Transactional con
-        // propagación REQUIRED, así que se adhiere a esta misma transacción, y cualquier
-        // excepción de negocio lanzada por this.matricular (son todas RuntimeException) marca
-        // el rollback completo, sin dejar al estudiante creado.
+    public List<Matricula> listarAsignaturasDeEstudiante(UUID estudianteId, UsuarioPrincipal principal) {
+        if (principal == null) {
+            throw new AccessDeniedException("No hay una identidad autenticada válida");
+        }
+        if (!estudianteRepository.existsById(estudianteId)) {
+            throw EstudianteNoEncontradoException.porId(estudianteId);
+        }
+        if (principal.rol() == RolUsuario.ADMINISTRADOR
+                || (principal.rol() == RolUsuario.ESTUDIANTE && principal.id().equals(estudianteId))) {
+            return matriculaRepository.buscarPorEstudiante(estudianteId);
+        }
+        if (principal.rol() == RolUsuario.PROFESOR) {
+            return matriculaRepository.buscarPorEstudianteYProfesor(
+                    estudianteId, principal.id(), EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO,
+                    EstadoRegistro.ACTIVO);
+        }
+        throw new AccessDeniedException("El usuario no tiene acceso a las matrículas del estudiante");
+    }
+
+    @Override
+    @Transactional
+    public ResultadoAltaConMatricula registrarYMatricular(EstudianteRequestDTO estudianteDTO,
+                                                            UUID asignaturaId, UUID semestreId) {
+        if (estudianteService == null) {
+            throw new IllegalStateException("EstudianteService no está disponible");
+        }
         EstudianteResponseDTO estudianteRegistrado = estudianteService.registrar(estudianteDTO);
-
         ResultadoMatricula resultadoMatricula = this.matricular(estudianteRegistrado.id(), asignaturaId, semestreId);
-
         return new ResultadoAltaConMatricula(estudianteRegistrado, resultadoMatricula.matricula());
     }
 }

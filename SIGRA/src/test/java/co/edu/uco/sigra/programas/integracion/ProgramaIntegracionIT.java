@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -42,7 +43,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // @BeforeEach y @AfterEach borran solo las filas con ese prefijo, en programas y en asignaturas.
 @Tag("integration")
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
+@WithMockUser(roles = "ADMINISTRADOR")
 class ProgramaIntegracionIT {
 
     private static final String URL = "/api/v1/programas";

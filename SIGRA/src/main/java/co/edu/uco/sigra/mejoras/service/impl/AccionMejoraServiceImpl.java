@@ -1,7 +1,7 @@
 package co.edu.uco.sigra.mejoras.service.impl;
 
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 
 /**
  * RF-17: registro de acciones de mejora sobre conclusiones VIGENTES. Mismo patrón de alcance por
- * rol que {@code ConclusionServiceImpl} (temporal hasta RF-05): sin identidad se ve todo; con un
- * PROFESOR, solo lo de sus asignaturas.
+ * rol que {@code ConclusionServiceImpl}: el ADMINISTRADOR ve todo y el PROFESOR solo opera sobre
+ * sus asignaturas con asignación docente ACTIVA. La ausencia de identidad se rechaza.
  * <p>
  * RF-18: la conversión crea la evaluación con {@link EvaluacionService#crear}, así que aplica todas las
  * reglas de RF-10/RF-11 (semestre activo, fecha dentro del semestre, RA y asignatura activos, nombre
@@ -60,10 +60,10 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
     @Override
     @Transactional
     public AccionMejoraResponseDTO registrarAccionMejora(UUID conclusionId, RegistrarAccionMejoraRequestDTO datos,
-                                                           IdentidadActual identidad) {
+                                                           UsuarioPrincipal principal) {
         Conclusion conclusion = buscarConclusion(conclusionId);
 
-        Set<UUID> alcance = alcanceDe(identidad);
+        Set<UUID> alcance = alcanceDe(principal);
         if (alcance != null && !alcance.contains(conclusion.getResultadoAprendizaje().getAsignatura().getId())) {
             throw new PermisoInsuficienteException();
         }
@@ -84,14 +84,8 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
 
     @Override
     @Transactional
-    public List<AccionMejoraResponseDTO> consultarAcciones(AccionMejoraFiltroDTO filtro) {
-        return consultarAcciones(filtro, null);
-    }
-
-    @Override
-    @Transactional
-    public List<AccionMejoraResponseDTO> consultarAcciones(AccionMejoraFiltroDTO filtro, IdentidadActual identidad) {
-        Set<UUID> alcance = alcanceDe(identidad);
+    public List<AccionMejoraResponseDTO> consultarAcciones(AccionMejoraFiltroDTO filtro, UsuarioPrincipal principal) {
+        Set<UUID> alcance = alcanceDe(principal);
 
         // Mismo enfoque de filtrado en memoria que ConclusionServiceImpl.consultarConclusiones.
         return accionMejoraRepository.findAll().stream()
@@ -110,17 +104,19 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
 
     @Override
     @Transactional
-    public AccionMejoraResponseDTO consultarPorId(UUID id) {
-        return accionMejoraMapper.toResponseDTO(buscarAccionMejora(id));
+    public AccionMejoraResponseDTO consultarPorId(UUID id, UsuarioPrincipal principal) {
+        AccionMejora accion = buscarAccionMejora(id);
+        verificarAlcance(principal, accion.getResultadoAprendizaje().getAsignatura().getId());
+        return accionMejoraMapper.toResponseDTO(accion);
     }
 
     @Override
     @Transactional
     public AccionMejoraResponseDTO convertirEnEvaluacion(UUID accionId, ConvertirEvaluacionRequestDTO datos,
-                                                          IdentidadActual identidad) {
+                                                          UsuarioPrincipal principal) {
         AccionMejora accionMejora = buscarAccionMejora(accionId);
 
-        Set<UUID> alcance = alcanceDe(identidad);
+        Set<UUID> alcance = alcanceDe(principal);
         if (alcance != null && !alcance.contains(accionMejora.getResultadoAprendizaje().getAsignatura().getId())) {
             throw new PermisoInsuficienteException();
         }
@@ -137,7 +133,7 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
         // Mismo camino que el POST de evaluaciones: si alguna regla falla, la excepción revierte toda la
         // transacción y la acción no queda marcada como convertida.
         EvaluacionResponseDTO evaluacion = evaluacionService.crear(
-                accionMejora.getResultadoAprendizaje().getId(), evaluacionNueva, identidad);
+                accionMejora.getResultadoAprendizaje().getId(), evaluacionNueva, principal);
 
         accionMejora.marcarConvertida(evaluacion.id());
         AccionMejora actualizada = accionMejoraRepository.save(accionMejora);
@@ -160,20 +156,30 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
     }
 
     /**
-     * Asignaturas visibles para la identidad: null significa «todas» (sin identidad, o ADMINISTRADOR).
+     * Asignaturas visibles para la identidad: el ADMINISTRADOR ve todas.
      * El PROFESOR solo ve las acciones de mejora de sus asignaturas con asignación docente ACTIVA.
      */
-    private Set<UUID> alcanceDe(IdentidadActual identidad) {
-        if (identidad == null || identidad.rol() == RolUsuario.ADMINISTRADOR) {
+    private Set<UUID> alcanceDe(UsuarioPrincipal principal) {
+        if (principal == null) {
+            throw new PermisoInsuficienteException();
+        }
+        if (principal.rol() == RolUsuario.ADMINISTRADOR) {
             return null;
         }
-        if (identidad.rol() == RolUsuario.PROFESOR) {
-            return asignacionDocenteRepository.findByProfesor_IdAndEstado(identidad.id(), EstadoRegistro.ACTIVO)
+        if (principal.rol() == RolUsuario.PROFESOR) {
+            return asignacionDocenteRepository.findByProfesor_IdAndEstado(principal.id(), EstadoRegistro.ACTIVO)
                     .stream()
                     .map(asignacion -> asignacion.getAsignatura().getId())
                     .collect(Collectors.toSet());
         }
         throw new PermisoInsuficienteException();
+    }
+
+    private void verificarAlcance(UsuarioPrincipal principal, UUID asignaturaId) {
+        Set<UUID> alcance = alcanceDe(principal);
+        if (alcance != null && !alcance.contains(asignaturaId)) {
+            throw new PermisoInsuficienteException();
+        }
     }
 
     private Conclusion buscarConclusion(UUID id) {

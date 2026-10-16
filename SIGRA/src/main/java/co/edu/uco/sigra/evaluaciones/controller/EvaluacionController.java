@@ -1,8 +1,6 @@
 package co.edu.uco.sigra.evaluaciones.controller;
 
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
-import co.edu.uco.sigra.asignaturas.seguridad.RolesPermitidos;
-import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.auth.security.CurrentUser;
 import co.edu.uco.sigra.evaluaciones.dto.EvaluacionActualizarRequestDTO;
 import co.edu.uco.sigra.evaluaciones.dto.EvaluacionCrearRequestDTO;
 import co.edu.uco.sigra.evaluaciones.dto.EvaluacionResponseDTO;
@@ -12,74 +10,66 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-/**
- * Gestión de evaluaciones por RA (RF-10 / RF-11). Según la matriz RBAC solo el PROFESOR gestiona
- * evaluaciones, y solo de sus asignaturas.
- * <p>
- * El control por rol es el compartido ({@link RolesPermitidos}), activo solo con
- * {@code sigra.seguridad.roles.habilitado=true}. Con el interruptor apagado no llega identidad y el
- * servicio no filtra por dueño, igual que en conclusiones.
- */
+/** Gestión de evaluaciones por RA (RF-10/RF-11), únicamente para profesores asignados. */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class EvaluacionController {
 
     private final EvaluacionService evaluacionService;
+    private final CurrentUser currentUser;
 
     @PostMapping("/resultados-aprendizaje/{raId}/evaluaciones")
-    @RolesPermitidos(RolUsuario.PROFESOR)
-    public ResponseEntity<EvaluacionResponseDTO> crear(
-            @PathVariable UUID raId,
-            @Valid @RequestBody EvaluacionCrearRequestDTO dto,
-            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(evaluacionService.crear(raId, dto, identidad));
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<EvaluacionResponseDTO> crear(@PathVariable UUID raId,
+                                                        @Valid @RequestBody EvaluacionCrearRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(evaluacionService.crear(raId, dto, currentUser.required()));
     }
 
-    /** Vista del profesor: evaluaciones del RA con el % acumulado. Sin semestreId, el semestre activo. */
     @GetMapping("/resultados-aprendizaje/{raId}/evaluaciones")
-    @RolesPermitidos(RolUsuario.PROFESOR)
+    @PreAuthorize("hasRole('PROFESOR')")
     public ResponseEntity<EvaluacionesRaResumenDTO> consultarPorResultadoAprendizaje(
-            @PathVariable UUID raId,
-            @RequestParam(required = false) UUID semestreId,
-            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
-        return ResponseEntity.ok(evaluacionService.consultarPorResultadoAprendizaje(raId, semestreId, identidad));
+            @PathVariable UUID raId, @RequestParam(required = false) UUID semestreId) {
+        return ResponseEntity.ok(evaluacionService.consultarPorResultadoAprendizaje(
+                raId, semestreId, currentUser.required()));
     }
 
     @GetMapping("/evaluaciones/{id}")
-    @RolesPermitidos(RolUsuario.PROFESOR)
-    public ResponseEntity<EvaluacionResponseDTO> consultarPorId(
-            @PathVariable UUID id,
-            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
-        return ResponseEntity.ok(evaluacionService.consultarPorId(id, identidad));
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<EvaluacionResponseDTO> consultarPorId(@PathVariable UUID id) {
+        return ResponseEntity.ok(evaluacionService.consultarPorId(id, currentUser.required()));
     }
 
     @PutMapping("/evaluaciones/{id}")
-    @RolesPermitidos(RolUsuario.PROFESOR)
-    public ResponseEntity<EvaluacionResponseDTO> modificar(
-            @PathVariable UUID id,
-            @Valid @RequestBody EvaluacionActualizarRequestDTO dto,
-            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
-        return ResponseEntity.ok(evaluacionService.modificar(id, dto, identidad));
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<EvaluacionResponseDTO> modificar(@PathVariable UUID id,
+                                                            @Valid @RequestBody EvaluacionActualizarRequestDTO dto) {
+        return ResponseEntity.ok(evaluacionService.modificar(id, dto, currentUser.required()));
     }
 
     @PatchMapping("/evaluaciones/{id}/inactivar")
-    @RolesPermitidos(RolUsuario.PROFESOR)
-    public ResponseEntity<EvaluacionResponseDTO> inactivar(
-            @PathVariable UUID id,
-            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
-        return ResponseEntity.ok(evaluacionService.inactivar(id, identidad));
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<EvaluacionResponseDTO> inactivar(@PathVariable UUID id) {
+        return ResponseEntity.ok(evaluacionService.inactivar(id, currentUser.required()));
     }
 
     @PatchMapping("/evaluaciones/{id}/reactivar")
-    @RolesPermitidos(RolUsuario.PROFESOR)
-    public ResponseEntity<EvaluacionResponseDTO> reactivar(
-            @PathVariable UUID id,
-            @RequestAttribute(name = IdentidadActual.ATRIBUTO, required = false) IdentidadActual identidad) {
-        return ResponseEntity.ok(evaluacionService.reactivar(id, identidad));
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<EvaluacionResponseDTO> reactivar(@PathVariable UUID id) {
+        return ResponseEntity.ok(evaluacionService.reactivar(id, currentUser.required()));
     }
 }

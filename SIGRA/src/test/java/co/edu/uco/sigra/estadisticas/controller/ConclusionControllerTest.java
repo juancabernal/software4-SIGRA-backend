@@ -1,6 +1,9 @@
 package co.edu.uco.sigra.estadisticas.controller;
 
 import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
+import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionFiltroDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.GenerarConclusionResponseDTO;
@@ -25,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,6 +47,8 @@ class ConclusionControllerTest {
     private static final UUID ID_SEMESTRE = UUID.randomUUID();
     private static final UUID ID_ASIGNATURA = UUID.randomUUID();
     private static final UUID ID_CONCLUSION = UUID.randomUUID();
+    private static final UsuarioPrincipal PRINCIPAL =
+            new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ADMINISTRADOR);
 
     private static final String URL_GENERAR =
             "/api/v1/resultados-aprendizaje/" + ID_RA + "/semestres/" + ID_SEMESTRE + "/conclusiones";
@@ -51,12 +57,15 @@ class ConclusionControllerTest {
 
     @Mock
     private ConclusionService service;
+    @Mock
+    private CurrentUser currentUser;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new ConclusionController(service))
+        org.mockito.Mockito.lenient().when(currentUser.required()).thenReturn(PRINCIPAL);
+        mockMvc = MockMvcBuilders.standaloneSetup(new ConclusionController(service, currentUser))
                 .setControllerAdvice(new EstadisticasExceptionHandler(), new GlobalExceptionHandler())
                 .build();
     }
@@ -74,7 +83,7 @@ class ConclusionControllerTest {
         @Test
         @DisplayName("Cuando se genera devuelve 200 con la conclusión")
         void generada() throws Exception {
-            when(service.generarConclusion(ID_RA, ID_SEMESTRE))
+            when(service.generarConclusion(eq(ID_RA), eq(ID_SEMESTRE), any()))
                     .thenReturn(new GenerarConclusionResponseDTO(true, "Se generó una nueva conclusión.", conclusion()));
 
             mockMvc.perform(post(URL_GENERAR))
@@ -87,7 +96,7 @@ class ConclusionControllerTest {
         @Test
         @DisplayName("Cuando no se genera (datos insuficientes) devuelve 200 con generada=false")
         void noGenerada() throws Exception {
-            when(service.generarConclusion(ID_RA, ID_SEMESTRE))
+            when(service.generarConclusion(eq(ID_RA), eq(ID_SEMESTRE), any()))
                     .thenReturn(new GenerarConclusionResponseDTO(false, "Datos insuficientes.", null));
 
             mockMvc.perform(post(URL_GENERAR))
@@ -99,7 +108,7 @@ class ConclusionControllerTest {
         @Test
         @DisplayName("Con un resultado de aprendizaje inexistente devuelve 404")
         void raInexistente() throws Exception {
-            when(service.generarConclusion(ID_RA, ID_SEMESTRE))
+            when(service.generarConclusion(eq(ID_RA), eq(ID_SEMESTRE), any()))
                     .thenThrow(new ResultadoAprendizajeNoEncontradoException(ID_RA));
 
             mockMvc.perform(post(URL_GENERAR))
@@ -110,7 +119,7 @@ class ConclusionControllerTest {
         @Test
         @DisplayName("Con un semestre inexistente devuelve 404")
         void semestreInexistente() throws Exception {
-            when(service.generarConclusion(ID_RA, ID_SEMESTRE))
+            when(service.generarConclusion(eq(ID_RA), eq(ID_SEMESTRE), any()))
                     .thenThrow(new SemestreNoEncontradoException(ID_SEMESTRE));
 
             mockMvc.perform(post(URL_GENERAR))
@@ -130,9 +139,10 @@ class ConclusionControllerTest {
     class Consultar {
 
         @Test
-        @DisplayName("Sin identidad (control por rol apagado) devuelve 200 con la lista")
+        @DisplayName("Sin identidad se rechaza antes de consultar la lista")
         void sinFiltros() throws Exception {
-            when(service.consultarConclusiones(any(ConclusionFiltroDTO.class))).thenReturn(List.of(conclusion()));
+            when(service.consultarConclusiones(any(ConclusionFiltroDTO.class), any()))
+                    .thenReturn(List.of(conclusion()));
 
             mockMvc.perform(get(URL_CONSULTAR))
                     .andExpect(status().isOk())
@@ -142,7 +152,7 @@ class ConclusionControllerTest {
         @Test
         @DisplayName("Por id existente devuelve 200")
         void porId() throws Exception {
-            when(service.consultarPorId(ID_CONCLUSION)).thenReturn(conclusion());
+            when(service.consultarPorId(eq(ID_CONCLUSION), any())).thenReturn(conclusion());
 
             mockMvc.perform(get(URL_POR_ID))
                     .andExpect(status().isOk())
@@ -152,7 +162,8 @@ class ConclusionControllerTest {
         @Test
         @DisplayName("Por id inexistente devuelve 404")
         void porIdInexistente() throws Exception {
-            when(service.consultarPorId(ID_CONCLUSION)).thenThrow(new ConclusionNoEncontradaException(ID_CONCLUSION));
+            when(service.consultarPorId(eq(ID_CONCLUSION), any()))
+                    .thenThrow(new ConclusionNoEncontradaException(ID_CONCLUSION));
 
             mockMvc.perform(get(URL_POR_ID))
                     .andExpect(status().isNotFound());

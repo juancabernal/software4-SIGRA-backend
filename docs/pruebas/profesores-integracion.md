@@ -6,7 +6,7 @@ Levantan el contexto completo de Spring Boot contra **PostgreSQL real** y llaman
 
 **Datos de referencia.** `@BeforeEach` crea por repositorio un `TipoDocumento` propio (`ITP Tipo`). Los casos que necesitan asignaciones (IT-04 e IT-05) crean directamente por repositorio un `ProgramaAcademico`, una o dos `Asignatura` y sus `AsignacionDocente`, sin pasar por los endpoints de otros módulos para no acoplarse a su comportamiento.
 
-**Seguridad.** Los `@PreAuthorize` de `ProfesorController` siguen comentados hasta RF-05 y `SecurityConfig` usa `permitAll()`, así que estas pruebas no cubren roles. Cuando se active RF-05 para este módulo hay que añadir un caso de 401/403, igual que ya lo advierten `semestres-integracion.md` y `estudiantes-integracion.md`.
+**Seguridad.** Estas pruebas de persistencia usan `@AutoConfigureMockMvc(addFilters = false)` para conservar su alcance histórico. La cadena real y los casos 401/403/RBAC se validan en `SecurityFilterMockMvcTest` y `AsignaturaIntegracionIT`; no representan rutas públicas en producción.
 
 | ID | Capacidad | Escenario | Datos de entrada | Resultado esperado (respuesta) | Resultado esperado (base) |
 | --- | --- | --- | --- | --- | --- |

@@ -5,7 +5,7 @@ import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.evaluaciones.config.EvaluacionConfig;
@@ -81,7 +81,7 @@ class EvaluacionServiceImplTest {
     private static final String DESCRIPCION = "Primer parcial del corte";
     private static final LocalDate FECHA = LocalDate.of(2026, 11, 10);
 
-    private static final IdentidadActual PROFESOR = new IdentidadActual(ID_PROFESOR, RolUsuario.PROFESOR);
+    private static final UsuarioPrincipal PROFESOR = new UsuarioPrincipal(ID_PROFESOR, RolUsuario.PROFESOR);
 
     @Mock
     private EvaluacionRepository evaluacionRepository;
@@ -195,6 +195,7 @@ class EvaluacionServiceImplTest {
     private ResultadoAprendizaje raExiste(EstadoAsignatura estadoAsignatura, EstadoRegistro estadoRa) {
         ResultadoAprendizaje ra = resultado(estadoAsignatura, estadoRa);
         when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(ra));
+        profesorAsignadoAAsignatura(ID_ASIGNATURA);
         return ra;
     }
 
@@ -204,6 +205,7 @@ class EvaluacionServiceImplTest {
 
     private void evaluacionExiste(Evaluacion e) {
         when(evaluacionRepository.findById(ID_EVALUACION)).thenReturn(Optional.of(e));
+        profesorAsignadoAAsignatura(e.getResultadoAprendizaje().getAsignatura().getId());
     }
 
     private void asignadoActivas(UUID semestreId, String suma) {
@@ -220,7 +222,7 @@ class EvaluacionServiceImplTest {
         AsignacionDocente asignacion = new AsignacionDocente();
         asignacion.setAsignatura(asignatura(asignaturaId, EstadoAsignatura.ACTIVA));
         asignacion.setEstado(EstadoRegistro.ACTIVO);
-        when(asignacionDocenteRepository.findByProfesor_IdAndEstado(ID_PROFESOR, EstadoRegistro.ACTIVO))
+        lenient().when(asignacionDocenteRepository.findByProfesor_IdAndEstado(ID_PROFESOR, EstadoRegistro.ACTIVO))
                 .thenReturn(List.of(asignacion));
     }
 
@@ -246,7 +248,7 @@ class EvaluacionServiceImplTest {
             asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
             guardarDevuelveArgumento();
 
-            EvaluacionResponseDTO respuesta = service.crear(ID_RA, crearDto("30"), null);
+            EvaluacionResponseDTO respuesta = service.crear(ID_RA, crearDto("30"), PROFESOR);
 
             ArgumentCaptor<Evaluacion> guardada = ArgumentCaptor.forClass(Evaluacion.class);
             verify(evaluacionRepository).save(guardada.capture());
@@ -267,14 +269,12 @@ class EvaluacionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Sin identidad (control por rol apagado) no consulta las asignaciones docentes")
+        @DisplayName("Sin identidad se rechaza por cierre de seguridad")
         void sinIdentidadNoFiltra() {
             raActivoExiste();
-            hayEnCursoYPasado();
-            asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
-            guardarDevuelveArgumento();
 
-            service.crear(ID_RA, crearDto("30"), null);
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), null))
+                    .isInstanceOf(PermisoInsuficienteException.class);
 
             verifyNoInteractions(asignacionDocenteRepository);
         }
@@ -311,7 +311,7 @@ class EvaluacionServiceImplTest {
         void otroRol(RolUsuario rol) {
             raActivoExiste();
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), new IdentidadActual(ID_PROFESOR, rol)))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), new UsuarioPrincipal(ID_PROFESOR, rol)))
                     .isInstanceOf(PermisoInsuficienteException.class);
 
             verifyNoInteractions(asignacionDocenteRepository);
@@ -323,7 +323,7 @@ class EvaluacionServiceImplTest {
         void raNoExiste() {
             when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), PROFESOR))
                     .isInstanceOf(ResultadoAprendizajeNoEncontradoException.class);
 
             verify(evaluacionRepository, never()).save(any());
@@ -334,7 +334,7 @@ class EvaluacionServiceImplTest {
         void raInactivo() {
             raExiste(EstadoAsignatura.ACTIVA, EstadoRegistro.INACTIVO);
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.resultadoAprendizajeInactivo()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -346,7 +346,7 @@ class EvaluacionServiceImplTest {
         void asignaturaNoActiva(EstadoAsignatura estado) {
             raExiste(estado, EstadoRegistro.ACTIVO);
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.asignaturaNoActiva()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -358,7 +358,7 @@ class EvaluacionServiceImplTest {
             raActivoExiste();
             hoyNoHaySemestreEnCurso();
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.sinSemestreActivo()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -370,7 +370,7 @@ class EvaluacionServiceImplTest {
             raActivoExiste();
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto(INICIO_ACTUAL.minusDays(1)), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto(INICIO_ACTUAL.minusDays(1)), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException
                             .fechaFueraDelSemestre("2026-2", INICIO_ACTUAL, FIN_ACTUAL)));
 
@@ -383,7 +383,7 @@ class EvaluacionServiceImplTest {
             raActivoExiste();
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto(FIN_ACTUAL.plusDays(1)), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto(FIN_ACTUAL.plusDays(1)), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException
                             .fechaFueraDelSemestre("2026-2", INICIO_ACTUAL, FIN_ACTUAL)));
 
@@ -398,8 +398,8 @@ class EvaluacionServiceImplTest {
             asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
             guardarDevuelveArgumento();
 
-            assertThat(service.crear(ID_RA, crearDto(INICIO_ACTUAL), null).fechaTentativa()).isEqualTo(INICIO_ACTUAL);
-            assertThat(service.crear(ID_RA, crearDto(FIN_ACTUAL), null).fechaTentativa()).isEqualTo(FIN_ACTUAL);
+            assertThat(service.crear(ID_RA, crearDto(INICIO_ACTUAL), PROFESOR).fechaTentativa()).isEqualTo(INICIO_ACTUAL);
+            assertThat(service.crear(ID_RA, crearDto(FIN_ACTUAL), PROFESOR).fechaTentativa()).isEqualTo(FIN_ACTUAL);
         }
 
         @Test
@@ -410,7 +410,7 @@ class EvaluacionServiceImplTest {
             when(evaluacionRepository.existsByResultadoAprendizaje_IdAndSemestre_IdAndNombreIgnoreCase(
                     ID_RA, ID_SEMESTRE_ACTUAL, NOMBRE)).thenReturn(true);
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("30"), PROFESOR))
                     .isInstanceOf(NombreEvaluacionDuplicadoException.class);
 
             verify(evaluacionRepository, never()).save(any());
@@ -425,7 +425,7 @@ class EvaluacionServiceImplTest {
             asignadoActivas(ID_SEMESTRE_ACTUAL, nuevo.equals("100") ? "0" : "60");
             guardarDevuelveArgumento();
 
-            EvaluacionResponseDTO respuesta = service.crear(ID_RA, crearDto(nuevo), null);
+            EvaluacionResponseDTO respuesta = service.crear(ID_RA, crearDto(nuevo), PROFESOR);
 
             assertThat(respuesta.porcentaje()).isEqualByComparingTo(nuevo);
         }
@@ -437,7 +437,7 @@ class EvaluacionServiceImplTest {
             hayEnCursoYPasado();
             asignadoActivas(ID_SEMESTRE_ACTUAL, "60");
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("40.01"), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("40.01"), PROFESOR))
                     .satisfies(e -> assertRegla(e,
                             EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("40"))))
                     .hasMessageContaining("Porcentaje disponible: 40%");
@@ -452,7 +452,7 @@ class EvaluacionServiceImplTest {
             hayEnCursoYPasado();
             asignadoActivas(ID_SEMESTRE_ACTUAL, "100");
 
-            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("0.01"), null))
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto("0.01"), PROFESOR))
                     .hasMessageContaining("Porcentaje disponible: 0%");
         }
 
@@ -464,7 +464,7 @@ class EvaluacionServiceImplTest {
             asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
             guardarDevuelveArgumento();
 
-            EvaluacionResponseDTO respuesta = service.crear(ID_RA, crearDto("100"), null);
+            EvaluacionResponseDTO respuesta = service.crear(ID_RA, crearDto("100"), PROFESOR);
 
             assertThat(respuesta.porcentaje()).isEqualByComparingTo("100");
             verify(evaluacionRepository, never()).sumarPorcentajes(eq(ID_RA), eq(ID_SEMESTRE_PASADO), any());
@@ -494,7 +494,7 @@ class EvaluacionServiceImplTest {
             guardarDevuelveArgumento();
 
             EvaluacionResponseDTO respuesta = service.modificar(ID_EVALUACION,
-                    actualizarDto("Parcial final", LocalDate.of(2026, 12, 1), "50", "Nueva descripción"), null);
+                    actualizarDto("Parcial final", LocalDate.of(2026, 12, 1), "50", "Nueva descripción"), PROFESOR);
 
             assertThat(respuesta.nombre()).isEqualTo("Parcial final");
             assertThat(respuesta.fechaTentativa()).isEqualTo(LocalDate.of(2026, 12, 1));
@@ -513,7 +513,7 @@ class EvaluacionServiceImplTest {
             guardarDevuelveArgumento();
 
             EvaluacionResponseDTO respuesta = service.modificar(ID_EVALUACION,
-                    actualizarDto("Parcial uno", FECHA, "30", "Descripción corregida"), null);
+                    actualizarDto("Parcial uno", FECHA, "30", "Descripción corregida"), PROFESOR);
 
             assertThat(respuesta.nombre()).isEqualTo("Parcial uno");
             assertThat(respuesta.descripcion()).isEqualTo("Descripción corregida");
@@ -532,7 +532,7 @@ class EvaluacionServiceImplTest {
             guardarDevuelveArgumento();
 
             EvaluacionResponseDTO respuesta = service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA, "30.00", "Otra descripción"), null);
+                    actualizarDto(NOMBRE, FECHA, "30.00", "Otra descripción"), PROFESOR);
 
             assertThat(respuesta.descripcion()).isEqualTo("Otra descripción");
         }
@@ -545,7 +545,7 @@ class EvaluacionServiceImplTest {
             when(consultaCalificaciones.tieneCalificaciones(ID_EVALUACION)).thenReturn(true);
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA.plusDays(1), "30", DESCRIPCION), null))
+                    actualizarDto(NOMBRE, FECHA.plusDays(1), "30", DESCRIPCION), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.camposBloqueadosPorCalificaciones()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -559,7 +559,7 @@ class EvaluacionServiceImplTest {
             when(consultaCalificaciones.tieneCalificaciones(ID_EVALUACION)).thenReturn(true);
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA, "20", DESCRIPCION), null))
+                    actualizarDto(NOMBRE, FECHA, "20", DESCRIPCION), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.camposBloqueadosPorCalificaciones()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -573,7 +573,7 @@ class EvaluacionServiceImplTest {
             asignadoSinEsta("70");
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA, "40", DESCRIPCION), null))
+                    actualizarDto(NOMBRE, FECHA, "40", DESCRIPCION), PROFESOR))
                     .satisfies(e -> assertRegla(e,
                             EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("30"))));
 
@@ -591,7 +591,7 @@ class EvaluacionServiceImplTest {
             existente.setPorcentaje(new BigDecimal("20"));
 
             EvaluacionResponseDTO respuesta = service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), null);
+                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), PROFESOR);
 
             assertThat(respuesta.porcentaje()).isEqualByComparingTo("30");
         }
@@ -603,7 +603,7 @@ class EvaluacionServiceImplTest {
             hayEnCursoYPasado();
             guardarDevuelveArgumento();
 
-            service.modificar(ID_EVALUACION, actualizarDto("Otro nombre", FECHA, "30", DESCRIPCION), null);
+            service.modificar(ID_EVALUACION, actualizarDto("Otro nombre", FECHA, "30", DESCRIPCION), PROFESOR);
 
             verify(evaluacionRepository, never()).sumarPorcentajesExcluyendo(any(), any(), any(), any());
         }
@@ -617,7 +617,7 @@ class EvaluacionServiceImplTest {
                     ID_RA, ID_SEMESTRE_ACTUAL, "Quiz", ID_EVALUACION)).thenReturn(true);
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto("Quiz", FECHA, "30", DESCRIPCION), null))
+                    actualizarDto("Quiz", FECHA, "30", DESCRIPCION), PROFESOR))
                     .isInstanceOf(NombreEvaluacionDuplicadoException.class);
 
             verify(evaluacionRepository, never()).save(any());
@@ -630,7 +630,7 @@ class EvaluacionServiceImplTest {
             hayEnCursoYPasado();
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FIN_ACTUAL.plusDays(1), "30", DESCRIPCION), null))
+                    actualizarDto(NOMBRE, FIN_ACTUAL.plusDays(1), "30", DESCRIPCION), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException
                             .fechaFueraDelSemestre("2026-2", INICIO_ACTUAL, FIN_ACTUAL)));
 
@@ -645,7 +645,7 @@ class EvaluacionServiceImplTest {
             hayEnCursoYPasado();
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), null))
+                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.modificarInactiva()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -659,7 +659,7 @@ class EvaluacionServiceImplTest {
             hayEnCursoYPasado();
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), null))
+                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.semestreNoActivo()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -671,7 +671,7 @@ class EvaluacionServiceImplTest {
             when(evaluacionRepository.findById(ID_EVALUACION)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
-                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), null))
+                    actualizarDto(NOMBRE, FECHA, "30", DESCRIPCION), PROFESOR))
                     .isInstanceOf(EvaluacionNoEncontradaException.class);
         }
 
@@ -706,7 +706,7 @@ class EvaluacionServiceImplTest {
             when(consultaCalificaciones.tieneCalificaciones(ID_EVALUACION)).thenReturn(true);
             guardarDevuelveArgumento();
 
-            EvaluacionResponseDTO respuesta = service.inactivar(ID_EVALUACION, null);
+            EvaluacionResponseDTO respuesta = service.inactivar(ID_EVALUACION, PROFESOR);
 
             assertThat(respuesta.estado()).isEqualTo("INACTIVA");
             assertThat(respuesta.tieneCalificaciones()).isTrue();
@@ -721,7 +721,7 @@ class EvaluacionServiceImplTest {
                     semestreActual(), EstadoEvaluacion.INACTIVA, "30"));
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.inactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.inactivar(ID_EVALUACION, PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.yaInactiva()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -734,7 +734,7 @@ class EvaluacionServiceImplTest {
                     semestrePasado(), EstadoEvaluacion.ACTIVA, "30"));
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.inactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.inactivar(ID_EVALUACION, PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.semestreNoActivo()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -745,7 +745,7 @@ class EvaluacionServiceImplTest {
         void noExiste() {
             when(evaluacionRepository.findById(ID_EVALUACION)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.inactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.inactivar(ID_EVALUACION, PROFESOR))
                     .isInstanceOf(EvaluacionNoEncontradaException.class);
         }
 
@@ -783,7 +783,7 @@ class EvaluacionServiceImplTest {
             asignadoActivas(ID_SEMESTRE_ACTUAL, "50");
             guardarDevuelveArgumento();
 
-            EvaluacionResponseDTO respuesta = service.reactivar(ID_EVALUACION, null);
+            EvaluacionResponseDTO respuesta = service.reactivar(ID_EVALUACION, PROFESOR);
 
             assertThat(respuesta.estado()).isEqualTo("ACTIVA");
             assertThat(e.isInactivadaConRa()).isFalse();
@@ -798,7 +798,7 @@ class EvaluacionServiceImplTest {
             asignadoActivas(ID_SEMESTRE_ACTUAL, "70");
             guardarDevuelveArgumento();
 
-            assertThat(service.reactivar(ID_EVALUACION, null).estado()).isEqualTo("ACTIVA");
+            assertThat(service.reactivar(ID_EVALUACION, PROFESOR).estado()).isEqualTo("ACTIVA");
         }
 
         @Test
@@ -808,7 +808,7 @@ class EvaluacionServiceImplTest {
             hayEnCursoYPasado();
             asignadoActivas(ID_SEMESTRE_ACTUAL, "80");
 
-            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, PROFESOR))
                     .satisfies(e -> assertRegla(e,
                             EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("20"))));
 
@@ -822,7 +822,7 @@ class EvaluacionServiceImplTest {
                     semestreActual(), EstadoEvaluacion.ACTIVA, "30"));
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.yaActiva()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -834,7 +834,7 @@ class EvaluacionServiceImplTest {
             inactiva(EstadoAsignatura.ACTIVA, EstadoRegistro.INACTIVO);
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.resultadoAprendizajeInactivo()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -846,7 +846,7 @@ class EvaluacionServiceImplTest {
             inactiva(EstadoAsignatura.INACTIVA, EstadoRegistro.ACTIVO);
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.asignaturaNoActiva()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -859,7 +859,7 @@ class EvaluacionServiceImplTest {
             e.setSemestre(semestrePasado());
             hayEnCursoYPasado();
 
-            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.reactivar(ID_EVALUACION, PROFESOR))
                     .satisfies(ex -> assertRegla(ex, EvaluacionReglaNegocioException.semestreNoActivo()));
 
             verify(evaluacionRepository, never()).save(any());
@@ -895,7 +895,7 @@ class EvaluacionServiceImplTest {
                     ID_RA, ID_SEMESTRE_ACTUAL)).thenReturn(List.of(e));
             asignadoActivas(ID_SEMESTRE_ACTUAL, "60");
 
-            EvaluacionesRaResumenDTO resumen = service.consultarPorResultadoAprendizaje(ID_RA, null, null);
+            EvaluacionesRaResumenDTO resumen = service.consultarPorResultadoAprendizaje(ID_RA, null, PROFESOR);
 
             assertThat(resumen.semestreId()).isEqualTo(ID_SEMESTRE_ACTUAL);
             assertThat(resumen.semestreCodigo()).isEqualTo("2026-2");
@@ -914,7 +914,7 @@ class EvaluacionServiceImplTest {
                     ID_RA, ID_SEMESTRE_ACTUAL)).thenReturn(List.of());
             asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
 
-            EvaluacionesRaResumenDTO resumen = service.consultarPorResultadoAprendizaje(ID_RA, null, null);
+            EvaluacionesRaResumenDTO resumen = service.consultarPorResultadoAprendizaje(ID_RA, null, PROFESOR);
 
             assertThat(resumen.evaluaciones()).isEmpty();
             assertThat(resumen.porcentajeAsignado()).isEqualByComparingTo("0");
@@ -930,7 +930,7 @@ class EvaluacionServiceImplTest {
                     ID_RA, ID_SEMESTRE_ACTUAL)).thenReturn(List.of());
             asignadoActivas(ID_SEMESTRE_ACTUAL, "100");
 
-            assertThat(service.consultarPorResultadoAprendizaje(ID_RA, null, null).porcentajeDisponible())
+            assertThat(service.consultarPorResultadoAprendizaje(ID_RA, null, PROFESOR).porcentajeDisponible())
                     .isEqualByComparingTo("0");
         }
 
@@ -944,7 +944,7 @@ class EvaluacionServiceImplTest {
             asignadoActivas(ID_SEMESTRE_PASADO, "100");
 
             EvaluacionesRaResumenDTO resumen =
-                    service.consultarPorResultadoAprendizaje(ID_RA, ID_SEMESTRE_PASADO, null);
+                    service.consultarPorResultadoAprendizaje(ID_RA, ID_SEMESTRE_PASADO, PROFESOR);
 
             assertThat(resumen.semestreCodigo()).isEqualTo("2026-1");
             assertThat(resumen.porcentajeAsignado()).isEqualByComparingTo("100");
@@ -958,7 +958,7 @@ class EvaluacionServiceImplTest {
             raActivoExiste();
             when(semestreRepository.findById(desconocido)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.consultarPorResultadoAprendizaje(ID_RA, desconocido, null))
+            assertThatThrownBy(() -> service.consultarPorResultadoAprendizaje(ID_RA, desconocido, PROFESOR))
                     .isInstanceOf(SemestreNoEncontradoException.class);
         }
 
@@ -968,7 +968,7 @@ class EvaluacionServiceImplTest {
             raActivoExiste();
             hoyNoHaySemestreEnCurso();
 
-            assertThatThrownBy(() -> service.consultarPorResultadoAprendizaje(ID_RA, null, null))
+            assertThatThrownBy(() -> service.consultarPorResultadoAprendizaje(ID_RA, null, PROFESOR))
                     .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.sinSemestreActivo()));
         }
 
@@ -977,7 +977,7 @@ class EvaluacionServiceImplTest {
         void raNoExiste() {
             when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.consultarPorResultadoAprendizaje(ID_RA, null, null))
+            assertThatThrownBy(() -> service.consultarPorResultadoAprendizaje(ID_RA, null, PROFESOR))
                     .isInstanceOf(ResultadoAprendizajeNoEncontradoException.class);
         }
 
@@ -998,7 +998,7 @@ class EvaluacionServiceImplTest {
                     semestreActual(), EstadoEvaluacion.ACTIVA, "30"));
             when(consultaCalificaciones.tieneCalificaciones(ID_EVALUACION)).thenReturn(true);
 
-            EvaluacionResponseDTO respuesta = service.consultarPorId(ID_EVALUACION, null);
+            EvaluacionResponseDTO respuesta = service.consultarPorId(ID_EVALUACION, PROFESOR);
 
             assertThat(respuesta.id()).isEqualTo(ID_EVALUACION);
             assertThat(respuesta.tieneCalificaciones()).isTrue();
@@ -1009,7 +1009,7 @@ class EvaluacionServiceImplTest {
         void consultarPorIdNoExiste() {
             when(evaluacionRepository.findById(ID_EVALUACION)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.consultarPorId(ID_EVALUACION, null))
+            assertThatThrownBy(() -> service.consultarPorId(ID_EVALUACION, PROFESOR))
                     .isInstanceOf(EvaluacionNoEncontradaException.class);
         }
 

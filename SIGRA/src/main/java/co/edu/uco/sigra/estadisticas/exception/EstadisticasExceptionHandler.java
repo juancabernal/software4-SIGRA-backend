@@ -32,7 +32,7 @@ public class EstadisticasExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), null);
     }
 
-    /** 401 del control por rol compartido con asignaturas (temporal hasta RF-05). */
+    /** 401 normalizado para compatibilidad con errores de autenticación del módulo. */
     @ExceptionHandler(AutenticacionRequeridaException.class)
     public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AutenticacionRequeridaException ex) {
         ResponseEntity<Map<String, Object>> respuesta =
@@ -42,7 +42,7 @@ public class EstadisticasExceptionHandler {
                 .body(respuesta.getBody());
     }
 
-    /** 403 del control por rol y del alcance del profesor (temporal hasta RF-05). */
+    /** 403 normalizado para rol insuficiente o alcance de recurso. */
     @ExceptionHandler(PermisoInsuficienteException.class)
     public ResponseEntity<Map<String, Object>> manejarSinPermiso(PermisoInsuficienteException ex) {
         return ErrorResponseBuilder.build(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), null);

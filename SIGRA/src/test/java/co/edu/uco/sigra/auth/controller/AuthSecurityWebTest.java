@@ -6,6 +6,8 @@ import co.edu.uco.sigra.auth.dto.UsuarioSesionDTO;
 import co.edu.uco.sigra.auth.exception.CredencialesInvalidasException;
 import co.edu.uco.sigra.auth.exception.UsuarioBloqueadoException;
 import co.edu.uco.sigra.auth.service.AuthService;
+import co.edu.uco.sigra.auth.service.JwtService;
+import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,12 @@ class AuthSecurityWebTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UsuarioRepository usuarioRepository;
 
     @Test
     void loginValidoDevuelve200SinCsrfNiSesion() throws Exception {
@@ -95,6 +103,30 @@ class AuthSecurityWebTest {
         mockMvc.perform(post(URL_LOGIN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonInvalido))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
+    }
+
+    @Test
+    void payloadGrandeSeRechazaAntesDeInvocarElLogin() throws Exception {
+        String payloadGrande = "{\"correoInstitucional\":\"profesor@uco.net.co\",\"contrasena\":\""
+                + "x".repeat(17_000) + "\"}";
+
+        mockMvc.perform(post(URL_LOGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payloadGrande))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.error").value("PAYLOAD_TOO_LARGE"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("x".repeat(100)))));
+        org.mockito.Mockito.verifyNoInteractions(authService);
+    }
+
+    @Test
+    void cuerpoJsonConTipoInesperadoDevuelve400() throws Exception {
+        mockMvc.perform(post(URL_LOGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"correoInstitucional\":123,\"contrasena\":true}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
     }

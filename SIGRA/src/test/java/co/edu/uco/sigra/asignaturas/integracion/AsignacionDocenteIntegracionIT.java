@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -49,7 +50,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // y por último el tipo de documento propio.
 @Tag("integration")
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
+@WithMockUser(roles = "ADMINISTRADOR")
 class AsignacionDocenteIntegracionIT {
 
     private static final String URL = "/api/v1/asignaciones-docentes";

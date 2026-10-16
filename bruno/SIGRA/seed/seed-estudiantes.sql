@@ -21,7 +21,8 @@
 --
 -- Crea su PROPIO programa, asignaturas y semestres (prefijo BRUEST) en lugar de
 -- reutilizar los de seed-asignaturas.sql o seed-semestres.sql, para que este seed
--- se pueda ejecutar de forma independiente.
+-- se pueda ejecutar de forma independiente. Los dos semestres de prueba activos
+-- usan fechas relativas a CURRENT_DATE para no caducar con el calendario.
 --
 -- El tipo de documento SI se reutiliza del catalogo compartido (Cedula de
 -- Ciudadania), igual que ya hace el modulo de profesores: no se inserta uno
@@ -137,10 +138,15 @@ INSERT INTO sigra.semestre (id, codigo, fecha_inicio, fecha_fin, estado) VALUES
 -- catalogo de este entorno es distinto.
 DO $$
 DECLARE
-    v_tipo_doc_id UUID := '07219e8d-126d-44cb-9d22-0f57afebec90';
+    v_tipo_doc_id UUID;
 BEGIN
+    SELECT id INTO v_tipo_doc_id
+      FROM sigra.tipo_documento
+     WHERE lower(nombre) = lower('Cédula de Ciudadanía')
+     ORDER BY id
+     LIMIT 1;
     IF NOT EXISTS (SELECT 1 FROM sigra.tipo_documento WHERE id = v_tipo_doc_id) THEN
-        RAISE EXCEPTION 'Seed abortado: no existe el tipo de documento % (el mismo id que environments/local.bru usa en tipoDocCc). Ajuste v_tipo_doc_id en este script al id real de "Cedula de Ciudadania" en su base.', v_tipo_doc_id;
+        RAISE EXCEPTION 'Seed abortado: no existe el tipo de documento Cédula de Ciudadanía';
     END IF;
 
     INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES

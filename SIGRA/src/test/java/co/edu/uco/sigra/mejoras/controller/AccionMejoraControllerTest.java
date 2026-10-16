@@ -1,6 +1,9 @@
 package co.edu.uco.sigra.mejoras.controller;
 
 import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
+import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.exception.ConclusionNoEncontradaException;
 import co.edu.uco.sigra.evaluaciones.exception.EvaluacionReglaNegocioException;
 import co.edu.uco.sigra.evaluaciones.exception.NombreEvaluacionDuplicadoException;
@@ -48,6 +51,8 @@ class AccionMejoraControllerTest {
     private static final UUID ID_ACCION = UUID.randomUUID();
     private static final UUID ID_EVALUACION = UUID.randomUUID();
     private static final UUID ID_SEMESTRE = UUID.randomUUID();
+    private static final UsuarioPrincipal PRINCIPAL =
+            new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.PROFESOR);
 
     private static final String URL_REGISTRAR = "/api/v1/conclusiones/" + ID_CONCLUSION + "/acciones-mejora";
     private static final String URL_CONVERTIR = "/api/v1/acciones-mejora/" + ID_ACCION + "/conversion";
@@ -61,12 +66,15 @@ class AccionMejoraControllerTest {
 
     @Mock
     private AccionMejoraService service;
+    @Mock
+    private CurrentUser currentUser;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AccionMejoraController(service))
+        org.mockito.Mockito.lenient().when(currentUser.required()).thenReturn(PRINCIPAL);
+        mockMvc = MockMvcBuilders.standaloneSetup(new AccionMejoraController(service, currentUser))
                 .setControllerAdvice(new MejorasExceptionHandler(), new GlobalExceptionHandler())
                 .build();
     }

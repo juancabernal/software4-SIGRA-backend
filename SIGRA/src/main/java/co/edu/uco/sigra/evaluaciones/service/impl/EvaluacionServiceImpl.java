@@ -4,7 +4,7 @@ import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.evaluaciones.config.EvaluacionConfig;
@@ -86,9 +86,9 @@ public class EvaluacionServiceImpl implements EvaluacionService {
     @Override
     @Transactional
     public EvaluacionResponseDTO crear(UUID resultadoAprendizajeId, EvaluacionCrearRequestDTO dto,
-                                       IdentidadActual identidad) {
+                                       UsuarioPrincipal principal) {
         ResultadoAprendizaje resultado = buscarResultado(resultadoAprendizajeId);
-        verificarDueno(identidad, resultado.getAsignatura());
+        verificarDueno(principal, resultado.getAsignatura());
         verificarResultadoYAsignaturaActivos(resultado);
 
         Semestre semestre = obtenerSemestreActivo()
@@ -114,9 +114,9 @@ public class EvaluacionServiceImpl implements EvaluacionService {
 
     @Override
     @Transactional
-    public EvaluacionResponseDTO modificar(UUID id, EvaluacionActualizarRequestDTO dto, IdentidadActual identidad) {
+    public EvaluacionResponseDTO modificar(UUID id, EvaluacionActualizarRequestDTO dto, UsuarioPrincipal principal) {
         Evaluacion evaluacion = buscarEvaluacion(id);
-        verificarDueno(identidad, evaluacion.getResultadoAprendizaje().getAsignatura());
+        verificarDueno(principal, evaluacion.getResultadoAprendizaje().getAsignatura());
         verificarSemestreActivo(evaluacion);
         if (evaluacion.getEstado() == EstadoEvaluacion.INACTIVA) {
             throw EvaluacionReglaNegocioException.modificarInactiva();
@@ -154,9 +154,9 @@ public class EvaluacionServiceImpl implements EvaluacionService {
 
     @Override
     @Transactional
-    public EvaluacionResponseDTO inactivar(UUID id, IdentidadActual identidad) {
+    public EvaluacionResponseDTO inactivar(UUID id, UsuarioPrincipal principal) {
         Evaluacion evaluacion = buscarEvaluacion(id);
-        verificarDueno(identidad, evaluacion.getResultadoAprendizaje().getAsignatura());
+        verificarDueno(principal, evaluacion.getResultadoAprendizaje().getAsignatura());
         verificarSemestreActivo(evaluacion);
         if (evaluacion.getEstado() == EstadoEvaluacion.INACTIVA) {
             throw EvaluacionReglaNegocioException.yaInactiva();
@@ -169,10 +169,10 @@ public class EvaluacionServiceImpl implements EvaluacionService {
 
     @Override
     @Transactional
-    public EvaluacionResponseDTO reactivar(UUID id, IdentidadActual identidad) {
+    public EvaluacionResponseDTO reactivar(UUID id, UsuarioPrincipal principal) {
         Evaluacion evaluacion = buscarEvaluacion(id);
         ResultadoAprendizaje resultado = evaluacion.getResultadoAprendizaje();
-        verificarDueno(identidad, resultado.getAsignatura());
+        verificarDueno(principal, resultado.getAsignatura());
         verificarSemestreActivo(evaluacion);
         if (evaluacion.getEstado() == EstadoEvaluacion.ACTIVA) {
             throw EvaluacionReglaNegocioException.yaActiva();
@@ -191,9 +191,9 @@ public class EvaluacionServiceImpl implements EvaluacionService {
     @Override
     @Transactional
     public EvaluacionesRaResumenDTO consultarPorResultadoAprendizaje(UUID resultadoAprendizajeId, UUID semestreId,
-                                                                    IdentidadActual identidad) {
+                                                                    UsuarioPrincipal principal) {
         ResultadoAprendizaje resultado = buscarResultado(resultadoAprendizajeId);
-        verificarDueno(identidad, resultado.getAsignatura());
+        verificarDueno(principal, resultado.getAsignatura());
 
         Semestre semestre = semestreId != null
                 ? semestreRepository.findById(semestreId).orElseThrow(() -> new SemestreNoEncontradoException(semestreId))
@@ -213,9 +213,9 @@ public class EvaluacionServiceImpl implements EvaluacionService {
 
     @Override
     @Transactional
-    public EvaluacionResponseDTO consultarPorId(UUID id, IdentidadActual identidad) {
+    public EvaluacionResponseDTO consultarPorId(UUID id, UsuarioPrincipal principal) {
         Evaluacion evaluacion = buscarEvaluacion(id);
-        verificarDueno(identidad, evaluacion.getResultadoAprendizaje().getAsignatura());
+        verificarDueno(principal, evaluacion.getResultadoAprendizaje().getAsignatura());
         return aResponse(evaluacion);
     }
 
@@ -267,19 +267,15 @@ public class EvaluacionServiceImpl implements EvaluacionService {
     }
 
     /**
-     * Sin identidad (control por rol apagado) no se filtra. El PROFESOR necesita asignación docente
-     * ACTIVA en la asignatura; cualquier otro rol no gestiona evaluaciones (matriz RBAC: Propio solo
-     * para el profesor).
+     * La identidad es obligatoria. El PROFESOR necesita asignación docente ACTIVA en la asignatura;
+     * cualquier otro rol no gestiona evaluaciones (matriz RBAC: Propio solo para el profesor).
      */
-    private void verificarDueno(IdentidadActual identidad, Asignatura asignatura) {
-        if (identidad == null) {
-            return;
-        }
-        if (identidad.rol() != RolUsuario.PROFESOR) {
+    private void verificarDueno(UsuarioPrincipal principal, Asignatura asignatura) {
+        if (principal == null || principal.rol() != RolUsuario.PROFESOR) {
             throw new PermisoInsuficienteException();
         }
         boolean asignada = asignacionDocenteRepository
-                .findByProfesor_IdAndEstado(identidad.id(), EstadoRegistro.ACTIVO)
+                .findByProfesor_IdAndEstado(principal.id(), EstadoRegistro.ACTIVO)
                 .stream()
                 .anyMatch(asignacion -> asignacion.getAsignatura().getId().equals(asignatura.getId()));
         if (!asignada) {

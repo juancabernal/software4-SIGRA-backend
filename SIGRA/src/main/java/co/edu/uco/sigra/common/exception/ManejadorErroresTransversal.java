@@ -44,9 +44,9 @@ import java.util.Map;
  *
  * <p>Esta clase declara <strong>únicamente</strong> tipos de excepción que ningún advice existente
  * declara, y <strong>nunca</strong> {@code Exception} ni {@code Throwable}. No es una preferencia de
- * estilo: con el orden {@code 0}, un método para {@code Exception} le ganaría a
- * {@code ProfesorExceptionHandler} —que está en {@code LOWEST_PRECEDENCE}— y convertiría sus 404 y
- * 409 en 500. Sería romper el módulo de un compañero para arreglar un contrato. Si alguien necesita
+ * estilo: aunque {@code ProfesorExceptionHandler} ya está protegido con
+ * {@code @Order(Ordered.HIGHEST_PRECEDENCE)}, un catch-all transversal introduciría una precedencia
+ * global innecesaria y podría robar excepciones de dominio a cualquier módulo. Si alguien necesita
  * un respaldo para lo inesperado, ya existe: es el de {@link GlobalExceptionHandler}.
  *
  * <h2>Lo que llega al cliente y lo que se queda en el log</h2>
@@ -172,7 +172,9 @@ public class ManejadorErroresTransversal {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> manejarViolacionDeIntegridad(
             DataIntegrityViolationException ex) {
-        log.error("Violación de integridad de datos en una operación de la API", ex);
+        log.error("Evento error=DATA_INTEGRITY requestId={} causa={}",
+                co.edu.uco.sigra.auth.security.RequestCorrelationFilter.currentRequestId(),
+                ex.getClass().getSimpleName());
         return ConstructorRespuestaError.construir(HttpStatus.CONFLICT,
                 "La operación entra en conflicto con información ya registrada en el sistema");
     }

@@ -5,6 +5,10 @@
 # Trabajo 2 - pruebas de integración: levanta PostgreSQL 16, crea el esquema sigra desde
 #   docs/db/SIGRA_SCHEMA_CURRENT.sql y ejecuta ./gradlew integrationTest con ddl-auto=validate.
 #   Si falta una tabla o columna para alguna entidad, este trabajo falla.
+# Trabajo 3 - SCA opcional (opt-in por variables de repositorio): Dependency Review y OWASP
+#   requieren capacidades/secretos del administrador, actualmente ausentes. Ambos quedan
+#   reportados como SKIPPED por defecto, NO como PASS de seguridad. La persona responsable
+#   debe habilitarlos cuando tenga acceso; los tests unitarios y de integración NO se omiten.
 #
 # Secretos (opcionales): CI_DB_PASSWORD y CI_JWT_SECRET en Settings > Secrets and variables > Actions.
 # Si no existen se usan los valores de respaldo de abajo, que son desechables y viven solo
@@ -19,6 +23,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -29,6 +34,58 @@ defaults:
     working-directory: SIGRA
 
 jobs:
+  analisis-dependencias:
+    name: SCA de dependencias
+    # Opt-in cuando el propietario habilite Dependency Graph y establezca la variable en true.
+    # SKIPPED no significa auditado ni ausencia de vulnerabilidades.
+    if: github.event_name == 'pull_request' && vars.SIGRA_ENABLE_DEPENDENCY_REVIEW == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Revisar cambios de dependencias
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+
+  analisis-dependencias-gradle:
+    name: SCA Gradle (OWASP Dependency-Check)
+    # Opt-in cuando exista una NVD_API_KEY válida en Actions Secrets y el propietario habilite esta variable.
+    # El escaneo conserva el fallo estricto si está activado; no se usa continue-on-error.
+    if: github.event_name == 'pull_request' && vars.SIGRA_ENABLE_OWASP_SCA == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Dar permiso de ejecución a gradlew
+        run: chmod +x gradlew
+
+      - name: Ejecutar análisis de dependencias con umbral CVSS 4.0
+        run: ./gradlew dependencyCheckAnalyze --no-daemon
+
+      - name: Guardar reportes SCA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-sca-gradle
+          path: SIGRA/build/reports/dependency-check
+          if-no-files-found: warn
+
   pruebas-unitarias:
     name: Pruebas unitarias
     runs-on: ubuntu-latest

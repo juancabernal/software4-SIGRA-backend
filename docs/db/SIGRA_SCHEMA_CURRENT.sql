@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS sigra.estudiante (
 
 -- -----------------------------------------------------------------------------
 -- Matrícula (RF-08, RF-09): vínculo estudiante - asignatura - semestre.
--- La terna es única sin importar el estado: desvincular pasa el registro a INACTIVO.
+-- La terna es única sin importar el estado: desvincular pasa el registro a DESVINCULADA.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sigra.matricula (
     id              UUID         NOT NULL DEFAULT gen_random_uuid(),

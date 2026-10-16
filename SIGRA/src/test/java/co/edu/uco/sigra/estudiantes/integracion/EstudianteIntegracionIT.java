@@ -2,9 +2,11 @@ package co.edu.uco.sigra.estudiantes.integracion;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
@@ -32,6 +34,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -50,9 +56,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // Sin @Transactional: el servicio confirma de verdad y cada caso verifica la respuesta HTTP y la fila real,
 // igual que SemestreIntegracionIT y AsignaturaIntegracionIT.
 //
-// Seguridad: los @PreAuthorize de EstudianteController y MatriculaController siguen comentados y
-// SecurityConfig usa permitAll(), así que esta clase no cubre roles (a diferencia de AsignaturaIntegracionIT).
-// Si se activa RF-05 para este módulo, hay que añadir un caso de 401/403 aquí.
+// Seguridad: estas pruebas preservan el foco de regresión de persistencia y deshabilitan los filtros
+// MockMvc. La cadena real y el RBAC se cubren en SecurityFilterMockMvcTest y AsignaturaIntegracionIT.
 //
 // Aislamiento de datos: numeroDocumento/correo de estudiante usan el prefijo reservado 990000xxx / "ite-"
 // (el patrón \d{6,10} de EstudianteRequestDTO no admite letras, por eso el documento es numérico). Las
@@ -70,7 +75,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // sufijo "3", it06 usa "4". Al añadir un caso nuevo, usar un sufijo fuera de estos rangos.
 @Tag("integration")
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
+@WithMockUser(roles = "ADMINISTRADOR")
 class EstudianteIntegracionIT {
 
     private static final String URL_ESTUDIANTES = "/api/v1/estudiantes";
@@ -117,6 +123,12 @@ class EstudianteIntegracionIT {
 
         semestre1 = guardarSemestre(PREFIJO_SEMESTRE + "1", EstadoSemestre.ACTIVO);
         semestre2 = guardarSemestre(PREFIJO_SEMESTRE + "2", EstadoSemestre.ACTIVO);
+
+        UsuarioPrincipal principal = new UsuarioPrincipal(
+                UUID.randomUUID(), "it-admin@uco.net.co", RolUsuario.ADMINISTRADOR);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + principal.rol().name()))));
     }
 
     @AfterEach
@@ -150,6 +162,7 @@ class EstudianteIntegracionIT {
         tipoDocumentoRepository.deleteAll(tipoDocumentoRepository.findAll().stream()
                 .filter(t -> NOMBRE_TIPO_DOCUMENTO.equals(t.getNombre()))
                 .toList());
+        SecurityContextHolder.clearContext();
     }
 
     private boolean esPropio(Estudiante estudiante) {

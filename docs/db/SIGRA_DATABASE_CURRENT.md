@@ -39,7 +39,7 @@ Estrategia:            el esquema lo controla SQL/migraciones.
 | Elemento | Decisión |
 | --- | --- |
 | Creación del esquema | `docs/db/SIGRA_SCHEMA_CURRENT.sql` (base vacía) |
-| Cambios sobre una base existente | Scripts SQL revisados y ejecutados a mano (`RF04_usuario_migration.sql`, ya aplicada; `RF09_estudiante_y_asignacion_docente_migration.sql`; y `RF04_administrador_y_estudiante_subtipos_migration.sql`; `RF08_matricula_migration.sql`; y `RF03_ra_inactivado_con_asignatura_migration.sql`) |
+| Cambios sobre una base existente | Scripts SQL versionados: `RF04_usuario_migration.sql`, `RF09_estudiante_y_asignacion_docente_migration.sql`, `RF04_administrador_y_estudiante_subtipos_migration.sql`, `RF08_matricula_migration.sql`, `RF08_matricula_fecha_y_estado_migration.sql` y `RF03_ra_inactivado_con_asignatura_migration.sql` |
 | Validación en el arranque | Hibernate `ddl-auto=validate`: si una entidad no coincide con la tabla, el backend no arranca |
 | Hibernate modifica tablas | **No.** Ni `update`, ni `create`, ni `create-drop` |
 
@@ -128,10 +128,11 @@ Vínculo entre un estudiante, una asignatura y un semestre.
 | `estudiante_id` | UUID | no | FK a `sigra.estudiante(id)` |
 | `asignatura_id` | UUID | no | FK a `sigra.asignatura(id)` |
 | `semestre_id` | UUID | no | FK a `sigra.semestre(id)` |
-| `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK), por defecto `ACTIVO` |
+| `fecha_matricula` | DATE | no | Fecha asignada por el backend; no proviene del cliente |
+| `estado` | VARCHAR(255) | no | `ACTIVA` / `DESVINCULADA` (CHECK), por defecto `ACTIVA` |
 
 La terna `(estudiante_id, asignatura_id, semestre_id)` es **única sin importar el estado**
-(`uk_matricula_terna`). Desvincular no borra el registro: lo deja en `INACTIVO`, y volver a
+(`uk_matricula_terna`). Desvincular no borra el registro: lo deja en `DESVINCULADA`, y volver a
 matricular la misma terna reactiva ese registro en lugar de crear otro.
 
 ## Columna `sigra.resultado_aprendizaje.inactivado_con_asignatura` (RF-03)
