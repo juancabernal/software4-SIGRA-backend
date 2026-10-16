@@ -1,8 +1,10 @@
 package co.edu.uco.sigra.estudiantes.service;
 
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
@@ -16,6 +18,7 @@ import co.edu.uco.sigra.estudiantes.mapper.EstudianteMapper;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.service.impl.EstudianteServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +70,14 @@ class EstudianteServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new EstudianteServiceImpl(estudianteRepository, tipoDocumentoRepository, mapper, usuarioRepository);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                new UsuarioPrincipal(UUID.randomUUID(), "admin@uco.net.co", RolUsuario.ADMINISTRADOR),
+                null, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
+    }
+
+    @AfterEach
+    void limpiarIdentidad() {
+        SecurityContextHolder.clearContext();
     }
 
     private static TipoDocumento tipoDocumento() {
@@ -371,6 +385,26 @@ class EstudianteServiceImplTest {
             assertThatThrownBy(() -> service.consultarPorId(ID_ESTUDIANTE))
                     .isInstanceOf(EstudianteNoEncontradoException.class)
                     .hasMessageContaining(ID_ESTUDIANTE.toString());
+        }
+
+        @Test
+        @DisplayName("El profesor comprueba alcance con EXISTS y no carga la lista completa")
+        void profesorUsaComprobacionPuntualDeAlcance() {
+            UUID profesorId = UUID.randomUUID();
+            UsuarioPrincipal profesor = new UsuarioPrincipal(
+                    profesorId, "profesor@uco.net.co", RolUsuario.PROFESOR);
+            existe(EstadoRegistro.ACTIVO);
+            when(estudianteRepository.existsVisibleToProfessor(
+                    ID_ESTUDIANTE, profesorId, EstadoRegistro.ACTIVO,
+                    EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO)).thenReturn(true);
+
+            service.consultarPorId(ID_ESTUDIANTE, profesor);
+
+            verify(estudianteRepository).existsVisibleToProfessor(
+                    ID_ESTUDIANTE, profesorId, EstadoRegistro.ACTIVO,
+                    EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO);
+            verify(estudianteRepository, never()).buscarVisiblesParaProfesor(
+                    any(), any(), any(), any(), any());
         }
     }
 

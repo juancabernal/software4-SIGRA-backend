@@ -15,6 +15,13 @@ Esta guía deja un entorno local listo para ejecutar el backend y probar el logi
 
 ## 2. Antes de tocar la base
 
+Para revisar una base remota como Neon sin modificarla, ejecuta primero
+`docs/db/SIGRA_NEON_READONLY_DIAGNOSTIC.sql`. El script enumera `public` y `sigra`, tablas,
+columnas, restricciones, claves foráneas y conteos exactos dentro de una transacción `READ ONLY`
+que termina en `ROLLBACK`. Guarda su salida y compárala con
+`docs/db/SIGRA_SCHEMA_CURRENT.sql`; no cargues seeds ni ejecutes migraciones hasta decidir si
+falta estructura o solo datos.
+
 Primero identifica tu instalación de PostgreSQL:
 
 ```sql

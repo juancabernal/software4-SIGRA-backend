@@ -121,6 +121,35 @@ class JwtServiceTest {
     }
 
     @Test
+    void tokenFirmadoConOtraClaveEsRechazado() {
+        SecretKey otraClave = Keys.hmacShaKeyFor(
+                "otra_clave_hs256_distinta_y_suficientemente_larga_123".getBytes(StandardCharsets.UTF_8));
+        String token = Jwts.builder()
+                .subject(usuario.getId().toString())
+                .claim("correo", usuario.getCorreoInstitucional())
+                .claim("rol", usuario.getRol().name())
+                .issuedAt(Date.from(AHORA))
+                .expiration(Date.from(AHORA.plusMillis(EXPIRACION_MS)))
+                .signWith(otraClave, Jwts.SIG.HS256)
+                .compact();
+
+        assertThat(jwtService.esTokenValido(token)).isFalse();
+    }
+
+    @Test
+    void tokenSinClaimsObligatoriosEsRechazado() {
+        SecretKey clave = Keys.hmacShaKeyFor(SECRET_VALIDO.getBytes(StandardCharsets.UTF_8));
+        String token = Jwts.builder()
+                .subject(usuario.getId().toString())
+                .issuedAt(Date.from(AHORA))
+                .expiration(Date.from(AHORA.plusMillis(EXPIRACION_MS)))
+                .signWith(clave, Jwts.SIG.HS256)
+                .compact();
+
+        assertThat(jwtService.esTokenValido(token)).isFalse();
+    }
+
+    @Test
     void getExpiracionSegundosDevuelve3600() {
         assertThat(jwtService.getExpiracionSegundos()).isEqualTo(3600);
     }

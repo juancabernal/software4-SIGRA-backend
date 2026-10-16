@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.owasp.dependencycheck' version '13.0.0'
 }
 
 group = 'com.sigra'
@@ -42,6 +43,21 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+}
+
+// SCA ejecutable para CI cuando la Dependency Review API de GitHub no está disponible.
+// CVSS >= 4.0 bloquea el build (moderada, alta y crítica); los errores del scanner también
+// bloquean para evitar un falso PASS por falta de datos NVD.
+dependencyCheck {
+	failBuildOnCVSS = 4.0
+	failOnError = true
+	formats = ['HTML', 'SARIF', 'JUNIT']
+	nvd {
+		def nvdApiKey = System.getenv('NVD_API_KEY')
+		if (nvdApiKey) {
+			apiKey = nvdApiKey
+		}
+	}
 }
 
 // Pruebas unitarias y de capa web (sin PostgreSQL). Se ejecutan con: .\gradlew.bat test
