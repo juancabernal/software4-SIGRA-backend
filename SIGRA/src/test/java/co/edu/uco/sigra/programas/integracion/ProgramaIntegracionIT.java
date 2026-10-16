@@ -43,7 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // @BeforeEach y @AfterEach borran solo las filas con ese prefijo, en programas y en asignaturas.
 @Tag("integration")
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @WithMockUser(roles = "ADMINISTRADOR")
 class ProgramaIntegracionIT {
 

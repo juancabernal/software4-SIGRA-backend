@@ -140,13 +140,21 @@ class SecurityRf05IntegrationIT {
         String tokenProfesorB = token(profesorB);
         String tokenEstudianteA = token(estudianteA);
 
+        assertThat(matriculaRepository.countActiveByStudentAndProfessor(
+                estudianteA.getId(), profesorA.getId(), EstadoMatricula.ACTIVA,
+                EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO))
+                .as("la fixture debe dejar estudianteA visible para profesorA")
+                .isEqualTo(1);
+
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteA.getId()), null)
                 .getResponse().getStatus()).isEqualTo(401);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteA.getId()), "token-manipulado")
                 .getResponse().getStatus()).isEqualTo(401);
 
-        assertThat(enviar(get("/api/v1/estudiantes/" + estudianteA.getId()), tokenProfesorA)
-                .getResponse().getStatus()).isEqualTo(200);
+        MvcResult estudianteAParaProfesorA = enviar(
+                get("/api/v1/estudiantes/" + estudianteA.getId()), tokenProfesorA);
+        assertThat(estudianteAParaProfesorA.getResponse().getStatus())
+                .as(cuerpo(estudianteAParaProfesorA)).isEqualTo(200);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteB.getId()), tokenProfesorA)
                 .getResponse().getStatus()).isEqualTo(403);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteB.getId()), tokenProfesorB)

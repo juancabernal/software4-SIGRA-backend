@@ -50,7 +50,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // y por último el tipo de documento propio.
 @Tag("integration")
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @WithMockUser(roles = "ADMINISTRADOR")
 class AsignacionDocenteIntegracionIT {
 
