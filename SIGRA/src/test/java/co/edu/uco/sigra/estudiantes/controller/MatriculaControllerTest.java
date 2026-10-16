@@ -3,9 +3,15 @@ package co.edu.uco.sigra.estudiantes.controller;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.exception.AsercionesContratoError;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.estudiantes.exception.ConfirmacionRequeridaException;
+import co.edu.uco.sigra.estudiantes.exception.CorreoEstudianteDuplicadoException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
+import co.edu.uco.sigra.estudiantes.exception.EstudianteYaRegistradoException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaDuplicadaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaNoEncontradaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaYaInactivaException;
@@ -13,6 +19,7 @@ import co.edu.uco.sigra.estudiantes.exception.ReferenciaNoEncontradaException;
 import co.edu.uco.sigra.estudiantes.exception.ReglaDeMatriculaException;
 import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapperImpl;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
+import co.edu.uco.sigra.estudiantes.service.MatriculaService.ResultadoAltaConMatricula;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService.ResultadoMatricula;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import org.junit.jupiter.api.DisplayName;
@@ -31,12 +38,16 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import tools.jackson.databind.JsonNode;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,10 +79,27 @@ class MatriculaControllerTest {
     private static final UUID ID_ASIGNATURA = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID ID_SEMESTRE = UUID.fromString("33333333-3333-3333-3333-333333333333");
     private static final UUID ID_MATRICULA = UUID.fromString("44444444-4444-4444-4444-444444444444");
+    private static final UUID ID_TIPO_DOCUMENTO = UUID.fromString("55555555-5555-5555-5555-555555555555");
+
+    /** Fecha que trae la matrícula devuelta por el servicio mockeado: la fija el sistema, no el cliente. */
+    private static final LocalDate FECHA_MATRICULA = LocalDate.of(2026, 3, 2);
 
     private static final String CUERPO_VALIDO = """
             {
               "estudianteId": "11111111-1111-1111-1111-111111111111",
+              "asignaturaId": "22222222-2222-2222-2222-222222222222",
+              "semestreId": "33333333-3333-3333-3333-333333333333"
+            }
+            """;
+
+    private static final String CUERPO_VALIDO_CON_ESTUDIANTE = """
+            {
+              "estudiante": {
+                "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
+                "numeroDocumento": "1098765432",
+                "nombreCompleto": "Ana Gómez",
+                "correoInstitucional": "ana.gomez@uco.net.co"
+              },
               "asignaturaId": "22222222-2222-2222-2222-222222222222",
               "semestreId": "33333333-3333-3333-3333-333333333333"
             }
@@ -84,7 +112,7 @@ class MatriculaControllerTest {
     private MatriculaService matriculaService;
 
     private static Matricula matriculaCompleta(UUID id, UUID estudianteId, UUID asignaturaId, UUID semestreId,
-                                                 EstadoRegistro estado) {
+                                                 EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         ReflectionTestUtils.setField(estudiante, "id", estudianteId);
         estudiante.setNumeroDocumento("1098765432");
@@ -103,12 +131,18 @@ class MatriculaControllerTest {
         matricula.setEstudiante(estudiante);
         matricula.setAsignatura(asignatura);
         matricula.setSemestre(semestre);
+        matricula.setFechaMatricula(FECHA_MATRICULA);
         matricula.setEstado(estado);
         return matricula;
     }
 
+    private static EstudianteResponseDTO estudianteCreadoDeAna(UUID id) {
+        return new EstudianteResponseDTO(
+                id, "Cédula de ciudadanía", "1098765432", "Ana Gómez", "ana.gomez@uco.net.co", "ACTIVO");
+    }
+
     private static Matricula matriculaDeListado(UUID id, String numeroDocumento, String nombreCompleto,
-                                                  EstadoRegistro estado) {
+                                                  EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         estudiante.setNumeroDocumento(numeroDocumento);
         estudiante.setNombreCompleto(nombreCompleto);
@@ -116,6 +150,7 @@ class MatriculaControllerTest {
         Matricula matricula = new Matricula();
         matricula.setId(id);
         matricula.setEstudiante(estudiante);
+        matricula.setFechaMatricula(FECHA_MATRICULA);
         matricula.setEstado(estado);
         return matricula;
     }
@@ -128,7 +163,7 @@ class MatriculaControllerTest {
         @DisplayName("Cuerpo válido y matrícula nueva devuelve 201 con la matrícula creada")
         void cuerpoValidoMatriculaNuevaDevuelve201() throws Exception {
             Matricula matricula = matriculaCompleta(ID_MATRICULA, ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE,
-                    EstadoRegistro.ACTIVO);
+                    EstadoMatricula.ACTIVA);
             given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .willReturn(new ResultadoMatricula(matricula, false));
 
@@ -140,14 +175,15 @@ class MatriculaControllerTest {
                     .andExpect(jsonPath("$.estudianteId").value(ID_ESTUDIANTE.toString()))
                     .andExpect(jsonPath("$.asignaturaId").value(ID_ASIGNATURA.toString()))
                     .andExpect(jsonPath("$.semestreId").value(ID_SEMESTRE.toString()))
-                    .andExpect(jsonPath("$.estado").value("ACTIVO"));
+                    .andExpect(jsonPath("$.fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$.estado").value("ACTIVA"));
         }
 
         @Test
         @DisplayName("Cuerpo válido y matrícula reactivada devuelve 200, no 201")
         void cuerpoValidoMatriculaReactivadaDevuelve200() throws Exception {
             Matricula matricula = matriculaCompleta(ID_MATRICULA, ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE,
-                    EstadoRegistro.ACTIVO);
+                    EstadoMatricula.ACTIVA);
             given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .willReturn(new ResultadoMatricula(matricula, true));
 
@@ -156,7 +192,34 @@ class MatriculaControllerTest {
                             .content(CUERPO_VALIDO))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(ID_MATRICULA.toString()))
-                    .andExpect(jsonPath("$.estado").value("ACTIVO"));
+                    .andExpect(jsonPath("$.fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$.estado").value("ACTIVA"));
+        }
+
+        @Test
+        @DisplayName("Una fecha enviada en el cuerpo se ignora: la matrícula se crea con la del sistema")
+        void fechaEnviadaPorElClienteSeIgnora() throws Exception {
+            String cuerpoConFechaPropia = """
+                    {
+                      "estudianteId": "11111111-1111-1111-1111-111111111111",
+                      "asignaturaId": "22222222-2222-2222-2222-222222222222",
+                      "semestreId": "33333333-3333-3333-3333-333333333333",
+                      "fechaMatricula": "1999-01-01"
+                    }
+                    """;
+            Matricula matricula = matriculaCompleta(ID_MATRICULA, ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE,
+                    EstadoMatricula.ACTIVA);
+            given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
+                    .willReturn(new ResultadoMatricula(matricula, false));
+
+            mockMvc.perform(post(RUTA)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoConFechaPropia))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.fechaMatricula").value("2026-03-02"));
+
+            // El contrato de entrada no tiene fecha: el servicio recibe solo la terna.
+            verify(matriculaService).matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE);
         }
 
         @Test
@@ -224,17 +287,26 @@ class MatriculaControllerTest {
         }
 
         @Test
-        @DisplayName("Semestre no activo devuelve 400 sin detalles")
-        void semestreNoActivoDevuelve400() throws Exception {
+        @DisplayName("Semestre no vigente devuelve 400 sin detalles")
+        void semestreNoVigenteDevuelve400() throws Exception {
             given(matriculaService.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
-                    .willThrow(ReglaDeMatriculaException.semestreNoActivo(ID_SEMESTRE));
+                    .willThrow(ReglaDeMatriculaException.semestreNoVigente(ID_SEMESTRE));
 
             MvcResult resultado = mockMvc.perform(post(RUTA)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(CUERPO_VALIDO))
                     .andReturn();
 
-            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.BAD_REQUEST);
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.BAD_REQUEST);
+
+            // Mensaje nuevo (design.md, D3): la vigencia se juzga por fechas, no por la marca de
+            // estado almacenada. El contrato transversal ya garantiza timestamp/status/error/mensaje
+            // y la ausencia de detalle técnico; aquí se confirma que el texto es el nuevo y no el
+            // viejo ("no está activo").
+            assertThat(cuerpo.get("mensaje").stringValue())
+                    .as("El mensaje debe hablar de vigencia, no del estado almacenado del semestre")
+                    .contains("no está vigente")
+                    .doesNotContain("no está activo");
         }
 
         @Test
@@ -281,6 +353,269 @@ class MatriculaControllerTest {
     }
 
     @Nested
+    @DisplayName("POST /api/v1/matriculas/con-estudiante")
+    class RegistrarYMatricular {
+
+        private static final String RUTA_CON_ESTUDIANTE = RUTA + "/con-estudiante";
+
+        @Test
+        @DisplayName("Cuerpo válido devuelve 201 con el estudiante y la matrícula creados")
+        void cuerpoValidoDevuelve201ConEstudianteYMatricula() throws Exception {
+            EstudianteResponseDTO estudianteCreado = estudianteCreadoDeAna(ID_ESTUDIANTE);
+            Matricula matricula = matriculaCompleta(ID_MATRICULA, ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE,
+                    EstadoMatricula.ACTIVA);
+            given(matriculaService.registrarYMatricular(any(EstudianteRequestDTO.class), eq(ID_ASIGNATURA),
+                    eq(ID_SEMESTRE))).willReturn(new ResultadoAltaConMatricula(estudianteCreado, matricula));
+
+            // El estudiante siempre es nuevo en esta operación (RF-09a): a diferencia de
+            // matricular(), aquí no existe una rama de reactivación que pueda devolver 200.
+            mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_VALIDO_CON_ESTUDIANTE))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.estudiante.id").value(ID_ESTUDIANTE.toString()))
+                    .andExpect(jsonPath("$.estudiante.numeroDocumento").value("1098765432"))
+                    .andExpect(jsonPath("$.estudiante.correoInstitucional").value("ana.gomez@uco.net.co"))
+                    .andExpect(jsonPath("$.estudiante.estado").value("ACTIVO"))
+                    .andExpect(jsonPath("$.matricula.id").value(ID_MATRICULA.toString()))
+                    .andExpect(jsonPath("$.matricula.estudianteId").value(ID_ESTUDIANTE.toString()))
+                    .andExpect(jsonPath("$.matricula.asignaturaId").value(ID_ASIGNATURA.toString()))
+                    .andExpect(jsonPath("$.matricula.semestreId").value(ID_SEMESTRE.toString()))
+                    .andExpect(jsonPath("$.matricula.fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$.matricula.estado").value("ACTIVA"));
+        }
+
+        @Test
+        @DisplayName("Documento inválido anidado en estudiante devuelve 400 con el campo señalado en detalles")
+        void documentoInvalidoAnidadoDevuelve400() throws Exception {
+            String cuerpoInvalido = """
+                    {
+                      "estudiante": {
+                        "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
+                        "numeroDocumento": "123",
+                        "nombreCompleto": "Ana Gómez",
+                        "correoInstitucional": "ana.gomez@uco.net.co"
+                      },
+                      "asignaturaId": "22222222-2222-2222-2222-222222222222",
+                      "semestreId": "33333333-3333-3333-3333-333333333333"
+                    }
+                    """;
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoInvalido))
+                    .andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoConDetalles(resultado, HttpStatus.BAD_REQUEST);
+
+            // El path que reporta Spring para un campo anidado bajo @Valid (nombre simple de la
+            // hoja o la ruta completa "estudiante.numeroDocumento") no se asume: se confirma con
+            // la propia ejecución de la prueba, que ya exige que el detalle nombre el campo.
+            assertThat(cuerpo.get("detalles").toString())
+                    .as("El detalle debe nombrar el campo inválido")
+                    .contains("numeroDocumento");
+
+            verify(matriculaService, never()).registrarYMatricular(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Correo con dominio inválido anidado en estudiante devuelve 400 con el campo señalado en detalles")
+        void correoConDominioInvalidoAnidadoDevuelve400() throws Exception {
+            String cuerpoInvalido = """
+                    {
+                      "estudiante": {
+                        "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
+                        "numeroDocumento": "1098765432",
+                        "nombreCompleto": "Ana Gómez",
+                        "correoInstitucional": "ana.gomez@gmail.com"
+                      },
+                      "asignaturaId": "22222222-2222-2222-2222-222222222222",
+                      "semestreId": "33333333-3333-3333-3333-333333333333"
+                    }
+                    """;
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoInvalido))
+                    .andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoConDetalles(resultado, HttpStatus.BAD_REQUEST);
+
+            assertThat(cuerpo.get("detalles").toString())
+                    .as("El detalle debe nombrar el campo de correo inválido")
+                    .contains("correoInstitucional");
+
+            verify(matriculaService, never()).registrarYMatricular(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Estudiante ausente del cuerpo devuelve 400 con el contenedor señalado en detalles")
+        void estudianteAusenteDevuelve400() throws Exception {
+            String cuerpoInvalido = """
+                    {
+                      "asignaturaId": "22222222-2222-2222-2222-222222222222",
+                      "semestreId": "33333333-3333-3333-3333-333333333333"
+                    }
+                    """;
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoInvalido))
+                    .andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoConDetalles(resultado, HttpStatus.BAD_REQUEST);
+
+            assertThat(cuerpo.get("detalles").toString())
+                    .as("El detalle debe nombrar el contenedor estudiante ausente, sin cascada porque no hay objeto")
+                    .contains("estudiante");
+
+            verify(matriculaService, never()).registrarYMatricular(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("asignaturaId ausente devuelve 400 con el campo señalado en detalles")
+        void asignaturaIdAusenteDevuelve400() throws Exception {
+            String cuerpoInvalido = """
+                    {
+                      "estudiante": {
+                        "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
+                        "numeroDocumento": "1098765432",
+                        "nombreCompleto": "Ana Gómez",
+                        "correoInstitucional": "ana.gomez@uco.net.co"
+                      },
+                      "semestreId": "33333333-3333-3333-3333-333333333333"
+                    }
+                    """;
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoInvalido))
+                    .andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoConDetalles(resultado, HttpStatus.BAD_REQUEST);
+
+            assertThat(cuerpo.get("detalles").toString())
+                    .as("El detalle debe nombrar el campo faltante")
+                    .contains("asignaturaId");
+
+            verify(matriculaService, never()).registrarYMatricular(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("semestreId ausente devuelve 400 con el campo señalado en detalles")
+        void semestreIdAusenteDevuelve400() throws Exception {
+            String cuerpoInvalido = """
+                    {
+                      "estudiante": {
+                        "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
+                        "numeroDocumento": "1098765432",
+                        "nombreCompleto": "Ana Gómez",
+                        "correoInstitucional": "ana.gomez@uco.net.co"
+                      },
+                      "asignaturaId": "22222222-2222-2222-2222-222222222222"
+                    }
+                    """;
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpoInvalido))
+                    .andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoConDetalles(resultado, HttpStatus.BAD_REQUEST);
+
+            assertThat(cuerpo.get("detalles").toString())
+                    .as("El detalle debe nombrar el campo faltante")
+                    .contains("semestreId");
+
+            verify(matriculaService, never()).registrarYMatricular(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Documento ya registrado devuelve 409 sin detalles")
+        void documentoYaRegistradoDevuelve409() throws Exception {
+            given(matriculaService.registrarYMatricular(any(EstudianteRequestDTO.class), eq(ID_ASIGNATURA),
+                    eq(ID_SEMESTRE))).willThrow(EstudianteYaRegistradoException.porDocumento("1098765432"));
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_VALIDO_CON_ESTUDIANTE))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+        }
+
+        @Test
+        @DisplayName("Correo ya registrado devuelve 409 sin detalles")
+        void correoYaRegistradoDevuelve409() throws Exception {
+            given(matriculaService.registrarYMatricular(any(EstudianteRequestDTO.class), eq(ID_ASIGNATURA),
+                    eq(ID_SEMESTRE))).willThrow(CorreoEstudianteDuplicadoException.porCorreo("ana.gomez@uco.net.co"));
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_VALIDO_CON_ESTUDIANTE))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+        }
+
+        @Test
+        @DisplayName("Asignatura inexistente devuelve 404 sin detalles")
+        void asignaturaInexistenteDevuelve404() throws Exception {
+            given(matriculaService.registrarYMatricular(any(EstudianteRequestDTO.class), eq(ID_ASIGNATURA),
+                    eq(ID_SEMESTRE))).willThrow(ReferenciaNoEncontradaException.asignatura(ID_ASIGNATURA));
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_VALIDO_CON_ESTUDIANTE))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("Semestre inexistente devuelve 404 sin detalles")
+        void semestreInexistenteDevuelve404() throws Exception {
+            given(matriculaService.registrarYMatricular(any(EstudianteRequestDTO.class), eq(ID_ASIGNATURA),
+                    eq(ID_SEMESTRE))).willThrow(ReferenciaNoEncontradaException.semestre(ID_SEMESTRE));
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_VALIDO_CON_ESTUDIANTE))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("Asignatura no activa devuelve 400 sin detalles")
+        void asignaturaNoActivaDevuelve400() throws Exception {
+            given(matriculaService.registrarYMatricular(any(EstudianteRequestDTO.class), eq(ID_ASIGNATURA),
+                    eq(ID_SEMESTRE))).willThrow(ReglaDeMatriculaException.asignaturaNoActiva(ID_ASIGNATURA));
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_VALIDO_CON_ESTUDIANTE))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("Semestre no vigente devuelve 400 sin detalles")
+        void semestreNoVigenteDevuelve400() throws Exception {
+            given(matriculaService.registrarYMatricular(any(EstudianteRequestDTO.class), eq(ID_ASIGNATURA),
+                    eq(ID_SEMESTRE))).willThrow(ReglaDeMatriculaException.semestreNoVigente(ID_SEMESTRE));
+
+            MvcResult resultado = mockMvc.perform(post(RUTA_CON_ESTUDIANTE)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(CUERPO_VALIDO_CON_ESTUDIANTE))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Nested
     @DisplayName("DELETE /api/v1/matriculas/{id}")
     class Desvincular {
 
@@ -291,14 +626,15 @@ class MatriculaControllerTest {
                     .andExpect(status().isNoContent())
                     .andExpect(content().string(""));
 
-            verify(matriculaService).desvincular(ID_MATRICULA);
+            // Sin parámetro confirmar, el controlador llama al servicio con confirmado=false.
+            verify(matriculaService).desvincular(ID_MATRICULA, false);
         }
 
         @Test
         @DisplayName("Matrícula ya inactiva devuelve 409 sin detalles")
         void matriculaYaInactivaDevuelve409() throws Exception {
             willThrow(MatriculaYaInactivaException.porId(ID_MATRICULA))
-                    .given(matriculaService).desvincular(ID_MATRICULA);
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
 
             MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)).andReturn();
 
@@ -309,11 +645,97 @@ class MatriculaControllerTest {
         @DisplayName("Matrícula inexistente devuelve 404 sin detalles")
         void matriculaInexistenteDevuelve404() throws Exception {
             willThrow(MatriculaNoEncontradaException.porId(ID_MATRICULA))
-                    .given(matriculaService).desvincular(ID_MATRICULA);
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
 
             MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)).andReturn();
 
             AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("Matrícula con calificaciones y sin confirmar devuelve 409 pidiendo confirmación")
+        void matriculaConCalificacionesSinConfirmarDevuelve409() throws Exception {
+            willThrow(ConfirmacionRequeridaException.porCalificacionesRegistradas(ID_MATRICULA, 3))
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)).andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+
+            assertThat(cuerpo.get("mensaje").stringValue())
+                    .as("El mensaje debe informar la cantidad de calificaciones registradas")
+                    .contains("3");
+
+            // Sin parámetro confirmar en la URL, el controlador llama al servicio con confirmado=false.
+            verify(matriculaService).desvincular(ID_MATRICULA, false);
+        }
+
+        @Test
+        @DisplayName("Matrícula con calificaciones y confirmar=false explícito se comporta igual que sin el parámetro")
+        void matriculaConCalificacionesConConfirmarFalseExplicitoDevuelve409() throws Exception {
+            willThrow(ConfirmacionRequeridaException.porCalificacionesRegistradas(ID_MATRICULA, 3))
+                    .given(matriculaService).desvincular(ID_MATRICULA, false);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "false"))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+
+            verify(matriculaService).desvincular(ID_MATRICULA, false);
+        }
+
+        @Test
+        @DisplayName("Matrícula con calificaciones y confirmar=true devuelve 204")
+        void matriculaConCalificacionesConConfirmarTrueDevuelve204() throws Exception {
+            // No se stubea excepción: el mock de un método void por defecto no hace nada, como si el
+            // servicio aceptara la desvinculación confirmada.
+            mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "true"))
+                    .andExpect(status().isNoContent())
+                    .andExpect(content().string(""));
+
+            verify(matriculaService).desvincular(ID_MATRICULA, true);
+        }
+
+        @Test
+        @DisplayName("Matrícula ya inactiva con confirmar=true sigue devolviendo 409, no 204")
+        void matriculaYaInactivaConConfirmarTrueDevuelve409() throws Exception {
+            willThrow(MatriculaYaInactivaException.porId(ID_MATRICULA))
+                    .given(matriculaService).desvincular(ID_MATRICULA, true);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "true"))
+                    .andReturn();
+
+            JsonNode cuerpo = AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.CONFLICT);
+
+            // Este 409 es por estado, no por confirmación pendiente: el mensaje debe distinguirse
+            // claramente del de ConfirmacionRequeridaException.
+            assertThat(cuerpo.get("mensaje").stringValue())
+                    .as("El mensaje debe hablar del estado de la matrícula, no de calificaciones pendientes")
+                    .doesNotContain("calificaci");
+        }
+
+        @Test
+        @DisplayName("Matrícula inexistente con confirmar=true sigue devolviendo 404")
+        void matriculaInexistenteConConfirmarTrueDevuelve404() throws Exception {
+            willThrow(MatriculaNoEncontradaException.porId(ID_MATRICULA))
+                    .given(matriculaService).desvincular(ID_MATRICULA, true);
+
+            MvcResult resultado = mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "true"))
+                    .andReturn();
+
+            AsercionesContratoError.verificarContratoSinDetalles(resultado, HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("confirmar con un valor no booleano devuelve un error 4xx, no 500")
+        void confirmarConValorNoBooleanoDevuelveErrorCliente() throws Exception {
+            mockMvc.perform(delete(RUTA + "/" + ID_MATRICULA)
+                            .param("confirmar", "si"))
+                    .andExpect(status().is4xxClientError());
         }
     }
 
@@ -324,7 +746,8 @@ class MatriculaControllerTest {
         @Test
         @DisplayName("Sin incluirInactivas devuelve 200 y llama al servicio con incluirInactivas=false")
         void sinIncluirInactivasDevuelve200() throws Exception {
-            Matricula matricula = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez", EstadoRegistro.ACTIVO);
+            Matricula matricula = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez",
+                    EstadoMatricula.ACTIVA);
             given(matriculaService.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false))
                     .willReturn(List.of(matricula));
 
@@ -336,7 +759,8 @@ class MatriculaControllerTest {
                     .andExpect(jsonPath("$[0].matriculaId").value(ID_MATRICULA.toString()))
                     .andExpect(jsonPath("$[0].numeroDocumento").value("1098765432"))
                     .andExpect(jsonPath("$[0].nombreCompleto").value("Ana Gómez"))
-                    .andExpect(jsonPath("$[0].estado").value("ACTIVO"));
+                    .andExpect(jsonPath("$[0].fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$[0].estado").value("ACTIVA"));
 
             verify(matriculaService).listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false);
         }
@@ -344,14 +768,18 @@ class MatriculaControllerTest {
         @Test
         @DisplayName("Con incluirInactivas=true llama al servicio con ese valor")
         void conIncluirInactivasDevuelve200() throws Exception {
+            Matricula desvinculada = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez",
+                    EstadoMatricula.DESVINCULADA);
             given(matriculaService.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, true))
-                    .willReturn(List.of());
+                    .willReturn(List.of(desvinculada));
 
             mockMvc.perform(get(RUTA)
                             .param("asignaturaId", ID_ASIGNATURA.toString())
                             .param("semestreId", ID_SEMESTRE.toString())
                             .param("incluirInactivas", "true"))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].fechaMatricula").value("2026-03-02"))
+                    .andExpect(jsonPath("$[0].estado").value("DESVINCULADA"));
 
             verify(matriculaService).listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, true);
         }

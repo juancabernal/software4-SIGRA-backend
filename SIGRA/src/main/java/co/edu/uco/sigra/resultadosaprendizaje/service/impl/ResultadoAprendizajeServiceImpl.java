@@ -5,6 +5,7 @@ import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.resultadosaprendizaje.dto.ResultadoAprendizajeActualizarRequestDTO;
 import co.edu.uco.sigra.resultadosaprendizaje.dto.ResultadoAprendizajeCrearRequestDTO;
 import co.edu.uco.sigra.resultadosaprendizaje.dto.ResultadoAprendizajeResponseDTO;
@@ -32,6 +33,7 @@ public class ResultadoAprendizajeServiceImpl implements ResultadoAprendizajeServ
     private final ResultadoAprendizajeRepository resultadoAprendizajeRepository;
     private final AsignaturaRepository asignaturaRepository;
     private final ResultadoAprendizajeMapper resultadoAprendizajeMapper;
+    private final EvaluacionService evaluacionService;
 
 
     @Override
@@ -117,7 +119,10 @@ public class ResultadoAprendizajeServiceImpl implements ResultadoAprendizajeServ
         }
 
         resultado.setEstado(EstadoRegistro.INACTIVO);
-        return resultadoAprendizajeMapper.toResponseDTO(resultadoAprendizajeRepository.save(resultado));
+        ResultadoAprendizaje guardado = resultadoAprendizajeRepository.save(resultado);
+        // Cascada (RF-10): sus evaluaciones activas quedan inactivas, marcadas para restaurarse con el RA.
+        evaluacionService.inactivarPorResultadoAprendizaje(id);
+        return resultadoAprendizajeMapper.toResponseDTO(guardado);
     }
 
     @Override
@@ -137,7 +142,33 @@ public class ResultadoAprendizajeServiceImpl implements ResultadoAprendizajeServ
         }
 
         resultado.setEstado(EstadoRegistro.ACTIVO);
-        return resultadoAprendizajeMapper.toResponseDTO(resultadoAprendizajeRepository.save(resultado));
+        ResultadoAprendizaje guardado = resultadoAprendizajeRepository.save(resultado);
+        // Vuelven a ACTIVA solo las evaluaciones que se inactivaron con este RA.
+        evaluacionService.restaurarPorResultadoAprendizaje(id);
+        return resultadoAprendizajeMapper.toResponseDTO(guardado);
+    }
+
+    /**
+     * Lo llama asignaturas al inactivar una asignatura: el SRS (RF-06c) la exime del mínimo de RA, así que
+     * sus RA activos pasan a INACTIVO marcados con la asignatura, y luego sus evaluaciones activas.
+     */
+    @Override
+    @Transactional
+    public void inactivarPorAsignatura(UUID asignaturaId) {
+        resultadoAprendizajeRepository.inactivarActivosPorAsignatura(asignaturaId,
+                EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
+        evaluacionService.inactivarPorAsignatura(asignaturaId);
+    }
+
+    /**
+     * Lo llama asignaturas al reactivar una asignatura: primero vuelven los RA inactivados con ella y después
+     * las evaluaciones de los RA que quedaron ACTIVOS (el orden importa).
+     */
+    @Override
+    @Transactional
+    public void restaurarPorAsignatura(UUID asignaturaId) {
+        resultadoAprendizajeRepository.restaurarInactivadosConAsignatura(asignaturaId, EstadoRegistro.ACTIVO);
+        evaluacionService.restaurarPorAsignatura(asignaturaId);
     }
 
 

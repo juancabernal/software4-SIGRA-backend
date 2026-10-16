@@ -13,6 +13,7 @@ import co.edu.uco.sigra.calificaciones.repository.CalificacionRepository;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
@@ -139,8 +140,9 @@ class CalificacionIntegracionIT {
         evaluacionATiempo = crearEvaluacion("Parcial 1", hoy.plusDays(10), EstadoEvaluacion.ACTIVA);
         evaluacionVencida = crearEvaluacion("Quiz 1", hoy.minusDays(1), EstadoEvaluacion.ACTIVA);
 
-        matriculaAna = crearMatricula("Ana", semestre, EstadoRegistro.ACTIVO);
-        matriculaBeto = crearMatricula("Beto", semestre, EstadoRegistro.ACTIVO);
+
+        matriculaAna = crearMatricula("Ana", semestre, EstadoMatricula.ACTIVA);
+        matriculaBeto = crearMatricula("Beto", semestre, EstadoMatricula.DESVINCULADA);
     }
 
     @AfterEach
@@ -198,7 +200,7 @@ class CalificacionIntegracionIT {
         assertThat(enBase.isFueraDeFecha()).isFalse();
 
         // Una matrícula desvinculada sin nota no aparece en la planilla.
-        crearMatricula("Carla", semestre, EstadoRegistro.INACTIVO);
+        crearMatricula("Carla", semestre, EstadoMatricula.DESVINCULADA);
 
         MvcResult planilla = enviar(get(urlPlanilla(evaluacionATiempo)), tokenProfesor, null);
         assertThat(planilla.getResponse().getStatus()).isEqualTo(200);
@@ -216,8 +218,8 @@ class CalificacionIntegracionIT {
     @Test
     @DisplayName("IT-02 Reglas: rango de nota, observación, matrícula, semestre, duplicado y evaluación inactiva")
     void it02Reglas() throws Exception {
-        Matricula desvinculada = crearMatricula("Dora", semestre, EstadoRegistro.INACTIVO);
-        Matricula deOtroSemestre = crearMatricula("Elsa", semestreAnterior, EstadoRegistro.ACTIVO);
+        Matricula desvinculada = crearMatricula("Dora", semestre, EstadoMatricula.DESVINCULADA);
+        Matricula deOtroSemestre = crearMatricula("Elsa", semestreAnterior, EstadoMatricula.ACTIVA);
         Evaluacion inactiva = crearEvaluacion("Taller viejo", hoy.plusDays(5), EstadoEvaluacion.INACTIVA);
 
         assertEstado(400, enviar(post(urlPlanilla(evaluacionATiempo)), tokenProfesor,
@@ -310,7 +312,7 @@ class CalificacionIntegracionIT {
     void it05MatriculaDesvinculada() throws Exception {
         String id = registrarNota(matriculaAna, "3.5");
 
-        matriculaAna.setEstado(EstadoRegistro.INACTIVO);
+        matriculaAna.setEstado(EstadoMatricula.DESVINCULADA);
         matriculaRepository.save(matriculaAna);
 
         String json = cuerpo(enviar(get(urlPlanilla(evaluacionATiempo)), tokenProfesor, null));
@@ -403,13 +405,14 @@ class CalificacionIntegracionIT {
         return evaluacionRepository.save(e);
     }
 
-    private Matricula crearMatricula(String nombre, Semestre semestreMatricula, EstadoRegistro estado) {
+    private Matricula crearMatricula(String nombre, Semestre semestreMatricula, EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         estudiante.setNumeroDocumento(documento());
         Matricula m = new Matricula();
         m.setEstudiante(crearUsuario(estudiante, nombre));
         m.setAsignatura(asignatura);
         m.setSemestre(semestreMatricula);
+        m.setFechaMatricula(hoy);
         m.setEstado(estado);
         return matriculaRepository.save(m);
     }

@@ -1,0 +1,16 @@
+meta {
+  name: 04 Por id
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{accionMejoraId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{accionMejoraId}}
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 03 Por semestre
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/acciones-mejora?semestreId={{semBruConcId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  semestreId: {{semBruConcId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("solo trae acciones de mejora del semestre pedido", function () {
+    expect(res.body).to.be.an("array").with.length.at.least(1);
+    res.body.forEach((a) => expect(a.semestreId).to.equal(bru.getVar("semBruConcId")));
+  });
+}

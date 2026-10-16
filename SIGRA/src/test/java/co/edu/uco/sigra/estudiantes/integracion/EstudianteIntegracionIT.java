@@ -8,6 +8,7 @@ import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
@@ -68,6 +69,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // que hace join fetch) en vez de filtrar por el código de asignatura/semestre en Matricula: en esta clase
 // toda matrícula que se crea referencia siempre a uno de sus propios estudiantes, así que ese recorrido
 // basta y evita inicializar relaciones LAZY fuera de una transacción.
+//
+// Sufijos de documento/correo en uso por método: it01 001-003/901-902, it02 099, it03 010-014,
+// it04 020, it05 030-031, it06 040-041, it07 050, it08 060-061. Semestres de apoyo: it05 usa el
+// sufijo "3", it06 usa "4". Al añadir un caso nuevo, usar un sufijo fuera de estos rangos.
 @Tag("integration")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
@@ -350,7 +355,7 @@ class EstudianteIntegracionIT {
         assertThat(documentos).containsExactly(numero);
         assertThat(estados).containsExactly("INACTIVO");
 
-        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
 
         MvcResult noEncontrado = enviar(delete(URL_ESTUDIANTES + "/" + UUID.randomUUID()), null);
         assertThat(noEncontrado.getResponse().getStatus()).isEqualTo(404);
@@ -373,7 +378,7 @@ class EstudianteIntegracionIT {
                 jsonMatricula(estudianteId, asignaturaActiva.getId(), semestre1.getId()));
         assertThat(matricula.getResponse().getStatus()).isEqualTo(201);
         UUID matriculaId = UUID.fromString(JsonPath.read(cuerpo(matricula), "$.id"));
-        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
 
         // Terna duplicada (activa): 409, mensaje de MatriculaDuplicadaException, sin fila nueva.
         MvcResult duplicada = enviar(post(URL_MATRICULAS),
@@ -385,7 +390,7 @@ class EstudianteIntegracionIT {
         Matricula ternaOriginal = matriculaRepository.buscarPorTerna(estudianteId, asignaturaActiva.getId(), semestre1.getId())
                 .orElseThrow();
         assertThat(ternaOriginal.getId()).isEqualTo(matriculaId);
-        assertThat(ternaOriginal.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(ternaOriginal.getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
 
         // Repitencia en otro semestre (terna distinta): 201.
         MvcResult repitencia = enviar(post(URL_MATRICULAS),
@@ -420,20 +425,22 @@ class EstudianteIntegracionIT {
         assertThat(matriculaRepository.buscarPorTerna(estudianteId, asignaturaBorrador.getId(), semestre1.getId()))
                 .isEmpty();
 
-        // Semestre no activo (INACTIVO): 400, sin fila.
-        Semestre semestreInactivo = guardarSemestre(PREFIJO_SEMESTRE + "3", EstadoSemestre.INACTIVO);
+        // Semestre no vigente (fecha de fin ya pasó, aunque la marca almacenada diga ACTIVO): 400, sin fila.
+        // La vigencia se juzga por fechas, no por el estado almacenado (design.md, D3).
+        Semestre semestreInactivo = guardarSemestreConFechas(PREFIJO_SEMESTRE + "3",
+                LocalDate.now().minusDays(90), LocalDate.now().minusDays(10), EstadoSemestre.ACTIVO);
         MvcResult porSemestreNoActivo = enviar(post(URL_MATRICULAS),
                 jsonMatricula(estudianteId, asignaturaActiva.getId(), semestreInactivo.getId()));
         assertThat(porSemestreNoActivo.getResponse().getStatus()).isEqualTo(400);
         assertThat((String) JsonPath.read(cuerpo(porSemestreNoActivo), "$.mensaje"))
-                .isEqualTo("El semestre con id " + semestreInactivo.getId() + " no está activo.");
+                .isEqualTo("El semestre con id " + semestreInactivo.getId() + " no está vigente.");
         assertThat(matriculaRepository.buscarPorTerna(estudianteId, asignaturaActiva.getId(), semestreInactivo.getId()))
                 .isEmpty();
 
         // Desvincular la matrícula original: 204, estado INACTIVO en la fila real.
         MvcResult desvinculada = enviar(delete(URL_MATRICULAS + "/" + matriculaId), null);
         assertThat(desvinculada.getResponse().getStatus()).isEqualTo(204);
-        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoRegistro.INACTIVO);
+        assertThat(matriculaRepository.findById(matriculaId).orElseThrow().getEstado()).isEqualTo(EstadoMatricula.DESVINCULADA);
 
         // Desvincularla otra vez: 409, mensaje de MatriculaYaInactivaException.
         MvcResult desvinculadaOtraVez = enviar(delete(URL_MATRICULAS + "/" + matriculaId), null);
@@ -451,7 +458,128 @@ class EstudianteIntegracionIT {
         Matricula ternaReactivada = matriculaRepository.buscarPorTerna(estudianteId, asignaturaActiva.getId(), semestre1.getId())
                 .orElseThrow();
         assertThat(ternaReactivada.getId()).isEqualTo(matriculaId);
-        assertThat(ternaReactivada.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(ternaReactivada.getEstado()).isEqualTo(EstadoMatricula.ACTIVA);
+    }
+
+    // ---------------------------------------------------------------- IT-06
+
+    // RF-09a / design.md D6: registrarYMatricular() es @Transactional en MatriculaServiceImpl y
+    // debe deshacer el alta del estudiante si la matrícula que le sigue falla. Esa atomicidad no
+    // se puede demostrar con mocks: el @Transactional depende del proxy AOP real de Spring y de
+    // una conexión JDBC real que emite el ROLLBACK ante la excepción de negocio; un @WebMvcTest
+    // con MatriculaService mockeado ni siquiera instancia MatriculaServiceImpl, así que nunca pasa
+    // por ese proxy. Solo un contexto completo contra PostgreSQL real, como este, puede comprobar
+    // que no quedó fila alguna tras el fallo.
+    @Test
+    @DisplayName("IT-06 Registrar y matricular en un paso: si la matrícula falla, no queda ni el estudiante ni su usuario")
+    void it06RegistrarYMatricularRollbackSiFalla() throws Exception {
+        // Semestre no vigente (fecha de fin ya pasada, aunque el estado almacenado diga ACTIVO): 400.
+        String numeroPorSemestre = PREFIJO_DOCUMENTO + "040";
+        String correoPorSemestre = correo("040");
+        Semestre semestreNoVigente = guardarSemestreConFechas(PREFIJO_SEMESTRE + "4",
+                LocalDate.now().minusDays(90), LocalDate.now().minusDays(10), EstadoSemestre.ACTIVO);
+
+        MvcResult porSemestreNoVigente = enviar(post(URL_MATRICULAS + "/con-estudiante"),
+                jsonMatriculaConEstudiante(tipoDocumento.getId(), numeroPorSemestre, "ITE Estudiante Rollback Semestre",
+                        correoPorSemestre, asignaturaActiva.getId(), semestreNoVigente.getId()));
+        assertThat(porSemestreNoVigente.getResponse().getStatus()).isEqualTo(400);
+        assertThat((String) JsonPath.read(cuerpo(porSemestreNoVigente), "$.mensaje"))
+                .isEqualTo("El semestre con id " + semestreNoVigente.getId() + " no está vigente.");
+
+        assertThat(estudianteRepository.findAll().stream()
+                .anyMatch(e -> e.getNumeroDocumento().equals(numeroPorSemestre)))
+                .as("El alta del estudiante debe deshacerse si la matrícula falla")
+                .isFalse();
+        assertThat(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(correoPorSemestre))
+                .as("El usuario asociado al estudiante tampoco debe quedar")
+                .isFalse();
+
+        // Asignatura inexistente: 404, la otra rama de fallo en matricular().
+        String numeroPorAsignatura = PREFIJO_DOCUMENTO + "041";
+        String correoPorAsignatura = correo("041");
+        UUID asignaturaInexistente = UUID.randomUUID();
+
+        MvcResult porAsignaturaInexistente = enviar(post(URL_MATRICULAS + "/con-estudiante"),
+                jsonMatriculaConEstudiante(tipoDocumento.getId(), numeroPorAsignatura, "ITE Estudiante Rollback Asignatura",
+                        correoPorAsignatura, asignaturaInexistente, semestre1.getId()));
+        assertThat(porAsignaturaInexistente.getResponse().getStatus()).isEqualTo(404);
+        assertThat((String) JsonPath.read(cuerpo(porAsignaturaInexistente), "$.mensaje"))
+                .isEqualTo("No existe una asignatura con id " + asignaturaInexistente + ".");
+
+        assertThat(estudianteRepository.findAll().stream()
+                .anyMatch(e -> e.getNumeroDocumento().equals(numeroPorAsignatura)))
+                .as("El alta del estudiante debe deshacerse también cuando la asignatura no existe")
+                .isFalse();
+        assertThat(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(correoPorAsignatura)).isFalse();
+    }
+
+    // ---------------------------------------------------------------- IT-07
+
+    @Test
+    @DisplayName("IT-07 Registrar y matricular en un paso: camino feliz de punta a punta")
+    void it07RegistrarYMatricularCaminoFeliz() throws Exception {
+        String numero = PREFIJO_DOCUMENTO + "050";
+        String correoEstudiante = correo("050");
+
+        MvcResult respuesta = enviar(post(URL_MATRICULAS + "/con-estudiante"),
+                jsonMatriculaConEstudiante(tipoDocumento.getId(), numero, "ITE Estudiante Alta Directa",
+                        correoEstudiante, asignaturaActiva.getId(), semestre1.getId()));
+        assertThat(respuesta.getResponse().getStatus()).isEqualTo(201);
+        String cuerpoRespuesta = cuerpo(respuesta);
+        UUID estudianteId = UUID.fromString(JsonPath.read(cuerpoRespuesta, "$.estudiante.id"));
+        UUID matriculaId = UUID.fromString(JsonPath.read(cuerpoRespuesta, "$.matricula.id"));
+        assertThat((String) JsonPath.read(cuerpoRespuesta, "$.estudiante.numeroDocumento")).isEqualTo(numero);
+        assertThat((String) JsonPath.read(cuerpoRespuesta, "$.estudiante.estado")).isEqualTo("ACTIVO");
+        assertThat((String) JsonPath.read(cuerpoRespuesta, "$.matricula.estado")).isEqualTo("ACTIVA");
+        String fechaMatricula = JsonPath.read(cuerpoRespuesta, "$.matricula.fechaMatricula");
+        assertThat(fechaMatricula).isEqualTo(LocalDate.now(java.time.ZoneId.of("America/Bogota")).toString());
+
+        // El estudiante creado en el mismo paso se consulta igual que uno registrado por separado.
+        MvcResult consultaEstudiante = enviar(get(URL_ESTUDIANTES + "/" + estudianteId), null);
+        assertThat(consultaEstudiante.getResponse().getStatus()).isEqualTo(200);
+        assertThat((String) JsonPath.read(cuerpo(consultaEstudiante), "$.numeroDocumento")).isEqualTo(numero);
+        assertThat((String) JsonPath.read(cuerpo(consultaEstudiante), "$.correoInstitucional")).isEqualTo(correoEstudiante);
+
+        // El listado de matriculados de esa asignatura/semestre debe incluirlo, con su fecha real.
+        MvcResult listado = enviar(get(URL_MATRICULAS + "?asignaturaId=" + asignaturaActiva.getId()
+                + "&semestreId=" + semestre1.getId()), null);
+        assertThat(listado.getResponse().getStatus()).isEqualTo(200);
+        List<String> idsMatriculados = JsonPath.read(cuerpo(listado), "$[*].matriculaId");
+        assertThat(idsMatriculados).contains(matriculaId.toString());
+        List<String> fechasMatriculados = JsonPath.read(cuerpo(listado),
+                "$[?(@.matriculaId=='" + matriculaId + "')].fechaMatricula");
+        assertThat(fechasMatriculados).containsExactly(fechaMatricula);
+    }
+
+    // ---------------------------------------------------------------- IT-08
+
+    @Test
+    @DisplayName("IT-08 Registrar y matricular en un paso: documento duplicado da el mismo 409 que el registro normal")
+    void it08RegistrarYMatricularDocumentoDuplicadoMismoMensaje() throws Exception {
+        String numero = PREFIJO_DOCUMENTO + "060";
+        String correoOriginal = correo("060");
+        MvcResult creadoPorCaminoNormal = enviar(post(URL_ESTUDIANTES),
+                jsonEstudiante(tipoDocumento.getId(), numero, "ITE Estudiante Normal", correoOriginal));
+        assertThat(creadoPorCaminoNormal.getResponse().getStatus()).isEqualTo(201);
+        UUID estudianteOriginalId = UUID.fromString(JsonPath.read(cuerpo(creadoPorCaminoNormal), "$.id"));
+
+        long antes = estudianteRepository.count();
+
+        // Mismo documento por el camino de alta con matrícula: mismo mensaje de EstudianteYaRegistradoException.
+        MvcResult porAltaConMatricula = enviar(post(URL_MATRICULAS + "/con-estudiante"),
+                jsonMatriculaConEstudiante(tipoDocumento.getId(), numero, "ITE Estudiante Duplicado",
+                        correo("061"), asignaturaActiva.getId(), semestre2.getId()));
+        assertThat(porAltaConMatricula.getResponse().getStatus()).isEqualTo(409);
+        assertThat((String) JsonPath.read(cuerpo(porAltaConMatricula), "$.mensaje"))
+                .isEqualTo("El estudiante con el documento " + numero + " ya está registrado en el sistema.");
+        assertSinDetallesTecnicos(cuerpo(porAltaConMatricula));
+
+        assertThat(estudianteRepository.count())
+                .as("No debe quedar una segunda fila para el documento duplicado")
+                .isEqualTo(antes);
+        assertThat(matriculaRepository.buscarPorTerna(estudianteOriginalId, asignaturaActiva.getId(), semestre2.getId()))
+                .as("Tampoco debe quedar una matrícula para la terna del intento fallido")
+                .isEmpty();
     }
 
     // ---------------------------------------------------------------- utilidades
@@ -461,6 +589,21 @@ class EstudianteIntegracionIT {
         s.setCodigo(codigo);
         s.setFechaInicio(LocalDate.now().minusDays(10));
         s.setFechaFin(LocalDate.now().plusDays(90));
+        s.setEstado(estado);
+        return semestreRepository.save(s);
+    }
+
+    /**
+     * Para probar la vigencia por fechas (design.md, D3): permite fijar fechas fuera del rango
+     * vigente con un {@code estado} almacenado que diga lo contrario, y así demostrar que la
+     * marca de estado ya no se consulta al matricular.
+     */
+    private Semestre guardarSemestreConFechas(String codigo, LocalDate fechaInicio, LocalDate fechaFin,
+                                               EstadoSemestre estado) {
+        Semestre s = new Semestre();
+        s.setCodigo(codigo);
+        s.setFechaInicio(fechaInicio);
+        s.setFechaFin(fechaFin);
         s.setEstado(estado);
         return semestreRepository.save(s);
     }
@@ -500,6 +643,14 @@ class EstudianteIntegracionIT {
 
     private static String jsonMatricula(UUID estudianteId, UUID asignaturaId, UUID semestreId) {
         return "{\"estudianteId\":" + uuidOrNull(estudianteId)
+                + ",\"asignaturaId\":" + uuidOrNull(asignaturaId)
+                + ",\"semestreId\":" + uuidOrNull(semestreId) + "}";
+    }
+
+    private static String jsonMatriculaConEstudiante(UUID tipoDocumentoId, String numeroDocumento,
+                                                       String nombreCompleto, String correoInstitucional,
+                                                       UUID asignaturaId, UUID semestreId) {
+        return "{\"estudiante\":" + jsonEstudiante(tipoDocumentoId, numeroDocumento, nombreCompleto, correoInstitucional)
                 + ",\"asignaturaId\":" + uuidOrNull(asignaturaId)
                 + ",\"semestreId\":" + uuidOrNull(semestreId) + "}";
     }

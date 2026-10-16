@@ -1,0 +1,49 @@
+meta {
+  name: 01 Alta y matricula validas
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas/con-estudiante
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudiante": {
+      "tipoDocumentoId": "{{tipoDocCc}}",
+      "numeroDocumento": "{{documentoNuevoAlta}}",
+      "nombreCompleto": "Bruno Alta Con Matricula",
+      "correoInstitucional": "bruno.altamatricula.{{documentoNuevoAlta}}@uco.net.co"
+    },
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstActivo}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("documentoNuevoAlta", String(Date.now()).slice(-9));
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("crea el estudiante nuevo", function () {
+    expect(res.body.estudiante.id).to.be.a("string").and.not.be.empty;
+    expect(res.body.estudiante.numeroDocumento).to.equal(bru.getVar("documentoNuevoAlta"));
+    expect(res.body.estudiante.estado).to.equal("ACTIVO");
+  });
+
+  test("crea la matricula activa, vinculada al estudiante creado", function () {
+    expect(res.body.matricula.id).to.be.a("string").and.not.be.empty;
+    expect(res.body.matricula.estudianteId).to.equal(res.body.estudiante.id);
+    expect(res.body.matricula.asignaturaId).to.equal(bru.getEnvVar("idAsigBruEstActiva"));
+    expect(res.body.matricula.semestreId).to.equal(bru.getEnvVar("idSemBruEstActivo"));
+    expect(res.body.matricula.estado).to.equal("ACTIVA");
+    expect(res.body.matricula.fechaMatricula).to.match(/^\d{4}-\d{2}-\d{2}$/);
+  });
+}

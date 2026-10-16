@@ -1,0 +1,22 @@
+meta {
+  name: 02 No genera con exactamente 40 por ciento (umbral estricto)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raConcExacto40Id}}/semestres/{{semBruConcId}}/conclusiones
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.generada: eq false
+  res.body.motivo: eq El desempeño está dentro del umbral aceptado; no se generó una conclusión.
+  res.body.conclusion: isNull
+}

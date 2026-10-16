@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estudiantes.repository;
 
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -51,7 +52,7 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
             """)
     List<Estudiante> buscarVisiblesParaProfesor(@Param("profesorId") UUID profesorId,
                                                 @Param("criterio") String criterio,
-                                                @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                                @Param("matriculaEstado") EstadoMatricula matriculaEstado,
                                                 @Param("asignacionEstado") EstadoRegistro asignacionEstado,
                                                 @Param("estudianteEstado") EstadoRegistro estudianteEstado);
 
@@ -69,7 +70,7 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
             """)
     boolean existsVisibleToProfessor(@Param("estudianteId") UUID estudianteId,
                                      @Param("profesorId") UUID profesorId,
-                                     @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                     @Param("matriculaEstado") EstadoMatricula matriculaEstado,
                                      @Param("asignacionEstado") EstadoRegistro asignacionEstado,
                                      @Param("estudianteEstado") EstadoRegistro estudianteEstado);
 }

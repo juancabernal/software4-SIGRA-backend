@@ -21,4 +21,11 @@ tests {
     expect(semestres).to.include.members(["BRUEST-A1", "BRUEST-A2"]);
     res.body.forEach((a) => expect(a.asignaturaNombre).to.equal("Bruno Estudiantes Activa"));
   });
+
+  test("cada entrada trae la fecha de su matricula y un estado valido", function () {
+    res.body.forEach((a) => {
+      expect(a.fechaMatricula).to.match(/^\d{4}-\d{2}-\d{2}$/);
+      expect(["ACTIVA", "DESVINCULADA"]).to.include(a.estado);
+    });
+  });
 }

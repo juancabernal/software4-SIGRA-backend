@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.calificaciones.service.impl;
 
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -105,8 +106,7 @@ public class CalificacionServiceImpl implements CalificacionService {
         // Activas siempre; una inactiva (desvinculada) solo si conserva nota en esta evaluación.
         List<FilaPlanillaDTO> filas = matriculaRepository
                 .buscarPorAsignaturaYSemestre(asignatura.getId(), semestre.getId(), null).stream()
-                .filter(m -> m.getEstado() == EstadoRegistro.ACTIVO || porMatricula.containsKey(m.getId()))
-                .map(m -> aFila(m, porMatricula.get(m.getId())))
+                .filter(m -> m.getEstado() == EstadoMatricula.ACTIVA || porMatricula.containsKey(m.getId()))                .map(m -> aFila(m, porMatricula.get(m.getId())))
                 .sorted(Comparator.comparing(FilaPlanillaDTO::nombreCompleto, String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
@@ -235,8 +235,7 @@ public class CalificacionServiceImpl implements CalificacionService {
     }
 
     private static void verificarMatriculaActiva(Matricula matricula) {
-        if (matricula.getEstado() != EstadoRegistro.ACTIVO) {
-            throw CalificacionReglaNegocioException.matriculaNoActiva();
+        if (matricula.getEstado() != EstadoMatricula.ACTIVA) {            throw CalificacionReglaNegocioException.matriculaNoActiva();
         }
     }
 
@@ -246,8 +245,7 @@ public class CalificacionServiceImpl implements CalificacionService {
 
     private static FilaPlanillaDTO aFila(Matricula matricula, Calificacion calificacion) {
         Estudiante estudiante = matricula.getEstudiante();
-        boolean activa = matricula.getEstado() == EstadoRegistro.ACTIVO;
-        if (calificacion == null) {
+        boolean activa = matricula.getEstado() == EstadoMatricula.ACTIVA;        if (calificacion == null) {
             return new FilaPlanillaDTO(matricula.getId(), estudiante.getId(), estudiante.getNumeroDocumento(),
                     estudiante.getNombreCompleto(), activa, null, null, null, null, null, null);
         }

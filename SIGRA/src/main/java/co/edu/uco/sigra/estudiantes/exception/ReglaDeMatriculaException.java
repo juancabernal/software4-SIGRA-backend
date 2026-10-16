@@ -16,7 +16,7 @@ public class ReglaDeMatriculaException extends RuntimeException {
         return new ReglaDeMatriculaException("La asignatura con id " + asignaturaId + " no está activa.");
     }
 
-    public static ReglaDeMatriculaException semestreNoActivo(UUID semestreId) {
-        return new ReglaDeMatriculaException("El semestre con id " + semestreId + " no está activo.");
+    public static ReglaDeMatriculaException semestreNoVigente(UUID semestreId) {
+        return new ReglaDeMatriculaException("El semestre con id " + semestreId + " no está vigente.");
     }
 }

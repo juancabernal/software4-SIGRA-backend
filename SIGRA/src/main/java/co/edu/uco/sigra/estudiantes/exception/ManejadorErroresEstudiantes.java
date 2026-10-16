@@ -32,7 +32,8 @@ public class ManejadorErroresEstudiantes {
     }
 
     @ExceptionHandler({EstudianteYaRegistradoException.class, CorreoEstudianteDuplicadoException.class,
-            MatriculaDuplicadaException.class, MatriculaYaInactivaException.class})
+            MatriculaDuplicadaException.class, MatriculaYaInactivaException.class,
+            ConfirmacionRequeridaException.class})
     public ResponseEntity<Map<String, Object>> manejarDuplicado(RuntimeException ex) {
         return ConstructorRespuestaError.construir(HttpStatus.CONFLICT, ex.getMessage());
     }
@@ -49,5 +50,15 @@ public class ManejadorErroresEstudiantes {
                 .toList();
         return ConstructorRespuestaError.construir(HttpStatus.BAD_REQUEST,
                 "Los datos de entrada no cumplen con las validaciones requeridas", errores);
+    }
+
+    @ExceptionHandler(AutenticacionRequeridaException.class)
+    public ResponseEntity<Map<String, Object>> manejarAutenticacionRequerida(AutenticacionRequeridaException ex) {
+        return ConstructorRespuestaError.construir(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(PermisoInsuficienteException.class)
+    public ResponseEntity<Map<String, Object>> manejarPermisoInsuficiente(PermisoInsuficienteException ex) {
+        return ConstructorRespuestaError.construir(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 }

@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.calificaciones.service;
 
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -100,7 +101,7 @@ class CalificacionServiceImplTest {
         asignatura = asignatura("ASG-101");
         semestre = semestre("2026-2");
         evaluacion = evaluacion(asignatura, semestre, HOY);
-        matricula = matricula("Ana Gómez", asignatura, semestre, EstadoRegistro.ACTIVO);
+        matricula = matricula("Ana Gómez", asignatura, semestre, EstadoMatricula.ACTIVA);
     }
 
     // ------------------------------------------------------------------ datos de prueba
@@ -137,7 +138,7 @@ class CalificacionServiceImplTest {
         return e;
     }
 
-    private static Matricula matricula(String nombre, Asignatura asignatura, Semestre semestre, EstadoRegistro estado) {
+    private static Matricula matricula(String nombre, Asignatura asignatura, Semestre semestre, EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         estudiante.setId(UUID.randomUUID());
         estudiante.setNombreCompleto(nombre);
@@ -266,7 +267,7 @@ class CalificacionServiceImplTest {
         @Test
         @DisplayName("Matrícula desvinculada: se rechaza")
         void matriculaNoActiva() {
-            matricula.setEstado(EstadoRegistro.INACTIVO);
+            matricula.setEstado(EstadoMatricula.DESVINCULADA);
             profesorAsignado();
             evaluacionYMatriculaExisten();
 
@@ -428,7 +429,7 @@ class CalificacionServiceImplTest {
         @Test
         @DisplayName("Matrícula desvinculada: la nota se conserva pero no se modifica")
         void matriculaDesvinculada() {
-            matricula.setEstado(EstadoRegistro.INACTIVO);
+            matricula.setEstado(EstadoMatricula.DESVINCULADA);
             Calificacion existente = calificacionExistente(new BigDecimal("3.5"), false);
             profesorAsignado();
             when(calificacionRepository.findById(existente.getId())).thenReturn(Optional.of(existente));
@@ -463,9 +464,9 @@ class CalificacionServiceImplTest {
         @Test
         @DisplayName("Planilla: matrículas activas y desvinculadas con nota, ordenadas por nombre")
         void planilla() {
-            Matricula zoe = matricula("Zoe Pérez", asignatura, semestre, EstadoRegistro.ACTIVO);
-            Matricula retiradaConNota = matricula("Carlos Ruiz", asignatura, semestre, EstadoRegistro.INACTIVO);
-            Matricula retiradaSinNota = matricula("Beto Díaz", asignatura, semestre, EstadoRegistro.INACTIVO);
+            Matricula zoe = matricula("Zoe Pérez", asignatura, semestre, EstadoMatricula.ACTIVA);
+            Matricula retiradaConNota = matricula("Carlos Ruiz", asignatura, semestre, EstadoMatricula.DESVINCULADA);
+            Matricula retiradaSinNota = matricula("Beto Díaz", asignatura, semestre, EstadoMatricula.DESVINCULADA);
             Calificacion notaZoe = calificacionExistente(new BigDecimal("4.2"), false);
             notaZoe.setMatricula(zoe);
             Calificacion notaCarlos = calificacionExistente(new BigDecimal("2.0"), true);

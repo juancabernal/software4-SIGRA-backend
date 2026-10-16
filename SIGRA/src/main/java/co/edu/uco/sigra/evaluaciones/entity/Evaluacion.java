@@ -10,6 +10,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Evaluación de un Resultado de Aprendizaje en un semestre (RF-10 / RF-11).
+ * <p>
+ * Solo mapeo JPA: las reglas (suma de porcentajes, campos bloqueados, estados) viven en el servicio.
+ * La unicidad del nombre por (RA, semestre) sin distinguir mayúsculas es un índice funcional en la
+ * base (uk_evaluacion_ra_semestre_nombre), por eso no se declara aquí.
+ */
 @Entity
 @Table(name = "evaluacion")
 @Getter
@@ -43,4 +50,7 @@ public class Evaluacion {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private EstadoEvaluacion estado = EstadoEvaluacion.ACTIVA;
+
+    @Column(name = "inactivada_con_ra", nullable = false)
+    private boolean inactivadaConRa = false;
 }

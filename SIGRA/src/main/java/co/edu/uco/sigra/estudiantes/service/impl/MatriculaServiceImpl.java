@@ -2,14 +2,19 @@ package co.edu.uco.sigra.estudiantes.service.impl;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
-import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.security.CurrentUser;
-import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.estudiantes.config.MatriculaConfig;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
+import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.estudiantes.exception.ConfirmacionRequeridaException;
 import co.edu.uco.sigra.estudiantes.exception.EstudianteNoEncontradoException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaDuplicadaException;
 import co.edu.uco.sigra.estudiantes.exception.MatriculaNoEncontradaException;
@@ -18,15 +23,19 @@ import co.edu.uco.sigra.estudiantes.exception.ReferenciaNoEncontradaException;
 import co.edu.uco.sigra.estudiantes.exception.ReglaDeMatriculaException;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.estudiantes.service.CalificacionesDeMatricula;
+import co.edu.uco.sigra.estudiantes.service.EstudianteService;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
-import co.edu.uco.sigra.semestres.entity.EstadoSemestre;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.semestres.repository.SemestreRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,31 +46,54 @@ public class MatriculaServiceImpl implements MatriculaService {
     private final EstudianteRepository estudianteRepository;
     private final AsignaturaRepository asignaturaRepository;
     private final SemestreRepository semestreRepository;
+    private final Clock reloj;
+    private final CalificacionesDeMatricula calificacionesDeMatricula;
+    private final EstudianteService estudianteService;
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final CurrentUser currentUser;
 
+    // Constructor explícito porque Lombok no copia @Qualifier al parámetro del reloj.
     @Autowired
     public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
                                 EstudianteRepository estudianteRepository,
                                 AsignaturaRepository asignaturaRepository,
                                 SemestreRepository semestreRepository,
+                                @Qualifier(MatriculaConfig.RELOJ_MATRICULAS) Clock reloj,
+                                CalificacionesDeMatricula calificacionesDeMatricula,
+                                EstudianteService estudianteService,
                                 AsignacionDocenteRepository asignacionDocenteRepository,
                                 CurrentUser currentUser) {
         this.matriculaRepository = matriculaRepository;
         this.estudianteRepository = estudianteRepository;
         this.asignaturaRepository = asignaturaRepository;
         this.semestreRepository = semestreRepository;
+        this.reloj = reloj;
+        this.calificacionesDeMatricula = calificacionesDeMatricula;
+        this.estudianteService = estudianteService;
         this.asignacionDocenteRepository = asignacionDocenteRepository;
         this.currentUser = currentUser;
     }
 
-    /** Constructor reducido para pruebas unitarias; los métodos siguen resolviendo identidad y fallan cerrado. */
+    /** Constructor reducido para las pruebas del flujo funcional de matrículas. */
+    public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
+                                EstudianteRepository estudianteRepository,
+                                AsignaturaRepository asignaturaRepository,
+                                SemestreRepository semestreRepository,
+                                Clock reloj,
+                                CalificacionesDeMatricula calificacionesDeMatricula,
+                                EstudianteService estudianteService) {
+        this(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository,
+                reloj, calificacionesDeMatricula, estudianteService, null, new CurrentUser());
+    }
+
+    /** Constructor reducido conservado para pruebas que solo ejercitan autorización y consultas. */
     public MatriculaServiceImpl(MatriculaRepository matriculaRepository,
                                 EstudianteRepository estudianteRepository,
                                 AsignaturaRepository asignaturaRepository,
                                 SemestreRepository semestreRepository) {
-        this(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository, null,
-                new CurrentUser());
+        this(matriculaRepository, estudianteRepository, asignaturaRepository, semestreRepository,
+                Clock.system(MatriculaConfig.ZONA_COLOMBIA), new CalificacionesDeMatriculaPorDefecto(),
+                null, null, new CurrentUser());
     }
 
     @Override
@@ -78,7 +110,7 @@ public class MatriculaServiceImpl implements MatriculaService {
     }
 
     private ResultadoMatricula matricularInterno(UUID estudianteId, UUID asignaturaId, UUID semestreId,
-                                                UsuarioPrincipal principal) {
+                                                 UsuarioPrincipal principal) {
         asegurarAlcance(asignaturaId, principal);
         Estudiante estudiante = estudianteRepository.findById(estudianteId)
                 .orElseThrow(() -> EstudianteNoEncontradoException.porId(estudianteId));
@@ -92,62 +124,58 @@ public class MatriculaServiceImpl implements MatriculaService {
         if (estudiante.getEstado() != EstadoRegistro.ACTIVO) {
             throw ReglaDeMatriculaException.estudianteInactivo(estudianteId);
         }
-
         if (asignatura.getEstado() != EstadoAsignatura.ACTIVA) {
             throw ReglaDeMatriculaException.asignaturaNoActiva(asignaturaId);
         }
 
-        if (semestre.getEstado() != EstadoSemestre.ACTIVO) {
-            throw ReglaDeMatriculaException.semestreNoActivo(semestreId);
+        LocalDate hoy = LocalDate.now(reloj);
+        if (hoy.isBefore(semestre.getFechaInicio()) || hoy.isAfter(semestre.getFechaFin())) {
+            throw ReglaDeMatriculaException.semestreNoVigente(semestreId);
         }
 
         var existente = matriculaRepository.buscarPorTerna(estudianteId, asignaturaId, semestreId);
-
         if (existente.isPresent()) {
             Matricula matricula = existente.get();
-
-            if (matricula.getEstado() == EstadoRegistro.ACTIVO) {
+            if (matricula.getEstado() == EstadoMatricula.ACTIVA) {
                 throw MatriculaDuplicadaException.porTerna(estudianteId, asignaturaId, semestreId);
             }
-
-            // Reactiva la matrícula retirada de la misma terna en lugar de crear una fila nueva.
-            matricula.setEstado(EstadoRegistro.ACTIVO);
-            Matricula reactivada = matriculaRepository.save(matricula);
-            return new ResultadoMatricula(reactivada, true);
+            matricula.setEstado(EstadoMatricula.ACTIVA);
+            matricula.setFechaMatricula(hoy);
+            return new ResultadoMatricula(matriculaRepository.save(matricula), true);
         }
 
         Matricula matricula = new Matricula();
         matricula.setEstudiante(estudiante);
         matricula.setAsignatura(asignatura);
         matricula.setSemestre(semestre);
-        matricula.setEstado(EstadoRegistro.ACTIVO);
-
-        Matricula creada = matriculaRepository.save(matricula);
-        return new ResultadoMatricula(creada, false);
+        matricula.setFechaMatricula(hoy);
+        matricula.setEstado(EstadoMatricula.ACTIVA);
+        return new ResultadoMatricula(matriculaRepository.save(matricula), false);
     }
 
     @Override
     @Transactional
-    public void desvincular(UUID matriculaId) {
-        desvincularInterno(matriculaId, currentUser.required());
+    public void desvincular(UUID matriculaId, boolean confirmado) {
+        desvincular(matriculaId, confirmado, currentUser.required());
     }
 
     @Override
     @Transactional
-    public void desvincular(UUID matriculaId, UsuarioPrincipal principal) {
-        desvincularInterno(matriculaId, principal);
-    }
-
-    private void desvincularInterno(UUID matriculaId, UsuarioPrincipal principal) {
+    public void desvincular(UUID matriculaId, boolean confirmado, UsuarioPrincipal principal) {
         Matricula matricula = matriculaRepository.findById(matriculaId)
                 .orElseThrow(() -> MatriculaNoEncontradaException.porId(matriculaId));
         asegurarAlcance(matricula.getAsignatura().getId(), principal);
 
-        if (matricula.getEstado() == EstadoRegistro.INACTIVO) {
+        if (matricula.getEstado() == EstadoMatricula.DESVINCULADA) {
             throw MatriculaYaInactivaException.porId(matriculaId);
         }
 
-        matricula.setEstado(EstadoRegistro.INACTIVO);
+        long cantidadCalificaciones = calificacionesDeMatricula.contarPorMatricula(matriculaId);
+        if (cantidadCalificaciones > 0 && !confirmado) {
+            throw ConfirmacionRequeridaException.porCalificacionesRegistradas(matriculaId, cantidadCalificaciones);
+        }
+
+        matricula.setEstado(EstadoMatricula.DESVINCULADA);
         matriculaRepository.save(matricula);
     }
 
@@ -170,12 +198,10 @@ public class MatriculaServiceImpl implements MatriculaService {
         if (!asignaturaRepository.existsById(asignaturaId)) {
             throw ReferenciaNoEncontradaException.asignatura(asignaturaId);
         }
-
         if (!semestreRepository.existsById(semestreId)) {
             throw ReferenciaNoEncontradaException.semestre(semestreId);
         }
-
-        EstadoRegistro estado = incluirInactivas ? null : EstadoRegistro.ACTIVO;
+        EstadoMatricula estado = incluirInactivas ? null : EstadoMatricula.ACTIVA;
         return matriculaRepository.buscarPorAsignaturaYSemestre(asignaturaId, semestreId, estado);
     }
 
@@ -215,9 +241,21 @@ public class MatriculaServiceImpl implements MatriculaService {
         }
         if (principal.rol() == RolUsuario.PROFESOR) {
             return matriculaRepository.buscarPorEstudianteYProfesor(
-                    estudianteId, principal.id(), EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO,
+                    estudianteId, principal.id(), EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO,
                     EstadoRegistro.ACTIVO);
         }
         throw new AccessDeniedException("El usuario no tiene acceso a las matrículas del estudiante");
+    }
+
+    @Override
+    @Transactional
+    public ResultadoAltaConMatricula registrarYMatricular(EstudianteRequestDTO estudianteDTO,
+                                                            UUID asignaturaId, UUID semestreId) {
+        if (estudianteService == null) {
+            throw new IllegalStateException("EstudianteService no está disponible");
+        }
+        EstudianteResponseDTO estudianteRegistrado = estudianteService.registrar(estudianteDTO);
+        ResultadoMatricula resultadoMatricula = this.matricular(estudianteRegistrado.id(), asignaturaId, semestreId);
+        return new ResultadoAltaConMatricula(estudianteRegistrado, resultadoMatricula.matricula());
     }
 }

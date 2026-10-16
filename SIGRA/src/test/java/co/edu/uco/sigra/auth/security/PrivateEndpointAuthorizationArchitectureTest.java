@@ -1,12 +1,16 @@
 package co.edu.uco.sigra.auth.security;
 
-import co.edu.uco.sigra.calificaciones.service.CalificacionService;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
+import co.edu.uco.sigra.asignaturas.service.AsignacionDocenteService;
 import co.edu.uco.sigra.auth.service.AuthService;
+import co.edu.uco.sigra.calificaciones.service.CalificacionService;
 import co.edu.uco.sigra.common.service.TipoDocumentoService;
 import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
 import co.edu.uco.sigra.estudiantes.service.EstudianteService;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
+import co.edu.uco.sigra.estadisticas.service.ConclusionService;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
+import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
 import co.edu.uco.sigra.programas.service.ProgramaService;
 import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
@@ -47,13 +51,25 @@ class PrivateEndpointAuthorizationArchitectureTest {
     private AsignaturaService asignaturaService;
 
     @MockitoBean
-    private CalificacionService calificacionService;
+    private AsignacionDocenteService asignacionDocenteService;
 
     @MockitoBean
     private AuthService authService;
 
     @MockitoBean
+    private CalificacionService calificacionService;
+
+    @MockitoBean
     private TipoDocumentoService tipoDocumentoService;
+
+    @MockitoBean
+    private ConclusionService conclusionService;
+
+    @MockitoBean
+    private EvaluacionService evaluacionService;
+
+    @MockitoBean
+    private AccionMejoraService accionMejoraService;
 
     @MockitoBean
     private CurrentUser currentUser;

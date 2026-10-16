@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -31,4 +32,9 @@ public class AsignacionDocente {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoRegistro estado;
+
+    // Valor por defecto para que el código existente que crea una asignación sin fijarlo (por
+    // ejemplo, datos de prueba de otros módulos) no rompa el NOT NULL de la base.
+    @Column(name = "fecha_asignacion", nullable = false)
+    private LocalDate fechaAsignacion = LocalDate.now();
 }

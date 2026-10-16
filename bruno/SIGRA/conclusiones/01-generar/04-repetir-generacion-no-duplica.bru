@@ -1,0 +1,22 @@
+meta {
+  name: 04 Repetir la generacion cuando ya hay una vigente no duplica
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raConcMas40Id}}/semestres/{{semBruConcId}}/conclusiones
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.generada: eq false
+  res.body.motivo: eq Ya existe una conclusión vigente para este resultado de aprendizaje y semestre.
+  res.body.conclusion: isNull
+}

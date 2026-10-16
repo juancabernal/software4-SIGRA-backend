@@ -9,6 +9,7 @@ import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.common.util.Correos;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.exception.CorreoEstudianteDuplicadoException;
 import co.edu.uco.sigra.estudiantes.exception.DocumentoNoModificableException;
@@ -92,7 +93,7 @@ public class EstudianteServiceImpl implements EstudianteService {
         String criterio = (filtro == null || filtro.isBlank()) ? "" : filtro;
         List<Estudiante> estudiantes = principal.rol() == RolUsuario.PROFESOR
                 ? estudianteRepository.buscarVisiblesParaProfesor(
-                principal.id(), criterio, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO)
+                principal.id(), criterio, EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO)
                 : (criterio.isEmpty()
                 ? estudianteRepository.findAll()
                 : estudianteRepository.buscarPorNombreODocumento(criterio));
@@ -140,7 +141,7 @@ public class EstudianteServiceImpl implements EstudianteService {
 
     private boolean estudianteRepositoryVisibleToProfessor(UUID estudianteId, UUID profesorId) {
         return estudianteRepository.existsVisibleToProfessor(
-                estudianteId, profesorId, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO);
+                estudianteId, profesorId, EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO);
     }
 
     @Override

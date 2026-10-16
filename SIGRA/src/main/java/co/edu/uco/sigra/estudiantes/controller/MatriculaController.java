@@ -1,6 +1,8 @@
 package co.edu.uco.sigra.estudiantes.controller;
 
+import co.edu.uco.sigra.estudiantes.dto.EstudianteConMatriculaResponseDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteMatriculadoDTO;
+import co.edu.uco.sigra.estudiantes.dto.MatriculaConEstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.MatriculaRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.MatriculaResponseDTO;
 import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
@@ -15,6 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Matriz de acceso por rol (RF-05), aplicada por Spring Security. La autorización por recurso
+ * (asignación docente activa) la valida el servicio antes de leer o modificar una matrícula.
+ */
 @RestController
 @RequestMapping("/api/v1/matriculas")
 @RequiredArgsConstructor
@@ -34,8 +40,9 @@ public class MatriculaController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
-    public ResponseEntity<Void> desvincular(@PathVariable UUID id) {
-        matriculaService.desvincular(id);
+    public ResponseEntity<Void> desvincular(@PathVariable UUID id,
+                                             @RequestParam(defaultValue = "false") boolean confirmar) {
+        matriculaService.desvincular(id, confirmar);
         return ResponseEntity.noContent().build();
     }
 
@@ -47,6 +54,16 @@ public class MatriculaController {
             @RequestParam(defaultValue = "false") boolean incluirInactivas) {
         var matriculas = matriculaService.listarMatriculados(asignaturaId, semestreId, incluirInactivas);
         return ResponseEntity.ok(matriculaMapper.toEstudianteMatriculadoDTOList(matriculas));
+    }
+
+    @PostMapping("/con-estudiante")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    public ResponseEntity<EstudianteConMatriculaResponseDTO> registrarYMatricular(
+            @Valid @RequestBody MatriculaConEstudianteRequestDTO dto) {
+        var resultado = matriculaService.registrarYMatricular(dto.estudiante(), dto.asignaturaId(), dto.semestreId());
+        var matriculaDTO = matriculaMapper.toResponseDTO(resultado.matricula());
+        var respuesta = new EstudianteConMatriculaResponseDTO(resultado.estudiante(), matriculaDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
 }
