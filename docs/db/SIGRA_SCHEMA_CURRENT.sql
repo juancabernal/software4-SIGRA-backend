@@ -177,10 +177,11 @@ CREATE INDEX IF NOT EXISTS idx_evaluacion_ra_semestre
 -- Asignación docente (módulo de asignaciones). Se referencia desde profesor.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sigra.asignacion_docente (
-    id            UUID         NOT NULL DEFAULT gen_random_uuid(),
-    profesor_id   UUID         NOT NULL,
-    asignatura_id UUID         NOT NULL,
-    estado        VARCHAR(255) NOT NULL,
+    id               UUID         NOT NULL DEFAULT gen_random_uuid(),
+    profesor_id      UUID         NOT NULL,
+    asignatura_id    UUID         NOT NULL,
+    estado           VARCHAR(255) NOT NULL,
+    fecha_asignacion DATE         NOT NULL DEFAULT CURRENT_DATE,
     CONSTRAINT asignacion_docente_pkey PRIMARY KEY (id),
     CONSTRAINT fk_asignacion_docente_profesor FOREIGN KEY (profesor_id)
         REFERENCES sigra.profesor (id),

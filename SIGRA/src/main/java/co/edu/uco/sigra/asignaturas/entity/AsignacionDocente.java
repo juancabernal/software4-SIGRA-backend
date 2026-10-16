@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -31,4 +32,7 @@ public class AsignacionDocente {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoRegistro estado;
+
+    @Column(name = "fecha_asignacion", nullable = false)
+    private LocalDate fechaAsignacion;
 }
