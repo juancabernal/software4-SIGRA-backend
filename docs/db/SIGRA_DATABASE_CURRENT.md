@@ -102,10 +102,21 @@ iniciar sesión hasta que se les asigne una.
 | `profesor_id` | UUID | no | FK a `sigra.profesor(id)` |
 | `asignatura_id` | UUID | no | FK a `sigra.asignatura(id)` |
 | `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK) |
+| `fecha_asignacion` | DATE | no | Por defecto `CURRENT_DATE`. Informativa: no participa en ninguna validación |
 
 En bases anteriores a este cambio, `asignatura_id` se agrega con
 `RF09_estudiante_y_asignacion_docente_migration.sql`; si había asignaciones antiguas sin
 asignatura, la columna queda sin `NOT NULL` hasta que se corrijan esas filas.
+`fecha_asignacion` se agrega con `RF07_asignacion_docente_fecha_migration.sql`: en bases
+anteriores a ese cambio, las filas que ya existían no tenían esa fecha, así que quedan con
+`CURRENT_DATE` del momento en que se corre la migración (no es la fecha real en que se asignó
+cada profesor, porque antes no se guardaba).
+
+El endpoint de asignación masiva (`POST /api/v1/asignaciones-docentes`) no falla la operación
+completa por un par individual: si el profesor o la asignatura ya tienen una asignación activa
+para ese par, se omite; si el profesor o la asignatura están inactivos, se rechaza. Ambos casos
+se informan en la respuesta (`omitidas`, `rechazadas`) y el resumen siempre responde `201`. Un
+`404` solo ocurre si el profesor o la asignatura no existen en absoluto.
 
 ## Tabla `sigra.matricula` (RF-08, RF-09)
 
@@ -179,6 +190,7 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | `docs/db/RF04_administrador_y_estudiante_subtipos_migration.sql` | Migración idempotente | Crea `sigra.administrador` y convierte `sigra.estudiante` en subtipo de `usuario` (mueve los datos, no los borra) |
 | `docs/db/RF08_matricula_migration.sql` | Migración idempotente | Crea `sigra.matricula` en bases creadas antes de RF-08/RF-09 |
 | `docs/db/RF03_ra_inactivado_con_asignatura_migration.sql` | Migración idempotente | Agrega `resultado_aprendizaje.inactivado_con_asignatura` para poder reactivar asignaturas |
+| `docs/db/RF07_asignacion_docente_fecha_migration.sql` | Migración idempotente | Agrega `asignacion_docente.fecha_asignacion` en bases creadas antes de este cambio |
 | `bruno/SIGRA/seed/seed-roles.sql` | Datos de prueba | Un administrador y un estudiante de Bruno para RF-04, idempotente |
 | `bruno/SIGRA/seed/seed-auth.sql` | Datos de prueba | Usuarios de Bruno para RF-04, idempotente |
 
