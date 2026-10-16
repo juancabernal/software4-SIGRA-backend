@@ -124,6 +124,17 @@ class AccionMejoraControllerTest {
                             .content(CUERPO_REGISTRO_VALIDO))
                     .andExpect(status().isNotFound());
         }
+
+        @Test
+        @DisplayName("Con un nombre de 31 caracteres devuelve 400 sin llamar al servicio")
+        void nombreDe31CaracteresDevuelve400() throws Exception {
+            String nombre31 = "A".repeat(31);
+
+            mockMvc.perform(post(URL_REGISTRAR).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"nombre\":\"" + nombre31 + "\",\"descripcion\":\"Taller de refuerzo\"}"))
+                    .andExpect(status().isBadRequest());
+            org.mockito.Mockito.verifyNoInteractions(service);
+        }
     }
 
     @Nested
