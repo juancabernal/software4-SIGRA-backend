@@ -154,7 +154,7 @@ class SecurityRf05IntegrationIT {
         MvcResult estudianteAParaProfesorA = enviar(
                 get("/api/v1/estudiantes/" + estudianteA.getId()), tokenProfesorA);
         assertThat(estudianteAParaProfesorA.getResponse().getStatus())
-                .as(cuerpo(estudianteAParaProfesorA)).isEqualTo(200);
+                .as(estudianteAParaProfesorA.getResponse().getContentAsString()).isEqualTo(200);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteB.getId()), tokenProfesorA)
                 .getResponse().getStatus()).isEqualTo(403);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteB.getId()), tokenProfesorB)
