@@ -33,6 +33,8 @@ public class AsignacionDocente {
     @Column(nullable = false)
     private EstadoRegistro estado;
 
+    // Valor por defecto para que el código existente que crea una asignación sin fijarlo (por
+    // ejemplo, datos de prueba de otros módulos) no rompa el NOT NULL de la base.
     @Column(name = "fecha_asignacion", nullable = false)
-    private LocalDate fechaAsignacion;
+    private LocalDate fechaAsignacion = LocalDate.now();
 }
