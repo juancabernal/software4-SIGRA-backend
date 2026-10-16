@@ -2,7 +2,8 @@ package co.edu.uco.sigra.evaluaciones.controller;
 
 import co.edu.uco.sigra.asignaturas.exception.AutenticacionRequeridaException;
 import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
 import co.edu.uco.sigra.evaluaciones.dto.EvaluacionActualizarRequestDTO;
@@ -57,6 +58,8 @@ class EvaluacionControllerTest {
     private static final UUID ID_RA = UUID.randomUUID();
     private static final UUID ID_EVALUACION = UUID.randomUUID();
     private static final UUID ID_SEMESTRE = UUID.randomUUID();
+    private static final UsuarioPrincipal PRINCIPAL =
+            new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.PROFESOR);
 
     private static final String URL_POR_RA = "/api/v1/resultados-aprendizaje/" + ID_RA + "/evaluaciones";
     private static final String URL_EVALUACION = "/api/v1/evaluaciones/" + ID_EVALUACION;
@@ -73,14 +76,17 @@ class EvaluacionControllerTest {
 
     @Mock
     private EvaluacionService service;
+    @Mock
+    private CurrentUser currentUser;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
+        lenient().when(currentUser.required()).thenReturn(PRINCIPAL);
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mockMvc = MockMvcBuilders.standaloneSetup(new EvaluacionController(service))
+        mockMvc = MockMvcBuilders.standaloneSetup(new EvaluacionController(service, currentUser))
                 .setControllerAdvice(new EvaluacionExceptionHandler(), new GlobalExceptionHandler())
                 .setValidator(validator)
                 .build();
@@ -107,7 +113,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Con datos válidos devuelve 201 y delega con el RA de la URL")
         void datosValidos() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenReturn(respuesta("ACTIVA"));
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -121,7 +127,7 @@ class EvaluacionControllerTest {
                     .andExpect(jsonPath("$.tieneCalificaciones").value(false));
 
             ArgumentCaptor<EvaluacionCrearRequestDTO> dto = ArgumentCaptor.forClass(EvaluacionCrearRequestDTO.class);
-            verify(service).crear(eq(ID_RA), dto.capture(), isNull());
+            verify(service).crear(eq(ID_RA), dto.capture(), any(UsuarioPrincipal.class));
             assertThat(dto.getValue().nombre()).isEqualTo(NOMBRE);
             assertThat(dto.getValue().fechaTentativa()).isEqualTo(FECHA);
             assertThat(dto.getValue().porcentaje()).isEqualByComparingTo("30");
@@ -131,7 +137,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Normaliza espacios en nombre y descripción antes de llegar al servicio")
         void normalizaEspacios() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenReturn(respuesta("ACTIVA"));
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON)
@@ -139,7 +145,7 @@ class EvaluacionControllerTest {
                     .andExpect(status().isCreated());
 
             ArgumentCaptor<EvaluacionCrearRequestDTO> dto = ArgumentCaptor.forClass(EvaluacionCrearRequestDTO.class);
-            verify(service).crear(eq(ID_RA), dto.capture(), isNull());
+            verify(service).crear(eq(ID_RA), dto.capture(), any(UsuarioPrincipal.class));
             assertThat(dto.getValue().nombre()).isEqualTo("Parcial 1");
             assertThat(dto.getValue().descripcion()).isEqualTo("Primer parcial");
         }
@@ -147,15 +153,15 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Pasa al servicio la identidad que dejó el interceptor de roles")
         void pasaLaIdentidad() throws Exception {
-            IdentidadActual identidad = new IdentidadActual(UUID.randomUUID(), RolUsuario.PROFESOR);
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), eq(identidad)))
+            UsuarioPrincipal identidad = new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.PROFESOR);
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenReturn(respuesta("ACTIVA"));
 
-            mockMvc.perform(post(URL_POR_RA).requestAttr(IdentidadActual.ATRIBUTO, identidad)
+            mockMvc.perform(post(URL_POR_RA)
                             .contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
                     .andExpect(status().isCreated());
 
-            verify(service).crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), eq(identidad));
+            verify(service).crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class));
         }
 
         @Test
@@ -234,7 +240,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Con porcentaje 100 y con 0.01 (límites) es válido")
         void porcentajesLimite() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenReturn(respuesta("ACTIVA"));
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON)
@@ -295,7 +301,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si el servicio rechaza por regla de negocio devuelve 400 con el mensaje")
         void reglaDeNegocio() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("40")));
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -309,7 +315,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si el RA no existe devuelve 404")
         void raNoExiste() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new ResultadoAprendizajeNoEncontradoException(ID_RA));
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -320,7 +326,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si el nombre está duplicado devuelve 409")
         void nombreDuplicado() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new NombreEvaluacionDuplicadoException());
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -331,7 +337,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si la base rechaza por integridad (carrera de nombres) devuelve 409")
         void violacionDeIntegridad() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new DataIntegrityViolationException("uk_evaluacion_ra_semestre_nombre"));
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -342,7 +348,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si el profesor no es dueño de la asignatura devuelve 403")
         void sinPermiso() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new PermisoInsuficienteException());
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -353,7 +359,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si falta autenticación devuelve 401 con WWW-Authenticate: Bearer")
         void sinAutenticacion() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), isNull()))
+            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new AutenticacionRequeridaException());
 
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -384,7 +390,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Por RA sin semestreId devuelve 200 con el % acumulado y delega semestre nulo")
         void porRaSinSemestre() throws Exception {
-            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), isNull(), isNull())).thenReturn(resumen());
+            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), isNull(), any(UsuarioPrincipal.class))).thenReturn(resumen());
 
             mockMvc.perform(get(URL_POR_RA))
                     .andExpect(status().isOk())
@@ -399,13 +405,13 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Por RA con semestreId lo pasa al servicio")
         void porRaConSemestre() throws Exception {
-            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), eq(ID_SEMESTRE), isNull()))
+            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), eq(ID_SEMESTRE), any(UsuarioPrincipal.class)))
                     .thenReturn(resumen());
 
             mockMvc.perform(get(URL_POR_RA).param("semestreId", ID_SEMESTRE.toString()))
                     .andExpect(status().isOk());
 
-            verify(service).consultarPorResultadoAprendizaje(eq(ID_RA), eq(ID_SEMESTRE), isNull());
+            verify(service).consultarPorResultadoAprendizaje(eq(ID_RA), eq(ID_SEMESTRE), any(UsuarioPrincipal.class));
         }
 
         @Test
@@ -419,7 +425,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Con un semestre inexistente devuelve 404")
         void semestreNoExiste() throws Exception {
-            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), eq(ID_SEMESTRE), isNull()))
+            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), eq(ID_SEMESTRE), any(UsuarioPrincipal.class)))
                     .thenThrow(new SemestreNoEncontradoException(ID_SEMESTRE));
 
             mockMvc.perform(get(URL_POR_RA).param("semestreId", ID_SEMESTRE.toString()))
@@ -429,7 +435,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Sin semestre activo devuelve 400")
         void sinSemestreActivo() throws Exception {
-            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), isNull(), isNull()))
+            when(service.consultarPorResultadoAprendizaje(eq(ID_RA), isNull(), any(UsuarioPrincipal.class)))
                     .thenThrow(EvaluacionReglaNegocioException.sinSemestreActivo());
 
             mockMvc.perform(get(URL_POR_RA)).andExpect(status().isBadRequest());
@@ -438,7 +444,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Por id devuelve 200 con la evaluación")
         void porId() throws Exception {
-            when(service.consultarPorId(eq(ID_EVALUACION), isNull())).thenReturn(respuesta("ACTIVA"));
+            when(service.consultarPorId(eq(ID_EVALUACION), any(UsuarioPrincipal.class))).thenReturn(respuesta("ACTIVA"));
 
             mockMvc.perform(get(URL_EVALUACION))
                     .andExpect(status().isOk())
@@ -449,7 +455,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Por id inexistente devuelve 404")
         void porIdNoExiste() throws Exception {
-            when(service.consultarPorId(eq(ID_EVALUACION), isNull()))
+            when(service.consultarPorId(eq(ID_EVALUACION), any(UsuarioPrincipal.class)))
                     .thenThrow(new EvaluacionNoEncontradaException(ID_EVALUACION));
 
             mockMvc.perform(get(URL_EVALUACION))
@@ -467,7 +473,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Por id de una evaluación de otra asignatura devuelve 403")
         void porIdSinPermiso() throws Exception {
-            when(service.consultarPorId(eq(ID_EVALUACION), isNull())).thenThrow(new PermisoInsuficienteException());
+            when(service.consultarPorId(eq(ID_EVALUACION), any(UsuarioPrincipal.class))).thenThrow(new PermisoInsuficienteException());
 
             mockMvc.perform(get(URL_EVALUACION)).andExpect(status().isForbidden());
         }
@@ -482,7 +488,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Con datos válidos devuelve 200 y delega con el id de la URL")
         void datosValidos() throws Exception {
-            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), isNull()))
+            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenReturn(respuesta("ACTIVA"));
 
             mockMvc.perform(put(URL_EVALUACION).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -491,7 +497,7 @@ class EvaluacionControllerTest {
 
             ArgumentCaptor<EvaluacionActualizarRequestDTO> dto =
                     ArgumentCaptor.forClass(EvaluacionActualizarRequestDTO.class);
-            verify(service).modificar(eq(ID_EVALUACION), dto.capture(), isNull());
+            verify(service).modificar(eq(ID_EVALUACION), dto.capture(), any(UsuarioPrincipal.class));
             assertThat(dto.getValue().fechaTentativa()).isEqualTo(FECHA);
             assertThat(dto.getValue().porcentaje()).isEqualByComparingTo("30");
         }
@@ -521,7 +527,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Con calificaciones registradas y fecha o porcentaje cambiados devuelve 400 con el mensaje")
         void bloqueadaPorCalificaciones() throws Exception {
-            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), isNull()))
+            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(EvaluacionReglaNegocioException.camposBloqueadosPorCalificaciones());
 
             mockMvc.perform(put(URL_EVALUACION).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -533,7 +539,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si no existe devuelve 404")
         void noExiste() throws Exception {
-            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), isNull()))
+            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new EvaluacionNoEncontradaException(ID_EVALUACION));
 
             mockMvc.perform(put(URL_EVALUACION).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -543,7 +549,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Si el nombre está duplicado devuelve 409")
         void nombreDuplicado() throws Exception {
-            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), isNull()))
+            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new NombreEvaluacionDuplicadoException());
 
             mockMvc.perform(put(URL_EVALUACION).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -553,7 +559,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Sin permiso sobre la asignatura devuelve 403")
         void sinPermiso() throws Exception {
-            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), isNull()))
+            when(service.modificar(eq(ID_EVALUACION), any(EvaluacionActualizarRequestDTO.class), any(UsuarioPrincipal.class)))
                     .thenThrow(new PermisoInsuficienteException());
 
             mockMvc.perform(put(URL_EVALUACION).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
@@ -570,7 +576,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Inactivar devuelve 200 con estado INACTIVA")
         void inactivar() throws Exception {
-            when(service.inactivar(eq(ID_EVALUACION), isNull())).thenReturn(respuesta("INACTIVA"));
+            when(service.inactivar(eq(ID_EVALUACION), any(UsuarioPrincipal.class))).thenReturn(respuesta("INACTIVA"));
 
             mockMvc.perform(patch(URL_EVALUACION + "/inactivar"))
                     .andExpect(status().isOk())
@@ -580,7 +586,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Reactivar devuelve 200 con estado ACTIVA")
         void reactivar() throws Exception {
-            when(service.reactivar(eq(ID_EVALUACION), isNull())).thenReturn(respuesta("ACTIVA"));
+            when(service.reactivar(eq(ID_EVALUACION), any(UsuarioPrincipal.class))).thenReturn(respuesta("ACTIVA"));
 
             mockMvc.perform(patch(URL_EVALUACION + "/reactivar"))
                     .andExpect(status().isOk())
@@ -590,7 +596,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Inactivar una evaluación ya inactiva devuelve 400")
         void yaInactiva() throws Exception {
-            when(service.inactivar(eq(ID_EVALUACION), isNull()))
+            when(service.inactivar(eq(ID_EVALUACION), any(UsuarioPrincipal.class)))
                     .thenThrow(EvaluacionReglaNegocioException.yaInactiva());
 
             mockMvc.perform(patch(URL_EVALUACION + "/inactivar"))
@@ -601,7 +607,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Reactivar que excedería 100% devuelve 400")
         void reactivarExcede() throws Exception {
-            when(service.reactivar(eq(ID_EVALUACION), isNull()))
+            when(service.reactivar(eq(ID_EVALUACION), any(UsuarioPrincipal.class)))
                     .thenThrow(EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("20")));
 
             mockMvc.perform(patch(URL_EVALUACION + "/reactivar")).andExpect(status().isBadRequest());
@@ -610,9 +616,9 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Inactivar o reactivar una evaluación inexistente devuelve 404")
         void noExiste() throws Exception {
-            when(service.inactivar(eq(ID_EVALUACION), isNull()))
+            when(service.inactivar(eq(ID_EVALUACION), any(UsuarioPrincipal.class)))
                     .thenThrow(new EvaluacionNoEncontradaException(ID_EVALUACION));
-            when(service.reactivar(eq(ID_EVALUACION), isNull()))
+            when(service.reactivar(eq(ID_EVALUACION), any(UsuarioPrincipal.class)))
                     .thenThrow(new EvaluacionNoEncontradaException(ID_EVALUACION));
 
             mockMvc.perform(patch(URL_EVALUACION + "/inactivar")).andExpect(status().isNotFound());
@@ -630,7 +636,7 @@ class EvaluacionControllerTest {
         @Test
         @DisplayName("Sin permiso sobre la asignatura devuelve 403")
         void sinPermiso() throws Exception {
-            when(service.inactivar(eq(ID_EVALUACION), isNull())).thenThrow(new PermisoInsuficienteException());
+            when(service.inactivar(eq(ID_EVALUACION), any(UsuarioPrincipal.class))).thenThrow(new PermisoInsuficienteException());
 
             mockMvc.perform(patch(URL_EVALUACION + "/inactivar")).andExpect(status().isForbidden());
         }

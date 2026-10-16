@@ -16,7 +16,8 @@ public interface AsignaturaService {
 
     /**
      * Consulta con alcance por rol. Con un ADMINISTRADOR devuelve todas; con un PROFESOR, solo las
-     * asignaturas donde tiene asignación docente ACTIVA. Sin identidad equivale a {@link #consultar(AsignaturaFiltroDTO)}.
+     * asignaturas donde tiene asignación docente ACTIVA. La identidad se obtiene del contexto de
+     * Spring Security cuando se usa {@link #consultar(AsignaturaFiltroDTO)}.
      */
     List<AsignaturaResponseDTO> consultar(AsignaturaFiltroDTO filtro, UsuarioPrincipal identidad);
 

@@ -3,7 +3,7 @@ package co.edu.uco.sigra.mejoras.service;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
@@ -63,6 +63,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Servicio de acciones de mejora (RF-17/RF-18)")
 class AccionMejoraServiceImplTest {
+
+    private static final UsuarioPrincipal ADMIN =
+            new UsuarioPrincipal(UUID.randomUUID(), "admin@uco.net.co", RolUsuario.ADMINISTRADOR);
 
     private static final UUID ID_RA = UUID.randomUUID();
     private static final UUID ID_ASIGNATURA = UUID.randomUUID();
@@ -139,7 +142,7 @@ class AccionMejoraServiceImplTest {
             RegistrarAccionMejoraRequestDTO datos =
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
 
-            assertThatThrownBy(() -> service.registrarAccionMejora(idConclusion, datos, null))
+            assertThatThrownBy(() -> service.registrarAccionMejora(idConclusion, datos, ADMIN))
                     .isInstanceOf(ConclusionNoVigenteException.class);
             verify(accionMejoraRepository, never()).save(any());
         }
@@ -155,7 +158,7 @@ class AccionMejoraServiceImplTest {
             RegistrarAccionMejoraRequestDTO datos =
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
 
-            AccionMejoraResponseDTO respuesta = service.registrarAccionMejora(idConclusion, datos, null);
+            AccionMejoraResponseDTO respuesta = service.registrarAccionMejora(idConclusion, datos, ADMIN);
 
             assertThat(respuesta.nombre()).isEqualTo("Capacitación");
             assertThat(respuesta.descripcion()).isEqualTo("Taller de refuerzo");
@@ -183,7 +186,7 @@ class AccionMejoraServiceImplTest {
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
 
             assertThatThrownBy(() -> service.registrarAccionMejora(idConclusion, datos,
-                    new IdentidadActual(profesorId, RolUsuario.PROFESOR)))
+                    new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR)))
                     .isInstanceOf(PermisoInsuficienteException.class);
             verify(accionMejoraRepository, never()).save(any());
         }
@@ -208,7 +211,7 @@ class AccionMejoraServiceImplTest {
                     .thenAnswer(inv -> evaluacionCreada(idEvaluacion, inv.getArgument(1)));
             when(accionMejoraRepository.save(any(AccionMejora.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            AccionMejoraResponseDTO respuesta = service.convertirEnEvaluacion(idAccion, conversion("30"), null);
+            AccionMejoraResponseDTO respuesta = service.convertirEnEvaluacion(idAccion, conversion("30"), ADMIN);
 
             assertThat(respuesta.convertida()).isTrue();
             assertThat(respuesta.evaluacionGeneradaId()).isEqualTo(idEvaluacion);
@@ -230,7 +233,7 @@ class AccionMejoraServiceImplTest {
             when(evaluacionService.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any()))
                     .thenThrow(EvaluacionReglaNegocioException.porcentajeExcedido(new BigDecimal("20")));
 
-            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("25"), null))
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("25"), ADMIN))
                     .isInstanceOf(EvaluacionReglaNegocioException.class)
                     .hasMessageContaining("Porcentaje disponible: 20%");
             assertThat(accion.estaConvertida()).isFalse();
@@ -245,7 +248,7 @@ class AccionMejoraServiceImplTest {
             accion.marcarConvertida(UUID.randomUUID());
             when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
 
-            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), null))
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), ADMIN))
                     .isInstanceOf(AccionYaConvertidaException.class);
             verifyNoInteractions(evaluacionService);
         }
@@ -258,7 +261,7 @@ class AccionMejoraServiceImplTest {
                     "Taller de refuerzo", resultadoAprendizaje, conclusionVigente());
             when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
 
-            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), null))
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), ADMIN))
                     .isInstanceOf(AccionNoConvertibleException.class)
                     .hasMessageContaining("El nombre debe tener máximo 30 caracteres");
             verifyNoInteractions(evaluacionService);
@@ -273,7 +276,7 @@ class AccionMejoraServiceImplTest {
                     resultadoAprendizaje, conclusionVigente());
             when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
 
-            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), null))
+            assertThatThrownBy(() -> service.convertirEnEvaluacion(idAccion, conversion("10"), ADMIN))
                     .isInstanceOf(AccionNoConvertibleException.class)
                     .hasMessageContaining("La descripción no puede contener los caracteres < o >");
             verifyNoInteractions(evaluacionService);
@@ -301,7 +304,7 @@ class AccionMejoraServiceImplTest {
 
             AccionMejoraFiltroDTO filtro = new AccionMejoraFiltroDTO(null, null, ID_SEMESTRE, null);
 
-            List<AccionMejoraResponseDTO> resultado = service.consultarAcciones(filtro);
+            List<AccionMejoraResponseDTO> resultado = service.consultarAcciones(filtro, ADMIN);
 
             assertThat(resultado).hasSize(1);
             assertThat(resultado.get(0).semestreId()).isEqualTo(ID_SEMESTRE);
@@ -326,7 +329,7 @@ class AccionMejoraServiceImplTest {
 
             RegistrarAccionMejoraRequestDTO datosRegistro =
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
-            service.registrarAccionMejora(idConclusion, datosRegistro, null);
+            service.registrarAccionMejora(idConclusion, datosRegistro, ADMIN);
 
             ArgumentCaptor<AccionMejora> captor = ArgumentCaptor.forClass(AccionMejora.class);
             verify(accionMejoraRepository).save(captor.capture());
@@ -340,7 +343,7 @@ class AccionMejoraServiceImplTest {
                     .thenAnswer(inv -> evaluacionCreada(idEvaluacion, inv.getArgument(1)));
 
             AccionMejoraResponseDTO respuestaConversion =
-                    service.convertirEnEvaluacion(idAccion, conversion("30"), null);
+                    service.convertirEnEvaluacion(idAccion, conversion("30"), ADMIN);
 
             assertThat(respuestaConversion.convertida()).isTrue();
             assertThat(respuestaConversion.evaluacionGeneradaId()).isEqualTo(idEvaluacion);

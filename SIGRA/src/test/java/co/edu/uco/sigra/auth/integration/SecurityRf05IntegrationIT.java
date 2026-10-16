@@ -13,6 +13,7 @@ import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
 import co.edu.uco.sigra.profesores.entity.Profesor;
@@ -242,7 +243,7 @@ class SecurityRf05IntegrationIT {
         matricula.setEstudiante(estudiante);
         matricula.setAsignatura(asignatura);
         matricula.setSemestre(semestre);
-        matricula.setEstado(EstadoRegistro.ACTIVO);
+        matricula.setEstado(EstadoMatricula.ACTIVA);
         matriculaRepository.save(matricula);
     }
 

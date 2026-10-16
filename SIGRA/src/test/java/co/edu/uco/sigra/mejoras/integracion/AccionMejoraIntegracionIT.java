@@ -66,7 +66,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // Sin @Transactional: el servicio confirma de verdad. Todos los datos propios llevan el prefijo ITM / itm-
 // y se borran en @AfterEach (y en @BeforeEach por si una corrida anterior se interrumpió).
 @Tag("integration")
-@SpringBootTest(properties = "sigra.seguridad.roles.habilitado=true")
+@SpringBootTest
 @AutoConfigureMockMvc
 class AccionMejoraIntegracionIT {
     /** Hoy en la zona del servicio de evaluaciones (America/Bogota): el JVM de CI corre en UTC y el día puede diferir. */

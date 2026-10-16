@@ -1,17 +1,24 @@
 # Pruebas del módulo de matrícula — RF-08, RF-09, RF-09a
 
+> Actualizado para la integración definitiva de `main` y `develop` (2026-10-16). La autorización
+> ya no usa interceptores ni un interruptor de desarrollo: se aplica mediante Spring Security,
+> `@PreAuthorize`, `CurrentUser` y `SecurityAuthorizationService`. Las referencias históricas a
+> `ControlAccesoMatriculaInterceptorTest`, `MatriculaControllerRolesTest` y sus anotaciones
+> antiguas quedan sustituidas por las pruebas JWT/RBAC de `SecurityRf05IntegrationIT` y las
+> pruebas unitarias del servicio.
+
 A diferencia de `estudiantes-integracion.md` (que documenta una sola clase `*IntegracionIT`), este
 archivo documenta la cobertura de pruebas de **todo el módulo de matrícula** del cambio
-`matricula-desvinculacion`, repartida en cinco lugares:
+`matricula-desvinculacion`, repartida en seis lugares:
 
 1. `SIGRA/src/test/java/co/edu/uco/sigra/estudiantes/service/MatriculaServiceImplTest.java` — unitaria,
    Mockito, sin contexto de Spring.
 2. `SIGRA/src/test/java/co/edu/uco/sigra/estudiantes/controller/MatriculaControllerTest.java` —
    `@WebMvcTest`, servicio mockeado.
-3. `SIGRA/src/test/java/co/edu/uco/sigra/estudiantes/seguridad/ControlAccesoMatriculaInterceptorTest.java`
-   — unitaria, sin contexto de Spring, del interceptor de roles.
-4. `SIGRA/src/test/java/co/edu/uco/sigra/estudiantes/controller/MatriculaControllerRolesTest.java` —
-   `@WebMvcTest` con el interruptor de roles encendido.
+3. `SIGRA/src/test/java/co/edu/uco/sigra/auth/integration/SecurityRf05IntegrationIT.java` —
+   contexto completo con JWT, roles, propiedad docente y alcance de matrícula.
+4. La guardia arquitectónica `PrivateEndpointAuthorizationArchitectureTest` — verifica que cada
+   mapping privado del API tenga autorización explícita.
 5. `SIGRA/src/test/java/co/edu/uco/sigra/estudiantes/integracion/EstudianteIntegracionIT.java`, casos
    **IT-05** a **IT-08** — contexto completo contra PostgreSQL real.
 6. La colección Bruno: `bruno/SIGRA/estudiantes/04-matricular/`, `05-desvincular-consultar/`,
@@ -153,37 +160,14 @@ Servicio mockeado; cubre deserialización, validación de DTO y mapeo de excepci
 | Con incluirInactivas=true llama al servicio con ese valor | Parámetro explícito |
 | Lista vacía devuelve 200 con un arreglo vacío, no 404 | Spec: "Asignatura sin matriculados" |
 
-## 3. `ControlAccesoMatriculaInterceptorTest` (unitaria, sin contexto de Spring)
+## 3. Seguridad de matrícula y regresiones RBAC
 
-`@DisplayName("Control de acceso por rol de matrículas (temporal hasta RF-05)")`. 35 casos en total
-(ver el historial del commit 5), organizados en:
+La autorización se prueba en la infraestructura común de Spring Security. Se cubren ausencia o
+invalidez del JWT (401), rol insuficiente (403), asignatura fuera del alcance del profesor,
+matrícula ajena, estudiante propio y confirmación de desvinculación. La prueba arquitectónica
+evita que un endpoint nuevo dependa únicamente de `anyRequest().authenticated()`.
 
-- **Matriz completa: endpoint × rol × interruptor** (parametrizado) — recorre los cuatro endpoints
-  anotados con `@RolesPermitidosMatricula` contra ADMINISTRADOR/PROFESOR/ESTUDIANTE, con el interruptor
-  encendido y apagado, comprobando que apagado deja pasar todo y encendido aplica la matriz
-  ADMIN+PROFESOR sí, ESTUDIANTE 403.
-- **Las peticiones preflight (OPTIONS) siempre pasan, aun sin token y con el interruptor encendido.**
-- **Si el resolvedor no está disponible, exigir identidad responde 401 y no una excepción distinta** —
-  robustez cuando el `ObjectProvider<ResolvedorIdentidad>` no tiene bean disponible.
-- **Un manejador que no es un método de controlador pasa sin revisar** — recursos estáticos u otros
-  handlers no se bloquean por error.
-
-## 4. `MatriculaControllerRolesTest` (`@WebMvcTest`, interruptor encendido)
-
-`@DisplayName("MatriculaController con control de acceso por rol (interruptor encendido)")`. 8 casos:
-
-| Caso | Qué verifica |
-| --- | --- |
-| ESTUDIANTE que desvincula una matrícula inexistente recibe 403, no 404, y el servicio no se invoca | Spec: "El rechazo no filtra la existencia del recurso" |
-| ESTUDIANTE que consulta matriculados con asignatura y semestre inexistentes recibe 403, no 404 | Ídem, en el listado |
-| ESTUDIANTE que usa el alta en un paso con asignatura y semestre inexistentes recibe 403, no 404 | Ídem, en RF-09a |
-| ESTUDIANTE que matricula recibe 403 sin invocar el servicio | El rol se evalúa antes de llegar al servicio |
-| Sin token responde 401 con el contrato de error y sin cabecera WWW-Authenticate | Formato transversal del 401 |
-| Un token inválido también responde 401 y el servicio no se invoca | Autenticación inválida, no solo ausente |
-| Un ADMINISTRADOR consulta matriculados y el control lo deja pasar hasta el servicio | Camino feliz del control, rol permitido |
-| Un PROFESOR desvincula una matrícula y el control lo deja pasar hasta el servicio | Ídem, el otro rol permitido |
-
-## 5. `EstudianteIntegracionIT` — casos de matrícula (contexto completo + PostgreSQL real)
+## 4. `EstudianteIntegracionIT` — casos de matrícula (contexto completo + PostgreSQL real)
 
 Ya documentada en `estudiantes-integracion.md` para IT-01 a IT-05 (que incluye la matrícula básica:
 terna única, repitencia, las tres validaciones de estado, desvinculación y reactivación). Los casos
@@ -196,7 +180,7 @@ actualizarlo, son:
 | IT-07 | Registrar y matricular en un paso: camino feliz de punta a punta | 201 con el estudiante y la matrícula; el estudiante creado se puede consultar por separado; aparece en el listado de matriculados con su `fechaMatricula` real |
 | IT-08 | Registrar y matricular en un paso: documento duplicado da el mismo 409 que el registro normal | Mismo mensaje, letra por letra, que el registro por separado; no queda una segunda fila ni una matrícula huérfana |
 
-## 6. Colección Bruno (`bruno/SIGRA/estudiantes/`)
+## 5. Colección Bruno (`bruno/SIGRA/estudiantes/`)
 
 | Carpeta | Casos | Qué cubre |
 | --- | --- | --- |
@@ -237,16 +221,11 @@ construido con `./gradlew bootRun`) y PostgreSQL con la migración
    cuando `calificaciones` publique su propio bean de `CalificacionesDeMatricula` — y ese día, según
    D4, el cambio no debería requerir tocar una sola línea de `estudiantes`.
 
-2. **El control de acceso ADMIN/PROFESOR está apagado por defecto.** `sigra.seguridad.roles.habilitado`
-   vale `false` mientras RF-05 (de José Alejandro) no exista, así que en producción cualquier petición
-   a `/api/v1/matriculas/**` sin token se atiende igual que antes de este cambio. La matriz de roles
-   **está** implementada y probada con el interruptor encendido —
-   `ControlAccesoMatriculaInterceptorTest` (35 casos) y `MatriculaControllerRolesTest` (8 casos)—, pero
-   la colección Bruno no incluye peticiones de roles para `estudiantes/` (a diferencia de
-   `asignaturas/07-roles/`, que sí las tiene): no era parte del alcance de esta tarea y, con el
-   interruptor apagado, esas peticiones no tendrían nada que ejercer. Cuando se encienda el
-   interruptor en el entorno de Bruno, sería el momento de añadir un `07-roles`/`08-roles` análogo al
-   de `asignaturas/`.
+2. **El control de acceso ADMIN/PROFESOR está activo por defecto.** La cadena de Spring Security exige
+   JWT y los endpoints de matrícula declaran `@PreAuthorize`; además, el servicio comprueba la
+   asignatura autorizada y conserva el alcance de recurso. No existe una propiedad que desactive
+   permisos en producción. La cobertura equivalente está en `SecurityRf05IntegrationIT`, la guardia
+   arquitectónica y `MatriculaServiceImplTest`.
 
 ## Nota sobre el entorno de verificación
 

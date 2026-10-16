@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.service;
 
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteResponseDTO;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
@@ -15,6 +16,7 @@ public interface MatriculaService {
      * matrícula devuelta se creó o se reactivó, para que el controlador responda 201 o 200.
      */
     ResultadoMatricula matricular(UUID estudianteId, UUID asignaturaId, UUID semestreId);
+    ResultadoMatricula matricular(UUID estudianteId, UUID asignaturaId, UUID semestreId, UsuarioPrincipal principal);
 
     /**
      * Desvincula (retira) una matrícula, dejándola en estado {@code DESVINCULADA} sin borrarla.
@@ -31,17 +33,21 @@ public interface MatriculaService {
      *                    que la matrícula tenga calificaciones registradas
      */
     void desvincular(UUID matriculaId, boolean confirmado);
+    void desvincular(UUID matriculaId, boolean confirmado, UsuarioPrincipal principal);
 
     /**
      * Lista las matrículas de una asignatura en un semestre. Si {@code incluirInactivas} es
      * {@code false}, solo trae las activas.
      */
     List<Matricula> listarMatriculados(UUID asignaturaId, UUID semestreId, boolean incluirInactivas);
+    List<Matricula> listarMatriculados(UUID asignaturaId, UUID semestreId, boolean incluirInactivas,
+                                       UsuarioPrincipal principal);
 
     /**
      * Lista el historial completo de matrículas de un estudiante (activas e inactivas).
      */
     List<Matricula> listarAsignaturasDeEstudiante(UUID estudianteId);
+    List<Matricula> listarAsignaturasDeEstudiante(UUID estudianteId, UsuarioPrincipal principal);
 
     /**
      * Registra un estudiante nuevo y lo matricula en una asignatura y semestre, ambas cosas en

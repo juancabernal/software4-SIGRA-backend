@@ -64,7 +64,7 @@ public class MejorasExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), null);
     }
 
-    /** 401 del control por rol compartido con asignaturas y estadísticas (temporal hasta RF-05). */
+    /** 401 normalizado para compatibilidad con errores de autenticación del módulo. */
     @ExceptionHandler(AutenticacionRequeridaException.class)
     public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AutenticacionRequeridaException ex) {
         ResponseEntity<Map<String, Object>> respuesta =
@@ -75,7 +75,7 @@ public class MejorasExceptionHandler {
     }
 
     /**
-     * 403 del control por rol y del alcance del profesor (temporal hasta RF-05). Incluye el 403 que lanza
+     * 403 por rol insuficiente o alcance de recurso. Incluye el 403 que lanza
      * el servicio de evaluaciones al convertir (RF-18), que usa la excepción del paquete asignaturas.
      */
     @ExceptionHandler({PermisoInsuficienteException.class,

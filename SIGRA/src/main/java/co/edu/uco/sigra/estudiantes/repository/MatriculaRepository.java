@@ -2,6 +2,7 @@ package co.edu.uco.sigra.estudiantes.repository;
 
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -59,4 +60,40 @@ public interface MatriculaRepository extends JpaRepository<Matricula, UUID> {
             where m.estudiante.id = :estudianteId
             """)
     List<Matricula> buscarPorEstudiante(@Param("estudianteId") UUID estudianteId);
+
+    @Query("""
+            select count(m) from Matricula m, AsignacionDocente a
+            where m.estudiante.id = :estudianteId
+              and a.profesor.id = :profesorId
+              and a.asignatura.id = m.asignatura.id
+              and m.estado = :matriculaEstado
+              and a.estado = :asignacionEstado
+              and m.estudiante.estado = :estudianteEstado
+            """)
+    long countActiveByStudentAndProfessor(@Param("estudianteId") UUID estudianteId,
+                                          @Param("profesorId") UUID profesorId,
+                                          @Param("matriculaEstado") EstadoMatricula matriculaEstado,
+                                          @Param("asignacionEstado") EstadoRegistro asignacionEstado,
+                                          @Param("estudianteEstado") EstadoRegistro estudianteEstado);
+
+    @Query("""
+            select m from Matricula m
+            join fetch m.estudiante
+            join fetch m.asignatura
+            join fetch m.semestre
+            where m.estudiante.id = :estudianteId
+              and m.estado = :matriculaEstado
+              and m.estudiante.estado = :estudianteEstado
+              and exists (
+                  select a.id from AsignacionDocente a
+                  where a.profesor.id = :profesorId
+                    and a.asignatura.id = m.asignatura.id
+                    and a.estado = :asignacionEstado
+              )
+            """)
+    List<Matricula> buscarPorEstudianteYProfesor(@Param("estudianteId") UUID estudianteId,
+                                                  @Param("profesorId") UUID profesorId,
+                                                  @Param("matriculaEstado") EstadoMatricula matriculaEstado,
+                                                  @Param("asignacionEstado") EstadoRegistro asignacionEstado,
+                                                  @Param("estudianteEstado") EstadoRegistro estudianteEstado);
 }

@@ -20,9 +20,8 @@ import java.util.Map;
  * <p>
  * - Solo aplica a los controladores de este paquete (basePackages) y tiene la máxima prioridad, como el
  *   de resultados de aprendizaje.
- * - Mapea también el 401 y el 403 del control por rol compartido ({@code RolesPermitidos}): el
- *   interceptor lanza las excepciones del paquete asignaturas, y el manejador de asignaturas solo
- *   aplica a su propio controlador. El 403 del alcance del profesor usa la misma excepción.
+ * - Los rechazos 401/403 de autenticación y autorización provienen de Spring Security o del
+ *   control de alcance docente del servicio.
  * - Las validaciones de DTO, JSON mal formado y errores inesperados los resuelve el manejador global.
  */
 @RestControllerAdvice(basePackages = "co.edu.uco.sigra.evaluaciones")
