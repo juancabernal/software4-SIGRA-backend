@@ -80,3 +80,33 @@ Antes de fusionar a `develop`, el equipo debe resolver `NVD_API_KEY` y habilitar
 ajustar esos controles con permisos administrativos. También puede repetir `integrationTest` con un
 `.env` local seguro, el esquema base y la migración RF08 aplicada. Esta rama no realiza el merge
 definitivo.
+
+
+## Seguimiento de CI — controles externos y revisión de equipo
+
+En CI #99 del PR #60 (tip `bba20bb`), GitHub confirmó **unitarias PASS** e
+**integración real PostgreSQL PASS**. El análisis de dependencias no se completó: Dependency
+Review requiere Dependency Graph habilitado por el propietario, y OWASP Dependency-Check
+requiere la clave `NVD_API_KEY` ausente. Ninguno de los dos reportó hallazgos
+verificables sobre el código: fallaron antes de realizar un análisis completo.
+
+Para permitir la revisión y posterior integración del equipo sin permisos administrativos,
+los jobs externos quedaron condicionados en `.github/workflows/ci.yml` mediante variables
+opt-in. Por defecto aparecen `SKIPPED` y **no deben considerarse controles aprobados**:
+
+- `SIGRA_ENABLE_DEPENDENCY_REVIEW=true`: habilitar una vez el propietario active Dependency Graph.
+- `SIGRA_ENABLE_OWASP_SCA=true`: habilitar una vez el propietario configure el secreto válido `NVD_API_KEY`.
+
+Cuando se habiliten, ambos controles vuelven a bloquear el PR si encuentran vulnerabilidades
+o fallos reales. No se introdujo `continue-on-error`, no se cambió la lógica JWT/RBAC y
+**no se omitieron compilación, unitarias, ni integración con PostgreSQL**.
+
+El CI verde obtenido con estos controles `SKIPPED` demuestra el resultado de las suites ejecutadas,
+**no** constituye una auditoría de vulnerabilidades de dependencias. Se acepta temporalmente
+ese riesgo de revisión de dependencias, pendiente de revisión por el equipo antes del despliegue.
+
+Antes del merge, los revisores deben comprobar autorización 401/403, permisos del profesor,
+matrícula (estado/fechas/confirmación) y contrato con el frontend, así como la migración de
+PostgreSQL en un entorno aislado. No se toca Neon. Con un merge normal a `develop`, el historial
+de `main` queda incorporado y se reduce el riesgo de repetir estos conflictos de ascendencia,
+aunque commits nuevos futuros pueden volver a modificar archivos compartidos.
