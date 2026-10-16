@@ -21,6 +21,6 @@ assert {
 tests {
   test("solo trae conclusiones del RA pedido", function () {
     expect(res.body).to.be.an("array").with.length.at.least(1);
-    res.body.forEach((c) => expect(c.resultadoAprendizajeId).to.equal(bru.getVar("raConcMas40Id")));
+    res.body.forEach((c) => expect(c.resultadoAprendizajeId).to.equal(bru.getEnvVar("raConcMas40Id")));
   });
 }
