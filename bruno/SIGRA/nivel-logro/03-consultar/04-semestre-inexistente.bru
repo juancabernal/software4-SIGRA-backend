@@ -1,0 +1,15 @@
+meta {
+  name: 04 Semestre inexistente 404
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raNivConNotasId}}/semestres/{{idInexistente}}/estadisticas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}

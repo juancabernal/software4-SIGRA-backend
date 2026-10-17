@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.Map;
 
 /**
- * Excepciones del módulo de estadísticas (RF-16).
+ * Excepciones del módulo de estadísticas: nivel de logro y estadísticas (RF-14, RF-15) y conclusiones
+ * automáticas (RF-16).
  * <p>
  * - Solo aplica a los controladores de este paquete (basePackages).
  * - Tiene la máxima prioridad para que el manejador global no las convierta en 500.
