@@ -10,6 +10,7 @@ import co.edu.uco.sigra.estadisticas.dto.GenerarConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
 import co.edu.uco.sigra.estadisticas.exception.ConclusionNoEncontradaException;
 import co.edu.uco.sigra.estadisticas.exception.EstadisticasExceptionHandler;
+import co.edu.uco.sigra.estadisticas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.estadisticas.exception.SemestreNoEncontradoException;
 import co.edu.uco.sigra.estadisticas.service.ConclusionService;
 import co.edu.uco.sigra.resultadosaprendizaje.exception.ResultadoAprendizajeNoEncontradoException;
@@ -54,6 +55,7 @@ class ConclusionControllerTest {
             "/api/v1/resultados-aprendizaje/" + ID_RA + "/semestres/" + ID_SEMESTRE + "/conclusiones";
     private static final String URL_CONSULTAR = "/api/v1/conclusiones";
     private static final String URL_POR_ID = URL_CONSULTAR + "/" + ID_CONCLUSION;
+    private static final String URL_ESTADO = URL_GENERAR + "/estado";
 
     @Mock
     private ConclusionService service;
@@ -167,6 +169,22 @@ class ConclusionControllerTest {
 
             mockMvc.perform(get(URL_POR_ID))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET consultar estado (RF-16, solo lectura)")
+    class ConsultarEstado {
+
+        @Test
+        @DisplayName("Un ESTUDIANTE no puede consultar el estado: devuelve 403")
+        void sinPermisoEstudiante() throws Exception {
+            when(service.consultarEstado(eq(ID_RA), eq(ID_SEMESTRE), any()))
+                    .thenThrow(new PermisoInsuficienteException());
+
+            mockMvc.perform(get(URL_ESTADO))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.error").value("FORBIDDEN"));
         }
     }
 }
