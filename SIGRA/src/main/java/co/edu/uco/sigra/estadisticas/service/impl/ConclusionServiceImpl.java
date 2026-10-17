@@ -4,8 +4,10 @@ import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.estadisticas.dto.ConclusionEstadoResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionFiltroDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionResponseDTO;
+import co.edu.uco.sigra.estadisticas.dto.EstadoConsultaConclusion;
 import co.edu.uco.sigra.estadisticas.dto.GenerarConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -174,6 +177,50 @@ public class ConclusionServiceImpl implements ConclusionService {
         if (alcance != null && !alcance.contains(asignaturaId)) {
             throw new PermisoInsuficienteException();
         }
+    }
+
+    @Override
+    @Transactional
+    public ConclusionEstadoResponseDTO consultarEstado(UUID resultadoAprendizajeId, UUID semestreId,
+                                                         UsuarioPrincipal principal) {
+        ResultadoAprendizaje resultadoAprendizaje = buscarResultadoAprendizaje(resultadoAprendizajeId);
+        verificarAlcance(principal, resultadoAprendizaje.getAsignatura().getId());
+        buscarSemestre(semestreId);
+
+        Optional<Conclusion> vigente = conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
+                resultadoAprendizajeId, semestreId, EstadoConclusion.VIGENTE);
+        if (vigente.isPresent()) {
+            Conclusion conclusion = vigente.get();
+            return new ConclusionEstadoResponseDTO(EstadoConsultaConclusion.VIGENTE,
+                    conclusionMapper.toResponseDTO(conclusion), null, conclusion.getPorcentajeInsuficiente());
+        }
+
+        long evaluados = proveedorNivelesLogro.contarEvaluados(resultadoAprendizajeId, semestreId);
+        if (evaluados < MINIMO_CALIFICACIONES) {
+            return new ConclusionEstadoResponseDTO(EstadoConsultaConclusion.SIN_DATOS_SUFICIENTES, null,
+                    (int) evaluados, null);
+        }
+
+        long enBajoOMedio = proveedorNivelesLogro.contarEnBajoOMedio(resultadoAprendizajeId, semestreId);
+        double porcentaje = (enBajoOMedio * 100.0) / evaluados;
+        if (porcentaje <= UMBRAL_PORCENTAJE_INSUFICIENTE) {
+            return new ConclusionEstadoResponseDTO(EstadoConsultaConclusion.SATISFACTORIO, null,
+                    (int) evaluados, porcentaje);
+        }
+
+        Optional<Conclusion> atendida = conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
+                resultadoAprendizajeId, semestreId, EstadoConclusion.ATENDIDA);
+        if (atendida.isPresent()) {
+            Conclusion conclusion = atendida.get();
+            return new ConclusionEstadoResponseDTO(EstadoConsultaConclusion.ATENDIDA,
+                    conclusionMapper.toResponseDTO(conclusion), (int) evaluados, porcentaje);
+        }
+
+        // Supera el umbral y hay datos suficientes, pero todavía no hay una conclusión Atendida
+        // registrada (p.ej. aún no corre el recálculo que genera la Vigente): no hay nada pendiente
+        // que mostrarle al profesor por ahora.
+        return new ConclusionEstadoResponseDTO(EstadoConsultaConclusion.SATISFACTORIO, null,
+                (int) evaluados, porcentaje);
     }
 
     private ResultadoAprendizaje buscarResultadoAprendizaje(UUID id) {

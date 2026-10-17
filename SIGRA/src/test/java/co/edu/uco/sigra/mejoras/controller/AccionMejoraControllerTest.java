@@ -22,16 +22,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authorization.method.AuthorizationManagerBeforeMethodInterceptor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -134,6 +141,30 @@ class AccionMejoraControllerTest {
                             .content("{\"nombre\":\"" + nombre31 + "\",\"descripcion\":\"Taller de refuerzo\"}"))
                     .andExpect(status().isBadRequest());
             org.mockito.Mockito.verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("Con rol ADMINISTRADOR devuelve 403 (RF-17/RBAC: solo el Profesor registra)")
+        void administradorNoPuedeRegistrar() throws Exception {
+            UsuarioPrincipal admin = new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ADMINISTRADOR);
+            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                    admin, null, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
+            try {
+                ProxyFactory fabrica = new ProxyFactory(new AccionMejoraController(service, currentUser));
+                fabrica.setProxyTargetClass(true);
+                fabrica.addAdvice(AuthorizationManagerBeforeMethodInterceptor.preAuthorize());
+                AccionMejoraController conSeguridad = (AccionMejoraController) fabrica.getProxy();
+                MockMvc mockMvcSeguro = MockMvcBuilders.standaloneSetup(conSeguridad)
+                        .setControllerAdvice(new MejorasExceptionHandler(), new GlobalExceptionHandler())
+                        .build();
+
+                mockMvcSeguro.perform(post(URL_REGISTRAR).contentType(MediaType.APPLICATION_JSON)
+                                .content(CUERPO_REGISTRO_VALIDO))
+                        .andExpect(status().isForbidden());
+                verifyNoInteractions(service);
+            } finally {
+                SecurityContextHolder.clearContext();
+            }
         }
     }
 

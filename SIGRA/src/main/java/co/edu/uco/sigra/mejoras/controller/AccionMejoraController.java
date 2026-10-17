@@ -31,7 +31,7 @@ public class AccionMejoraController {
     private final CurrentUser currentUser;
 
     @PostMapping("/conclusiones/{conclusionId}/acciones-mejora")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    @PreAuthorize("hasRole('PROFESOR')")
     public ResponseEntity<AccionMejoraResponseDTO> registrar(
             @PathVariable UUID conclusionId,
             @Valid @RequestBody RegistrarAccionMejoraRequestDTO datos) {

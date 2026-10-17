@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estadisticas.controller;
 
 import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.estadisticas.dto.ConclusionEstadoResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionFiltroDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.GenerarConclusionResponseDTO;
@@ -50,5 +51,12 @@ public class ConclusionController {
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<ConclusionResponseDTO> consultarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(conclusionService.consultarPorId(id, currentUser.required()));
+    }
+
+    @GetMapping("/resultados-aprendizaje/{raId}/semestres/{semestreId}/conclusiones/estado")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
+    public ResponseEntity<ConclusionEstadoResponseDTO> consultarEstado(@PathVariable UUID raId,
+                                                                         @PathVariable UUID semestreId) {
+        return ResponseEntity.ok(conclusionService.consultarEstado(raId, semestreId, currentUser.required()));
     }
 }

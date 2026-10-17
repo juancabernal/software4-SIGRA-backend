@@ -6,7 +6,9 @@ import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.estadisticas.dto.ConclusionEstadoResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionFiltroDTO;
+import co.edu.uco.sigra.estadisticas.dto.EstadoConsultaConclusion;
 import co.edu.uco.sigra.estadisticas.dto.GenerarConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
@@ -367,6 +369,78 @@ class ConclusionServiceImplTest {
 
             assertThatThrownBy(() -> service.consultarPorId(id, ADMIN))
                     .isInstanceOf(ConclusionNoEncontradaException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("consultarEstado (RF-16, solo lectura: no genera ni modifica nada)")
+    class ConsultarEstado {
+
+        @Test
+        @DisplayName("Con una conclusión Vigente devuelve VIGENTE con esa conclusión, sin recalcular niveles")
+        void vigente() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
+            Conclusion existente = new Conclusion(resultadoAprendizaje, semestre, 70.0);
+            when(conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
+                    ID_RA, ID_SEMESTRE, EstadoConclusion.VIGENTE)).thenReturn(Optional.of(existente));
+
+            ConclusionEstadoResponseDTO respuesta = service.consultarEstado(ID_RA, ID_SEMESTRE, ADMIN);
+
+            assertThat(respuesta.estado()).isEqualTo(EstadoConsultaConclusion.VIGENTE);
+            assertThat(respuesta.conclusion()).isNotNull();
+            assertThat(respuesta.conclusion().porcentajeInsuficiente()).isEqualTo(70.0);
+            assertThat(respuesta.porcentajeInsuficiente()).isEqualTo(70.0);
+            verifyNoInteractions(proveedorNivelesLogro);
+        }
+
+        @Test
+        @DisplayName("Sin Vigente, superando el umbral y con una Atendida previa devuelve ATENDIDA")
+        void atendida() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
+            sinVigentePrevia(ID_SEMESTRE);
+            evaluados(ID_SEMESTRE, 10, 5);
+            Conclusion atendidaPrevia = new Conclusion(resultadoAprendizaje, semestre, 50.0);
+            when(conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
+                    ID_RA, ID_SEMESTRE, EstadoConclusion.ATENDIDA)).thenReturn(Optional.of(atendidaPrevia));
+
+            ConclusionEstadoResponseDTO respuesta = service.consultarEstado(ID_RA, ID_SEMESTRE, ADMIN);
+
+            assertThat(respuesta.estado()).isEqualTo(EstadoConsultaConclusion.ATENDIDA);
+            assertThat(respuesta.conclusion()).isNotNull();
+            assertThat(respuesta.totalEvaluados()).isEqualTo(10);
+            assertThat(respuesta.porcentajeInsuficiente()).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("Con menos del mínimo de evaluados devuelve SIN_DATOS_SUFICIENTES sin conclusión")
+        void sinDatosSuficientes() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
+            sinVigentePrevia(ID_SEMESTRE);
+            when(proveedorNivelesLogro.contarEvaluados(ID_RA, ID_SEMESTRE)).thenReturn(2L);
+
+            ConclusionEstadoResponseDTO respuesta = service.consultarEstado(ID_RA, ID_SEMESTRE, ADMIN);
+
+            assertThat(respuesta.estado()).isEqualTo(EstadoConsultaConclusion.SIN_DATOS_SUFICIENTES);
+            assertThat(respuesta.conclusion()).isNull();
+            assertThat(respuesta.totalEvaluados()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("Con datos suficientes y porcentaje dentro del umbral devuelve SATISFACTORIO")
+        void satisfactorio() {
+            when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
+            when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.of(semestre));
+            sinVigentePrevia(ID_SEMESTRE);
+            evaluados(ID_SEMESTRE, 10, 3);
+
+            ConclusionEstadoResponseDTO respuesta = service.consultarEstado(ID_RA, ID_SEMESTRE, ADMIN);
+
+            assertThat(respuesta.estado()).isEqualTo(EstadoConsultaConclusion.SATISFACTORIO);
+            assertThat(respuesta.conclusion()).isNull();
+            assertThat(respuesta.porcentajeInsuficiente()).isEqualTo(30.0);
         }
     }
 }

@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estadisticas.service;
 
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.estadisticas.dto.ConclusionEstadoResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionFiltroDTO;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.GenerarConclusionResponseDTO;
@@ -26,4 +27,12 @@ public interface ConclusionService {
     List<ConclusionResponseDTO> consultarConclusiones(ConclusionFiltroDTO filtro, UsuarioPrincipal principal);
 
     ConclusionResponseDTO consultarPorId(UUID id, UsuarioPrincipal principal);
+
+    /**
+     * Estado de solo lectura del (RA, semestre) para RF-16: no genera, no guarda ni modifica nada.
+     * Distingue las cuatro respuestas del requisito (Vigente, Atendida, datos insuficientes o
+     * desempeño satisfactorio); mismo alcance por rol que el resto de conclusiones.
+     */
+    ConclusionEstadoResponseDTO consultarEstado(UUID resultadoAprendizajeId, UUID semestreId,
+                                                 UsuarioPrincipal principal);
 }
