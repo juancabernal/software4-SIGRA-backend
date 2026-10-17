@@ -2,3 +2,16 @@ meta {
   name: 03 Conversion en evaluacion (RF-18)
   seq: 4
 }
+
+headers {
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+script:pre-request {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + 7);
+  const yyyy = fecha.getFullYear();
+  const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dd = String(fecha.getDate()).padStart(2, "0");
+  bru.setVar("fechaTentativaConversion", `${yyyy}-${mm}-${dd}`);
+}
