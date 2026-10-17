@@ -281,27 +281,6 @@ CREATE INDEX IF NOT EXISTS idx_accion_mejora_ra ON sigra.accion_mejora (resultad
 CREATE INDEX IF NOT EXISTS idx_accion_mejora_conclusion ON sigra.accion_mejora (conclusion_origen_id);
 
 -- -----------------------------------------------------------------------------
--- Nivel de logro por estudiante en un (RA, semestre) — DATO DE PRUEBA (RF-16).
--- El equipo de Estadísticas todavía no calcula el nivel de logro real a partir de las
--- calificaciones (módulo "calificaciones" sin implementar); esta tabla es el puente temporal que
--- lee ProveedorNivelesLogroPruebaImpl. Se retira cuando esa integración exista.
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS sigra.registro_nivel_logro_prueba (
-    id                        UUID        NOT NULL DEFAULT gen_random_uuid(),
-    resultado_aprendizaje_id  UUID        NOT NULL,
-    semestre_id               UUID        NOT NULL,
-    estudiante_id             UUID        NOT NULL,
-    nivel_logro               VARCHAR(20) NOT NULL,
-    CONSTRAINT registro_nivel_logro_prueba_pkey PRIMARY KEY (id),
-    CONSTRAINT uk_nivel_logro_prueba_terna UNIQUE (resultado_aprendizaje_id, semestre_id, estudiante_id),
-    CONSTRAINT fk_nivel_logro_prueba_ra FOREIGN KEY (resultado_aprendizaje_id)
-        REFERENCES sigra.resultado_aprendizaje (id),
-    CONSTRAINT fk_nivel_logro_prueba_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
-    CONSTRAINT fk_nivel_logro_prueba_estudiante FOREIGN KEY (estudiante_id) REFERENCES sigra.estudiante (id),
-    CONSTRAINT chk_nivel_logro_prueba_nivel CHECK (nivel_logro IN ('BAJO', 'MEDIO', 'ALTO', 'SOBRESALIENTE'))
-);
-
--- -----------------------------------------------------------------------------
 -- Evaluación generada al convertir una acción de mejora (RF-18) — DATO DE PRUEBA.
 -- El módulo "evaluaciones" todavía no existe (solo tiene el .gitkeep); mientras tanto, esta tabla
 -- hace de evaluación real solo para validar que la suma de porcentajes de un (RA, semestre) no

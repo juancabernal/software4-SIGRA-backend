@@ -16,12 +16,11 @@
 -- BRUCONC) en lugar de reutilizar los de otros seeds, para poder ejecutarse
 -- de forma independiente.
 --
--- NOTA IMPORTANTE (nivel de logro): sigra.registro_nivel_logro_prueba es un
--- DATO DE PRUEBA temporal (ver su comentario en docs/db/SIGRA_SCHEMA_CURRENT.sql):
--- el modulo real de niveles de logro, a cargo de otro companero de equipo,
--- todavia no existe. Mientras tanto, ProveedorNivelesLogroPruebaImpl lee esta
--- tabla para decidir si una conclusion se genera. Este seed carga filas ahi
--- para poder probar RF-16 sin ese modulo.
+-- NOTA (nivel de logro): sigra.nivel_logro_estudiante es el dato real que
+-- calcula el recalculo de estadisticas (RF-14 / RF-15). ProveedorNivelesLogroImpl
+-- lee esta tabla para decidir si una conclusion se genera. Este seed siembra
+-- filas ahi directamente (sin pasar por el recalculo ni por calificaciones)
+-- para poder probar RF-16 de forma aislada.
 --
 -- Solo ASCII (con escapes Unicode donde se necesitan tildes) para que psql en
 -- Windows no dane los caracteres.
@@ -33,13 +32,13 @@
 -- 0. Prerrequisitos: mensaje claro en vez de un error de tabla inexistente.
 DO $$
 BEGIN
-    IF to_regclass('sigra.registro_nivel_logro_prueba') IS NULL THEN
-        RAISE EXCEPTION 'Seed abortado: no existe sigra.registro_nivel_logro_prueba. Ejecute docs/db/SIGRA_SCHEMA_CURRENT.sql primero.';
+    IF to_regclass('sigra.nivel_logro_estudiante') IS NULL THEN
+        RAISE EXCEPTION 'Seed abortado: no existe sigra.nivel_logro_estudiante. Ejecute docs/db/SIGRA_SCHEMA_CURRENT.sql primero.';
     END IF;
 END $$;
 
 -- 1. Limpieza de datos de prueba anteriores, en orden que respeta las FKs:
--- registro_evaluacion_prueba / accion_mejora / conclusion / registro_nivel_logro_prueba
+-- registro_evaluacion_prueba / accion_mejora / conclusion / nivel_logro_estudiante
 -- -> resultado_aprendizaje -> asignatura -> programa_academico / semestre ->
 -- estudiante -> usuario.
 DELETE FROM sigra.registro_evaluacion_prueba
@@ -54,7 +53,7 @@ DELETE FROM sigra.conclusion
  WHERE resultado_aprendizaje_id IN (
      SELECT id FROM sigra.resultado_aprendizaje WHERE codigo LIKE 'RA-CONC-%'
  );
-DELETE FROM sigra.registro_nivel_logro_prueba
+DELETE FROM sigra.nivel_logro_estudiante
  WHERE resultado_aprendizaje_id IN (
      SELECT id FROM sigra.resultado_aprendizaje WHERE codigo LIKE 'RA-CONC-%'
  );
@@ -129,32 +128,34 @@ BEGIN
       ('00000000-0000-4000-e500-000000000005', '2000000005');
 END $$;
 
--- 5. Niveles de logro de prueba (dato puente, ver nota de arriba):
+-- 5. Niveles de logro de prueba (3 calificaciones cada uno, para que
+-- cantidad_calificaciones sea coherente con "evaluado" = nivel_logro no nulo):
 --   RA-CONC-01 (5 evaluados): 3 Bajo/Medio, 2 Alto -> 60% -> SI genera.
 --   RA-CONC-02 (5 evaluados): 2 Bajo/Medio, 3 Alto  -> 40% -> NO genera.
 --   RA-CONC-03 (2 evaluados): 1 Bajo, 1 Alto        -> menos de 3 -> NO genera.
-INSERT INTO sigra.registro_nivel_logro_prueba (resultado_aprendizaje_id, semestre_id, estudiante_id, nivel_logro) VALUES
-  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000001', 'BAJO'),
-  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000002', 'BAJO'),
-  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000003', 'MEDIO'),
-  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000004', 'ALTO'),
-  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000005', 'ALTO'),
+INSERT INTO sigra.nivel_logro_estudiante
+    (resultado_aprendizaje_id, semestre_id, estudiante_id, cantidad_calificaciones, promedio_ponderado, nivel_logro, fecha_calculo) VALUES
+  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000001', 3, 2.0, 'BAJO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000002', 3, 2.0, 'BAJO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000003', 3, 2.5, 'MEDIO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000004', 3, 4.5, 'ALTO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000005', 3, 4.5, 'ALTO', CURRENT_TIMESTAMP),
 
-  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000001', 'BAJO'),
-  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000002', 'MEDIO'),
-  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000003', 'ALTO'),
-  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000004', 'ALTO'),
-  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000005', 'ALTO'),
+  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000001', 3, 2.0, 'BAJO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000002', 3, 2.5, 'MEDIO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000003', 3, 4.5, 'ALTO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000004', 3, 4.5, 'ALTO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000005', 3, 4.5, 'ALTO', CURRENT_TIMESTAMP),
 
-  ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000001', 'BAJO'),
-  ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000002', 'ALTO');
+  ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000001', 3, 2.0, 'BAJO', CURRENT_TIMESTAMP),
+  ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e300-000000000001', '00000000-0000-4000-e500-000000000002', 3, 4.5, 'ALTO', CURRENT_TIMESTAMP);
 
 -- Resumen de verificacion.
 SELECT ra.codigo,
        COUNT(*) AS evaluados,
        COUNT(*) FILTER (WHERE n.nivel_logro IN ('BAJO', 'MEDIO')) AS en_bajo_o_medio,
        ROUND(100.0 * COUNT(*) FILTER (WHERE n.nivel_logro IN ('BAJO', 'MEDIO')) / COUNT(*), 2) AS porcentaje
-  FROM sigra.registro_nivel_logro_prueba n
+  FROM sigra.nivel_logro_estudiante n
   JOIN sigra.resultado_aprendizaje ra ON ra.id = n.resultado_aprendizaje_id
  WHERE ra.codigo LIKE 'RA-CONC-%'
  GROUP BY ra.codigo

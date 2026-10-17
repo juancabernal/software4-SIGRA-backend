@@ -15,9 +15,9 @@ import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
 import co.edu.uco.sigra.estadisticas.entity.NivelLogro;
-import co.edu.uco.sigra.estadisticas.entity.RegistroNivelLogroPrueba;
+import co.edu.uco.sigra.estadisticas.entity.NivelLogroEstudiante;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
-import co.edu.uco.sigra.estadisticas.repository.RegistroNivelLogroPruebaRepository;
+import co.edu.uco.sigra.estadisticas.repository.NivelLogroEstudianteRepository;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.evaluaciones.config.EvaluacionConfig;
 import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
@@ -53,6 +53,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -92,7 +93,7 @@ class AccionMejoraIntegracionIT {
     @Autowired private SemestreRepository semestreRepository;
     @Autowired private AsignacionDocenteRepository asignacionRepository;
     @Autowired private ConclusionRepository conclusionRepository;
-    @Autowired private RegistroNivelLogroPruebaRepository nivelLogroRepository;
+    @Autowired private NivelLogroEstudianteRepository nivelLogroRepository;
     @Autowired private AccionMejoraRepository accionMejoraRepository;
     @Autowired private EvaluacionRepository evaluacionRepository;
 
@@ -449,11 +450,8 @@ class AccionMejoraIntegracionIT {
 
     private void crearNivel(ResultadoAprendizaje ra, Semestre semestre, String alias, NivelLogro nivel) {
         Estudiante estudiante = crearUsuario(estudianteNuevo(), alias + "-" + UUID.randomUUID().toString().substring(0, 6));
-        RegistroNivelLogroPrueba registro = new RegistroNivelLogroPrueba();
-        registro.setResultadoAprendizaje(ra);
-        registro.setSemestre(semestre);
-        registro.setEstudiante(estudiante);
-        registro.setNivelLogro(nivel);
+        NivelLogroEstudiante registro = new NivelLogroEstudiante(ra, semestre, estudiante);
+        registro.actualizar(3, 3.0, nivel, LocalDateTime.now());
         nivelLogroRepository.save(registro);
     }
 }
