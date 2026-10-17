@@ -9,10 +9,12 @@ import co.edu.uco.sigra.estadisticas.dto.ConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.dto.GenerarConclusionResponseDTO;
 import co.edu.uco.sigra.estadisticas.entity.Conclusion;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
+import co.edu.uco.sigra.estadisticas.entity.NivelLogro;
 import co.edu.uco.sigra.estadisticas.exception.ConclusionNoEncontradaException;
 import co.edu.uco.sigra.estadisticas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.estadisticas.exception.SemestreNoEncontradoException;
 import co.edu.uco.sigra.estadisticas.mapper.ConclusionMapper;
+import co.edu.uco.sigra.estadisticas.repository.ConclusionDiagnosticoRepository;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import co.edu.uco.sigra.estadisticas.service.ConclusionService;
 import co.edu.uco.sigra.estadisticas.service.ProveedorNivelesLogro;
@@ -58,6 +60,7 @@ public class ConclusionServiceImpl implements ConclusionService {
     private final SemestreRepository semestreRepository;
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final ProveedorNivelesLogro proveedorNivelesLogro;
+    private final ConclusionDiagnosticoRepository conclusionDiagnosticoRepository;
     private final ConclusionMapper conclusionMapper;
 
     @Override
@@ -88,8 +91,34 @@ public class ConclusionServiceImpl implements ConclusionService {
         }
 
         Conclusion conclusion = new Conclusion(resultadoAprendizaje, semestre, porcentaje);
+        fijarDiagnostico(conclusion, resultadoAprendizajeId, semestreId, semestre, evaluados);
         Conclusion guardada = conclusionRepository.save(conclusion);
         return new GenerarConclusionResponseDTO(true, MOTIVO_GENERADA, conclusionMapper.toResponseDTO(guardada));
+    }
+
+    /**
+     * Completa la foto del diagnóstico (RF-16, avance de información): no cambia ninguna regla
+     * de cuándo se genera una conclusión, solo guarda más datos del momento en que se generó.
+     */
+    private void fijarDiagnostico(Conclusion conclusion, UUID resultadoAprendizajeId, UUID semestreId,
+                                   Semestre semestre, long evaluados) {
+        long enBajo = conclusionDiagnosticoRepository.countByResultadoAprendizaje_IdAndSemestre_IdAndNivelLogro(
+                resultadoAprendizajeId, semestreId, NivelLogro.BAJO);
+        long enMedio = conclusionDiagnosticoRepository.countByResultadoAprendizaje_IdAndSemestre_IdAndNivelLogro(
+                resultadoAprendizajeId, semestreId, NivelLogro.MEDIO);
+
+        List<Conclusion> anteriores = conclusionRepository.buscarAnteriores(
+                resultadoAprendizajeId, semestre.getFechaInicio());
+        Double porcentajeAnterior = null;
+        String semestreAnteriorCodigo = null;
+        if (!anteriores.isEmpty()) {
+            Conclusion anterior = anteriores.get(0);
+            porcentajeAnterior = anterior.getPorcentajeInsuficiente();
+            semestreAnteriorCodigo = anterior.getSemestre().getCodigo();
+        }
+
+        conclusion.fijarDiagnostico((int) evaluados, (int) enBajo, (int) enMedio, UMBRAL_PORCENTAJE_INSUFICIENTE,
+                porcentajeAnterior, semestreAnteriorCodigo);
     }
 
     @Override

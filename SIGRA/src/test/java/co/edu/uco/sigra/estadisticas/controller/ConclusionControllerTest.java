@@ -73,7 +73,7 @@ class ConclusionControllerTest {
     private static ConclusionResponseDTO conclusion() {
         return new ConclusionResponseDTO(ID_CONCLUSION, ID_RA, "RA-01", ID_ASIGNATURA, ID_SEMESTRE, "2025-2",
                 "Nivel de logro insuficiente, se recomienda acción de mejora", true, LocalDateTime.now(), 50.0,
-                EstadoConclusion.VIGENTE.name());
+                EstadoConclusion.VIGENTE.name(), null, null, null, null, null, null, null);
     }
 
     @Nested

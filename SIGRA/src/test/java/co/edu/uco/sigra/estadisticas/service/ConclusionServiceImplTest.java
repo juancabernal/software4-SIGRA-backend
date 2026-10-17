@@ -14,6 +14,7 @@ import co.edu.uco.sigra.estadisticas.exception.ConclusionNoEncontradaException;
 import co.edu.uco.sigra.estadisticas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.estadisticas.exception.SemestreNoEncontradoException;
 import co.edu.uco.sigra.estadisticas.mapper.ConclusionMapper;
+import co.edu.uco.sigra.estadisticas.repository.ConclusionDiagnosticoRepository;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import co.edu.uco.sigra.estadisticas.service.impl.ConclusionServiceImpl;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
@@ -72,6 +73,8 @@ class ConclusionServiceImplTest {
     private AsignacionDocenteRepository asignacionDocenteRepository;
     @Mock
     private ProveedorNivelesLogro proveedorNivelesLogro;
+    @Mock
+    private ConclusionDiagnosticoRepository conclusionDiagnosticoRepository;
 
     private final ConclusionMapper mapper = Mappers.getMapper(ConclusionMapper.class);
 
@@ -84,7 +87,8 @@ class ConclusionServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new ConclusionServiceImpl(conclusionRepository, resultadoAprendizajeRepository,
-                semestreRepository, asignacionDocenteRepository, proveedorNivelesLogro, mapper);
+                semestreRepository, asignacionDocenteRepository, proveedorNivelesLogro,
+                conclusionDiagnosticoRepository, mapper);
 
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setId(UUID.randomUUID());
@@ -302,6 +306,41 @@ class ConclusionServiceImplTest {
                     new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ESTUDIANTE)))
                     .isInstanceOf(PermisoInsuficienteException.class);
             verifyNoInteractions(conclusionRepository);
+        }
+    }
+
+    @Nested
+    @DisplayName("Recomendación del diagnóstico (RF-16, calculada al leer)")
+    class Recomendacion {
+
+        @Test
+        @DisplayName("Predomina Bajo: recomienda reforzar fundamentos")
+        void predominaBajo() {
+            Conclusion conclusion = new Conclusion(resultadoAprendizaje, semestre, 60.0);
+            conclusion.fijarDiagnostico(10, 6, 2, 40.0, null, null);
+
+            assertThat(mapper.toResponseDTO(conclusion).recomendacion())
+                    .isEqualTo(ConclusionMapper.RECOMENDACION_FUNDAMENTOS);
+        }
+
+        @Test
+        @DisplayName("Predomina Medio: recomienda más práctica aplicada")
+        void predominaMedio() {
+            Conclusion conclusion = new Conclusion(resultadoAprendizaje, semestre, 60.0);
+            conclusion.fijarDiagnostico(10, 2, 6, 40.0, null, null);
+
+            assertThat(mapper.toResponseDTO(conclusion).recomendacion())
+                    .isEqualTo(ConclusionMapper.RECOMENDACION_APLICACION);
+        }
+
+        @Test
+        @DisplayName("Empate entre Bajo y Medio: recomienda combinar ambas cosas")
+        void empate() {
+            Conclusion conclusion = new Conclusion(resultadoAprendizaje, semestre, 60.0);
+            conclusion.fijarDiagnostico(10, 4, 4, 40.0, null, null);
+
+            assertThat(mapper.toResponseDTO(conclusion).recomendacion())
+                    .isEqualTo(ConclusionMapper.RECOMENDACION_COMBINADA);
         }
     }
 

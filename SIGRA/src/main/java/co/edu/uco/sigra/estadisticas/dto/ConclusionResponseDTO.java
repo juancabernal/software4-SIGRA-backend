@@ -14,6 +14,13 @@ public record ConclusionResponseDTO(
         boolean tieneDatosSuficientes,
         LocalDateTime fechaGeneracion,
         double porcentajeInsuficiente,
-        String estado
+        String estado,
+        Integer totalEvaluados,
+        Integer enNivelBajo,
+        Integer enNivelMedio,
+        Double umbralPorcentaje,
+        Double porcentajeSemestreAnterior,
+        String semestreAnteriorCodigo,
+        String recomendacion
 ) {
 }
