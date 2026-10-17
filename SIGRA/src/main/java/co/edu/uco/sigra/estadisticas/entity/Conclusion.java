@@ -67,6 +67,28 @@ public class Conclusion {
     @Column(nullable = false, length = 20)
     private EstadoConclusion estado;
 
+    /**
+     * Foto del diagnóstico al momento de generarse, igual que porcentajeInsuficiente: todas
+     * opcionales porque las conclusiones creadas antes de este cambio no las tienen.
+     */
+    @Column(name = "total_evaluados", updatable = false)
+    private Integer totalEvaluados;
+
+    @Column(name = "en_nivel_bajo", updatable = false)
+    private Integer enNivelBajo;
+
+    @Column(name = "en_nivel_medio", updatable = false)
+    private Integer enNivelMedio;
+
+    @Column(name = "umbral_porcentaje", updatable = false)
+    private Double umbralPorcentaje;
+
+    @Column(name = "porcentaje_semestre_anterior", updatable = false)
+    private Double porcentajeSemestreAnterior;
+
+    @Column(name = "semestre_anterior_codigo", length = 30, updatable = false)
+    private String semestreAnteriorCodigo;
+
     /** Solo nace así: VIGENTE, con el mensaje fijo de RF-16, la fecha y el porcentaje que la originaron. */
     public Conclusion(ResultadoAprendizaje resultadoAprendizaje, Semestre semestre, double porcentajeInsuficiente) {
         this.resultadoAprendizaje = resultadoAprendizaje;
@@ -76,6 +98,17 @@ public class Conclusion {
         this.fechaGeneracion = LocalDateTime.now();
         this.porcentajeInsuficiente = porcentajeInsuficiente;
         this.estado = EstadoConclusion.VIGENTE;
+    }
+
+    /** Completa la foto del diagnóstico (RF-16, avance de información). No cambia la regla de generación. */
+    public void fijarDiagnostico(int totalEvaluados, int enNivelBajo, int enNivelMedio, double umbralPorcentaje,
+                                  Double porcentajeSemestreAnterior, String semestreAnteriorCodigo) {
+        this.totalEvaluados = totalEvaluados;
+        this.enNivelBajo = enNivelBajo;
+        this.enNivelMedio = enNivelMedio;
+        this.umbralPorcentaje = umbralPorcentaje;
+        this.porcentajeSemestreAnterior = porcentajeSemestreAnterior;
+        this.semestreAnteriorCodigo = semestreAnteriorCodigo;
     }
 
     /** VIGENTE → ATENDIDA al registrarse una acción de mejora sobre esta conclusión (RF-17). */

@@ -248,6 +248,12 @@ CREATE TABLE IF NOT EXISTS sigra.conclusion (
     fecha_generacion          TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     porcentaje_insuficiente   DOUBLE PRECISION NOT NULL,
     estado                    VARCHAR(20)     NOT NULL DEFAULT 'VIGENTE',
+    total_evaluados           INTEGER,
+    en_nivel_bajo             INTEGER,
+    en_nivel_medio            INTEGER,
+    umbral_porcentaje         DOUBLE PRECISION,
+    porcentaje_semestre_anterior DOUBLE PRECISION,
+    semestre_anterior_codigo VARCHAR(30),
     CONSTRAINT conclusion_pkey PRIMARY KEY (id),
     CONSTRAINT fk_conclusion_ra FOREIGN KEY (resultado_aprendizaje_id)
         REFERENCES sigra.resultado_aprendizaje (id),
