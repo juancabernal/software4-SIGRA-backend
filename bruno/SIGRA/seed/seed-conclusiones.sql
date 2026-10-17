@@ -4,13 +4,18 @@
 -- Archivo: bruno/SIGRA/seed/seed-conclusiones.sql
 -- Motor: PostgreSQL 15+
 --
--- Es IDEMPOTENTE: borra los datos de prueba anteriores (prefijo BRUCONC en
--- programa, asignatura, semestre y resultados de aprendizaje; ids fijos en
--- estudiante) y los vuelve a crear. Ejecutalo ANTES de cada corrida completa
--- de la coleccion: las pruebas de "conclusiones" y "acciones-mejora" generan
--- filas nuevas en sigra.conclusion, sigra.accion_mejora y
--- sigra.registro_evaluacion_prueba que referencian estos resultados de
--- aprendizaje, y hay que limpiarlas antes de volver a crear el mismo RA.
+-- Es IDEMPOTENTE: lo ESTABLE (programa, asignatura, semestre, resultados de
+-- aprendizaje y estudiantes de prueba, todos con ids fijos) se inserta solo
+-- si no existe (ON CONFLICT DO NOTHING); lo VOLATIL (nivel_logro_estudiante,
+-- conclusion, accion_mejora, y las evaluaciones que una conversion real haya
+-- generado sobre estos RA) se borra y se recrea en cada corrida. Ejecutalo
+-- ANTES de cada corrida completa de la coleccion.
+--
+-- Ya NO borra asignatura/programa/semestre/RA/estudiantes: desde que
+-- "convertir una accion de mejora" (RF-18) crea una sigra.evaluacion REAL con
+-- fk_evaluacion_ra apuntando a estos RA, borrar el RA aqui y volverlo a crear
+-- con el mismo id rompia esa FK en la siguiente corrida. Mantener los mismos
+-- ids fijos para lo estable es lo que permite seguir siendo idempotente.
 --
 -- Crea su PROPIO programa, asignatura, semestre y estudiantes (prefijo
 -- BRUCONC) en lugar de reutilizar los de otros seeds, para poder ejecutarse
@@ -37,10 +42,34 @@ BEGIN
     END IF;
 END $$;
 
--- 1. Limpieza de datos de prueba anteriores, en orden que respeta las FKs:
--- registro_evaluacion_prueba / accion_mejora / conclusion / nivel_logro_estudiante
--- -> resultado_aprendizaje -> asignatura -> programa_academico / semestre ->
--- estudiante -> usuario.
+-- 1. Limpieza de lo VOLATIL de corridas anteriores, en orden que respeta las
+-- FKs: lo que cuelga de evaluacion va primero (historial_calificacion ->
+-- calificacion -> evaluacion), despues registro_evaluacion_prueba /
+-- accion_mejora / conclusion / nivel_logro_estudiante. NO se borra
+-- resultado_aprendizaje ni lo que esta encima (asignatura, programa,
+-- semestre, estudiantes): eso es estable y se conserva (paso 2).
+DELETE FROM sigra.historial_calificacion
+ WHERE calificacion_id IN (
+     SELECT c.id
+       FROM sigra.calificacion c
+       JOIN sigra.evaluacion e ON e.id = c.evaluacion_id
+       JOIN sigra.resultado_aprendizaje ra ON ra.id = e.resultado_aprendizaje_id
+      WHERE ra.codigo LIKE 'RA-CONC-%'
+ );
+DELETE FROM sigra.calificacion
+ WHERE evaluacion_id IN (
+     SELECT e.id
+       FROM sigra.evaluacion e
+       JOIN sigra.resultado_aprendizaje ra ON ra.id = e.resultado_aprendizaje_id
+      WHERE ra.codigo LIKE 'RA-CONC-%'
+ );
+-- Evaluaciones generadas por conversiones de corridas anteriores sobre estos
+-- RA: hay que borrarlas o el porcentaje acumulado del RA hace fallar las
+-- pruebas de conversion (limite del 100%) en la siguiente corrida.
+DELETE FROM sigra.evaluacion
+ WHERE resultado_aprendizaje_id IN (
+     SELECT id FROM sigra.resultado_aprendizaje WHERE codigo LIKE 'RA-CONC-%'
+ );
 DELETE FROM sigra.registro_evaluacion_prueba
  WHERE resultado_aprendizaje_id IN (
      SELECT id FROM sigra.resultado_aprendizaje WHERE codigo LIKE 'RA-CONC-%'
@@ -57,36 +86,23 @@ DELETE FROM sigra.nivel_logro_estudiante
  WHERE resultado_aprendizaje_id IN (
      SELECT id FROM sigra.resultado_aprendizaje WHERE codigo LIKE 'RA-CONC-%'
  );
-DELETE FROM sigra.resultado_aprendizaje WHERE codigo LIKE 'RA-CONC-%';
-DELETE FROM sigra.asignatura WHERE codigo = 'BRUCONC1';
-DELETE FROM sigra.programa_academico WHERE codigo = 'BRU-CONC';
-DELETE FROM sigra.semestre WHERE codigo = 'BRUCONC-A1';
-DELETE FROM sigra.estudiante WHERE id IN (
-    '00000000-0000-4000-e500-000000000001',
-    '00000000-0000-4000-e500-000000000002',
-    '00000000-0000-4000-e500-000000000003',
-    '00000000-0000-4000-e500-000000000004',
-    '00000000-0000-4000-e500-000000000005'
-);
-DELETE FROM sigra.usuario WHERE id IN (
-    '00000000-0000-4000-e500-000000000001',
-    '00000000-0000-4000-e500-000000000002',
-    '00000000-0000-4000-e500-000000000003',
-    '00000000-0000-4000-e500-000000000004',
-    '00000000-0000-4000-e500-000000000005'
-);
 
--- 2. Programa, asignatura y semestre propios (BRUCONC). El semestre usa
--- fechas RELATIVAS a hoy, igual que seed-estudiantes.sql, para que siga
--- ACTIVO sin importar cuando se ejecute este seed.
+-- 2. Programa, asignatura, semestre, RA y estudiantes ESTABLES (BRUCONC), con
+-- ids fijos: se insertan solo si no existen, para no violar fk_evaluacion_ra
+-- cuando una corrida anterior ya convirtio una accion de mejora sobre estos
+-- RA en una evaluacion real. El semestre usa fechas RELATIVAS a hoy (igual
+-- que seed-estudiantes.sql) solo la primera vez que se crea.
 INSERT INTO sigra.programa_academico (id, nombre, codigo, estado) VALUES
-  ('00000000-0000-4000-e100-000000000001', 'Programa Bruno Conclusiones', 'BRU-CONC', 'ACTIVO');
+  ('00000000-0000-4000-e100-000000000001', 'Programa Bruno Conclusiones', 'BRU-CONC', 'ACTIVO')
+  ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
-  ('00000000-0000-4000-e200-000000000001', 'BRUCONC1', 'Bruno Conclusiones Activa', '00000000-0000-4000-e100-000000000001', 'ACTIVA');
+  ('00000000-0000-4000-e200-000000000001', 'BRUCONC1', 'Bruno Conclusiones Activa', '00000000-0000-4000-e100-000000000001', 'ACTIVA')
+  ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO sigra.semestre (id, codigo, fecha_inicio, fecha_fin, estado) VALUES
-  ('00000000-0000-4000-e300-000000000001', 'BRUCONC-A1', (CURRENT_DATE - INTERVAL '1 year')::date, (CURRENT_DATE + INTERVAL '3 years')::date, 'ACTIVO');
+  ('00000000-0000-4000-e300-000000000001', 'BRUCONC-A1', (CURRENT_DATE - INTERVAL '1 year')::date, (CURRENT_DATE + INTERVAL '3 years')::date, 'ACTIVO')
+  ON CONFLICT (id) DO NOTHING;
 
 -- 3. Resultados de aprendizaje de prueba, uno por escenario de RF-16:
 --   RA-CONC-01: va a tener 60% de niveles Bajo/Medio (mas del 40%)        -> genera conclusion.
@@ -95,7 +111,8 @@ INSERT INTO sigra.semestre (id, codigo, fecha_inicio, fecha_fin, estado) VALUES
 INSERT INTO sigra.resultado_aprendizaje (id, asignatura_id, codigo, descripcion, estado, inactivado_con_asignatura) VALUES
   ('00000000-0000-4000-e400-000000000001', '00000000-0000-4000-e200-000000000001', 'RA-CONC-01', 'RA de prueba con mas del 40% en Bajo o Medio', 'ACTIVO', false),
   ('00000000-0000-4000-e400-000000000002', '00000000-0000-4000-e200-000000000001', 'RA-CONC-02', 'RA de prueba con exactamente 40% en Bajo o Medio', 'ACTIVO', false),
-  ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e200-000000000001', 'RA-CONC-03', 'RA de prueba con menos de 3 calificaciones', 'ACTIVO', false);
+  ('00000000-0000-4000-e400-000000000003', '00000000-0000-4000-e200-000000000001', 'RA-CONC-03', 'RA de prueba con menos de 3 calificaciones', 'ACTIVO', false)
+  ON CONFLICT (id) DO NOTHING;
 
 -- 4. Estudiantes de prueba (mismo tipo de documento compartido que usan
 -- estudiantes y profesores). Al seed le da igual QUE tipo de documento usen:
@@ -118,14 +135,16 @@ BEGIN
       ('00000000-0000-4000-e500-000000000002', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 2', 'bruno.conc2@uco.net.co', 'ACTIVO'),
       ('00000000-0000-4000-e500-000000000003', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 3', 'bruno.conc3@uco.net.co', 'ACTIVO'),
       ('00000000-0000-4000-e500-000000000004', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 4', 'bruno.conc4@uco.net.co', 'ACTIVO'),
-      ('00000000-0000-4000-e500-000000000005', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 5', 'bruno.conc5@uco.net.co', 'ACTIVO');
+      ('00000000-0000-4000-e500-000000000005', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 5', 'bruno.conc5@uco.net.co', 'ACTIVO')
+      ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO sigra.estudiante (id, numero_documento) VALUES
       ('00000000-0000-4000-e500-000000000001', '2000000001'),
       ('00000000-0000-4000-e500-000000000002', '2000000002'),
       ('00000000-0000-4000-e500-000000000003', '2000000003'),
       ('00000000-0000-4000-e500-000000000004', '2000000004'),
-      ('00000000-0000-4000-e500-000000000005', '2000000005');
+      ('00000000-0000-4000-e500-000000000005', '2000000005')
+      ON CONFLICT (id) DO NOTHING;
 END $$;
 
 -- 5. Niveles de logro de prueba (3 calificaciones cada uno, para que

@@ -12,12 +12,13 @@ post {
 
 body:json {
   {
+    "fechaTentativa": "{{fechaTentativaConversion}}",
     "porcentaje": 10
   }
 }
 
 assert {
-  res.status: eq 409
+  res.status: eq 400
 }
 
 tests {
