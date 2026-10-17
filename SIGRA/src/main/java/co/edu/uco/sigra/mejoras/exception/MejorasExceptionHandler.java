@@ -3,6 +3,9 @@ package co.edu.uco.sigra.mejoras.exception;
 import co.edu.uco.sigra.common.exception.ErrorResponseBuilder;
 import co.edu.uco.sigra.estadisticas.exception.ConclusionNoEncontradaException;
 import co.edu.uco.sigra.estadisticas.exception.TransicionEstadoInvalidaException;
+import co.edu.uco.sigra.evaluaciones.exception.EvaluacionReglaNegocioException;
+import co.edu.uco.sigra.evaluaciones.exception.NombreEvaluacionDuplicadoException;
+import co.edu.uco.sigra.resultadosaprendizaje.exception.ResultadoAprendizajeNoEncontradoException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +25,8 @@ import java.util.Map;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class MejorasExceptionHandler {
 
-    @ExceptionHandler({AccionMejoraNoEncontradaException.class, ConclusionNoEncontradaException.class})
+    @ExceptionHandler({AccionMejoraNoEncontradaException.class, ConclusionNoEncontradaException.class,
+            ResultadoAprendizajeNoEncontradoException.class})
     public ResponseEntity<Map<String, Object>> manejarNoEncontrado(RuntimeException ex) {
         return ErrorResponseBuilder.build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), null);
     }
@@ -32,9 +36,21 @@ public class MejorasExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), null);
     }
 
-    @ExceptionHandler(PorcentajeExcedeLimiteException.class)
-    public ResponseEntity<Map<String, Object>> manejarPorcentajeExcedeLimite(PorcentajeExcedeLimiteException ex) {
+    /**
+     * RF-18: la conversión crea la evaluación con el servicio de evaluaciones, cuyas excepciones solo las
+     * mapea EvaluacionExceptionHandler para sus propios controladores. Aquí se mapean con los mismos
+     * códigos: reglas de RF-10/RF-11 (incluido el 100%, con el porcentaje disponible) y acción no
+     * convertible (400).
+     */
+    @ExceptionHandler({EvaluacionReglaNegocioException.class, AccionNoConvertibleException.class})
+    public ResponseEntity<Map<String, Object>> manejarReglaEvaluacion(RuntimeException ex) {
         return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), null);
+    }
+
+    /** RF-18: ya existe una evaluación con ese nombre en el (RA, semestre activo) (409). */
+    @ExceptionHandler(NombreEvaluacionDuplicadoException.class)
+    public ResponseEntity<Map<String, Object>> manejarNombreEvaluacionDuplicado(NombreEvaluacionDuplicadoException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), null);
     }
 
     @ExceptionHandler(AccionYaConvertidaException.class)
@@ -48,7 +64,7 @@ public class MejorasExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), null);
     }
 
-    /** 401 del control por rol compartido con asignaturas y estadísticas (temporal hasta RF-05). */
+    /** 401 normalizado para compatibilidad con errores de autenticación del módulo. */
     @ExceptionHandler(AutenticacionRequeridaException.class)
     public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AutenticacionRequeridaException ex) {
         ResponseEntity<Map<String, Object>> respuesta =
@@ -58,9 +74,13 @@ public class MejorasExceptionHandler {
                 .body(respuesta.getBody());
     }
 
-    /** 403 del control por rol y del alcance del profesor (temporal hasta RF-05). */
-    @ExceptionHandler(PermisoInsuficienteException.class)
-    public ResponseEntity<Map<String, Object>> manejarSinPermiso(PermisoInsuficienteException ex) {
+    /**
+     * 403 por rol insuficiente o alcance de recurso. Incluye el 403 que lanza
+     * el servicio de evaluaciones al convertir (RF-18), que usa la excepción del paquete asignaturas.
+     */
+    @ExceptionHandler({PermisoInsuficienteException.class,
+            co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException.class})
+    public ResponseEntity<Map<String, Object>> manejarSinPermiso(RuntimeException ex) {
         return ErrorResponseBuilder.build(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), null);
     }
 }

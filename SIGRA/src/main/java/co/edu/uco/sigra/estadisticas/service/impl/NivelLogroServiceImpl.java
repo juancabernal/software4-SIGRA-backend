@@ -1,7 +1,7 @@
 package co.edu.uco.sigra.estadisticas.service.impl;
 
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.dto.DistribucionNivelLogroDTO;
@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
  *   <li>Umbral: el nivel solo se calcula si el estudiante tiene 3 o más calificaciones en ese RA.</li>
  *   <li>Al terminar cada recálculo se llama a {@link ConclusionService#generarConclusion} (RF-16).</li>
  * </ul>
- * Alcance por rol: mismo patrón que {@code ConclusionServiceImpl} (temporal hasta RF-05).
+ * Alcance por rol: mismo patrón que {@code ConclusionServiceImpl}; sin identidad falla cerrado (403).
  */
 @Service
 @RequiredArgsConstructor
@@ -80,17 +80,11 @@ public class NivelLogroServiceImpl implements NivelLogroService {
 
     @Override
     @Transactional
-    public RecalculoEstadisticasResponseDTO recalcular(UUID resultadoAprendizajeId, UUID semestreId) {
-        return recalcular(resultadoAprendizajeId, semestreId, null);
-    }
-
-    @Override
-    @Transactional
     public RecalculoEstadisticasResponseDTO recalcular(UUID resultadoAprendizajeId, UUID semestreId,
-                                                       IdentidadActual identidad) {
+                                                       UsuarioPrincipal principal) {
         ResultadoAprendizaje resultadoAprendizaje = buscarResultadoAprendizaje(resultadoAprendizajeId);
         Semestre semestre = buscarSemestre(semestreId);
-        verificarAlcance(resultadoAprendizaje, identidad);
+        verificarAlcance(resultadoAprendizaje, principal);
 
         Map<UUID, List<CalificacionPonderada>> porEstudiante = fuenteCalificaciones
                 .listarCalificaciones(resultadoAprendizajeId, semestreId).stream()
@@ -127,7 +121,8 @@ public class NivelLogroServiceImpl implements NivelLogroService {
         nivelLogroEstudianteRepository.flush();
 
         // RF-16: la conclusión se evalúa justo al recalcular. Es idempotente; generada=false no es error.
-        GenerarConclusionResponseDTO conclusion = conclusionService.generarConclusion(resultadoAprendizajeId, semestreId);
+        GenerarConclusionResponseDTO conclusion = conclusionService.generarConclusion(resultadoAprendizajeId, semestreId,
+                principal);
         return new RecalculoEstadisticasResponseDTO(construirEstadisticas(resultadoAprendizaje, semestre), conclusion);
     }
 
@@ -135,10 +130,10 @@ public class NivelLogroServiceImpl implements NivelLogroService {
     @Transactional
     public EstadisticasResultadoAprendizajeResponseDTO consultarEstadisticas(UUID resultadoAprendizajeId,
                                                                              UUID semestreId,
-                                                                             IdentidadActual identidad) {
+                                                                             UsuarioPrincipal principal) {
         ResultadoAprendizaje resultadoAprendizaje = buscarResultadoAprendizaje(resultadoAprendizajeId);
         Semestre semestre = buscarSemestre(semestreId);
-        verificarAlcance(resultadoAprendizaje, identidad);
+        verificarAlcance(resultadoAprendizaje, principal);
         return construirEstadisticas(resultadoAprendizaje, semestre);
     }
 
@@ -212,17 +207,20 @@ public class NivelLogroServiceImpl implements NivelLogroService {
     }
 
     /**
-     * ADMINISTRADOR (o sin identidad, con el control por rol apagado): todo. PROFESOR: solo los RA de
-     * asignaturas donde tiene asignación docente ACTIVA. Cualquier otro rol: 403.
+     * ADMINISTRADOR: todo. PROFESOR: solo los RA de asignaturas donde tiene asignación docente ACTIVA.
+     * Sin identidad o con cualquier otro rol: 403 (falla cerrado, igual que ConclusionServiceImpl).
      */
-    private void verificarAlcance(ResultadoAprendizaje resultadoAprendizaje, IdentidadActual identidad) {
-        if (identidad == null || identidad.rol() == RolUsuario.ADMINISTRADOR) {
+    private void verificarAlcance(ResultadoAprendizaje resultadoAprendizaje, UsuarioPrincipal principal) {
+        if (principal == null) {
+            throw new PermisoInsuficienteException();
+        }
+        if (principal.rol() == RolUsuario.ADMINISTRADOR) {
             return;
         }
-        if (identidad.rol() == RolUsuario.PROFESOR) {
+        if (principal.rol() == RolUsuario.PROFESOR) {
             UUID asignaturaId = resultadoAprendizaje.getAsignatura().getId();
             boolean asignado = asignacionDocenteRepository
-                    .findByProfesor_IdAndEstado(identidad.id(), EstadoRegistro.ACTIVO).stream()
+                    .findByProfesor_IdAndEstado(principal.id(), EstadoRegistro.ACTIVO).stream()
                     .anyMatch(a -> a.getAsignatura().getId().equals(asignaturaId));
             if (asignado) {
                 return;

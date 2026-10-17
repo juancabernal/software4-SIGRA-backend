@@ -6,6 +6,7 @@ import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.common.util.Correos;
+import co.edu.uco.sigra.common.util.Textos;
 import co.edu.uco.sigra.profesores.dto.AsignaturaProfesorResponseDTO;
 import co.edu.uco.sigra.profesores.dto.ProfesorRequestDTO;
 import co.edu.uco.sigra.profesores.dto.ProfesorResponseDTO;
@@ -49,17 +50,21 @@ public class ProfesorServiceImpl implements ProfesorService {
         profesor.setTipoDocumento(tipoDocumento);
 
         Profesor guardado = profesorRepository.save(profesor);
-        return profesorMapper.toResponseDTO(guardado);
+        // Un profesor recién creado no puede tener asignaciones docentes todavía.
+        return profesorMapper.toResponseDTO(guardado, false);
     }
 
+    /**
+     * Coincide si el término aparece en el nombre, el número de documento o el correo, sin
+     * distinguir mayúsculas ni tildes («gomez» encuentra a «Gómez»). Un término vacío no filtra.
+     */
     @Override
     @Transactional
     public List<ProfesorResponseDTO> consultar(String filtro) {
+        String termino = Textos.terminoDeBusqueda(filtro);
         return profesorRepository.findAll().stream()
-                .filter(p -> filtro == null
-                        || p.getNombreCompleto().toLowerCase().contains(filtro.toLowerCase())
-                        || p.getNumeroDocumento().contains(filtro))
-                .map(this::mapToDTO)
+                .filter(p -> termino == null || coincide(p, termino))
+                .map(p -> profesorMapper.toResponseDTO(p, tieneAsignacionesActivas(p.getId())))
                 .toList();
     }
 
@@ -110,7 +115,8 @@ public class ProfesorServiceImpl implements ProfesorService {
         profesorMapper.updateEntityFromDTO(dto, profesor);
         profesor.setCorreoInstitucional(correo);
         profesor.setTipoDocumento(tipoDocumento);
-        return profesorMapper.toResponseDTO(profesorRepository.save(profesor));
+        Profesor guardado = profesorRepository.save(profesor);
+        return profesorMapper.toResponseDTO(guardado, tieneAsignacionesActivas(id));
     }
 
     @Override
@@ -119,7 +125,7 @@ public class ProfesorServiceImpl implements ProfesorService {
         Profesor profesor = profesorRepository.findById(id)
                 .orElseThrow(() -> new ProfesorNoEncontradoException(id));
 
-        if (asignacionDocenteRepository.existsByProfesor_IdAndEstado(id, EstadoRegistro.ACTIVO)) {
+        if (tieneAsignacionesActivas(id)) {
             throw new ProfesorConAsignacionesActivasException(id);
         }
 
@@ -127,18 +133,17 @@ public class ProfesorServiceImpl implements ProfesorService {
         profesorRepository.save(profesor);
     }
 
-    private ProfesorResponseDTO mapToDTO(Profesor profesor) {
-        boolean tieneAsignaciones = asignacionDocenteRepository
-                .existsByProfesor_IdAndEstado(profesor.getId(), EstadoRegistro.ACTIVO);
+    private boolean tieneAsignacionesActivas(UUID profesorId) {
+        return asignacionDocenteRepository.existsByProfesor_IdAndEstado(profesorId, EstadoRegistro.ACTIVO);
+    }
 
-        return new ProfesorResponseDTO(
-                profesor.getId(),
-                profesor.getTipoDocumento() != null ? profesor.getTipoDocumento().getNombre() : null,
-                profesor.getNumeroDocumento(),
-                profesor.getNombreCompleto(),
-                profesor.getCorreoInstitucional(),
-                profesor.getEstado().name(),
-                tieneAsignaciones
-        );
+    private static boolean coincide(Profesor profesor, String termino) {
+        return contiene(profesor.getNombreCompleto(), termino)
+                || contiene(profesor.getNumeroDocumento(), termino)
+                || contiene(profesor.getCorreoInstitucional(), termino);
+    }
+
+    private static boolean contiene(String valor, String termino) {
+        return valor != null && Textos.normalizarBusqueda(valor).contains(termino);
     }
 }

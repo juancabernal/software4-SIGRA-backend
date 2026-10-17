@@ -2,7 +2,7 @@
 
 Clase: `SIGRA/src/test/java/co/edu/uco/sigra/asignaturas/integracion/AsignaturaIntegracionIT.java`
 
-Levantan el contexto completo de Spring Boot contra **PostgreSQL real**, con `MockMvc` y el control por rol encendido (`sigra.seguridad.roles.habilitado=true`). Cada caso verifica la **respuesta HTTP** (estado y cuerpo sin detalles técnicos) y el **estado real en la base** con los repositorios. La prueba **no** usa `@Transactional`: el servicio confirma de verdad, así que el rollback de IT-04b es real. Los casos 1 a 4 usan el token JWT real de un administrador de prueba (`JwtService.generarToken`); IT-05 usa tokens reales de un profesor y un estudiante creados por la prueba.
+Levantan el contexto completo de Spring Boot contra **PostgreSQL real**, con `MockMvc` y la cadena JWT/RBAC real. Cada caso verifica la **respuesta HTTP** (estado y cuerpo sin detalles técnicos) y el **estado real en la base** con los repositorios. La prueba **no** usa `@Transactional`: el servicio confirma de verdad, así que el rollback de IT-04b es real. Los casos 1 a 4 usan el token JWT real de un administrador de prueba (`JwtService.generarToken`); IT-05 usa tokens reales de un profesor y un estudiante creados por la prueba.
 
 | ID | Requisito | Escenario | Datos de entrada | Resultado esperado (respuesta) | Resultado esperado (base) |
 | --- | --- | --- | --- | --- | --- |

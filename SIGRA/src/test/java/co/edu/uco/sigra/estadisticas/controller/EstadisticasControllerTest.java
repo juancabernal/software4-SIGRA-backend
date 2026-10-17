@@ -1,5 +1,8 @@
 package co.edu.uco.sigra.estadisticas.controller;
 
+import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
 import co.edu.uco.sigra.estadisticas.dto.DistribucionNivelLogroDTO;
 import co.edu.uco.sigra.estadisticas.dto.EstadisticasResultadoAprendizajeResponseDTO;
@@ -27,7 +30,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -49,14 +51,21 @@ class EstadisticasControllerTest {
             "/api/v1/resultados-aprendizaje/" + ID_RA + "/semestres/" + ID_SEMESTRE + "/estadisticas";
     private static final String URL_RECALCULO = URL + "/recalculo";
 
+    private static final UsuarioPrincipal PRINCIPAL =
+            new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ADMINISTRADOR);
+
     @Mock
     private NivelLogroService service;
+
+    @Mock
+    private CurrentUser currentUser;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new EstadisticasController(service))
+        org.mockito.Mockito.lenient().when(currentUser.required()).thenReturn(PRINCIPAL);
+        mockMvc = MockMvcBuilders.standaloneSetup(new EstadisticasController(service, currentUser))
                 .setControllerAdvice(new EstadisticasExceptionHandler(), new GlobalExceptionHandler())
                 .build();
     }
@@ -78,7 +87,7 @@ class EstadisticasControllerTest {
         @Test
         @DisplayName("Devuelve 200 con el contrato acordado para el frontend")
         void ok() throws Exception {
-            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), isNull())).thenReturn(estadisticas());
+            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), eq(PRINCIPAL))).thenReturn(estadisticas());
 
             mockMvc.perform(get(URL))
                     .andExpect(status().isOk())
@@ -99,7 +108,7 @@ class EstadisticasControllerTest {
         @Test
         @DisplayName("RA inexistente: 404")
         void raInexistente() throws Exception {
-            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), isNull()))
+            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), eq(PRINCIPAL)))
                     .thenThrow(new ResultadoAprendizajeNoEncontradoException(ID_RA));
 
             mockMvc.perform(get(URL)).andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
@@ -108,7 +117,7 @@ class EstadisticasControllerTest {
         @Test
         @DisplayName("Semestre inexistente: 404")
         void semestreInexistente() throws Exception {
-            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), isNull()))
+            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), eq(PRINCIPAL)))
                     .thenThrow(new SemestreNoEncontradoException(ID_SEMESTRE));
 
             mockMvc.perform(get(URL)).andExpect(status().isNotFound());
@@ -117,7 +126,7 @@ class EstadisticasControllerTest {
         @Test
         @DisplayName("Fuera del alcance del profesor: 403")
         void sinPermiso() throws Exception {
-            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), isNull()))
+            when(service.consultarEstadisticas(eq(ID_RA), eq(ID_SEMESTRE), eq(PRINCIPAL)))
                     .thenThrow(new PermisoInsuficienteException());
 
             mockMvc.perform(get(URL)).andExpect(status().isForbidden());
@@ -134,7 +143,7 @@ class EstadisticasControllerTest {
     @Test
     @DisplayName("POST recálculo: 200 con estadísticas y la respuesta de la conclusión (RF-16)")
     void recalculo() throws Exception {
-        when(service.recalcular(eq(ID_RA), eq(ID_SEMESTRE), isNull())).thenReturn(new RecalculoEstadisticasResponseDTO(
+        when(service.recalcular(eq(ID_RA), eq(ID_SEMESTRE), eq(PRINCIPAL))).thenReturn(new RecalculoEstadisticasResponseDTO(
                 estadisticas(), new GenerarConclusionResponseDTO(false, "Dentro del umbral.", null)));
 
         mockMvc.perform(post(URL_RECALCULO))

@@ -6,9 +6,7 @@ import co.edu.uco.sigra.estudiantes.dto.MatriculaConEstudianteRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.MatriculaRequestDTO;
 import co.edu.uco.sigra.estudiantes.dto.MatriculaResponseDTO;
 import co.edu.uco.sigra.estudiantes.mapper.MatriculaMapper;
-import co.edu.uco.sigra.estudiantes.seguridad.RolesPermitidosMatricula;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
-import co.edu.uco.sigra.common.enums.RolUsuario;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,10 +18,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Matriz de acceso por rol (RF-05). Mientras RF-05 no exista, la aplica el interceptor temporal del
- * módulo según {@link RolesPermitidosMatricula}, solo con {@code sigra.seguridad.roles.habilitado=true};
- * los {@code @PreAuthorize} quedan comentados con la misma matriz para que RF-05 solo los descomente.
- * Los cuatro endpoints son de ADMINISTRADOR y PROFESOR.
+ * Matriz de acceso por rol (RF-05), aplicada por Spring Security. La autorización por recurso
+ * (asignación docente activa) la valida el servicio antes de leer o modificar una matrícula.
  */
 @RestController
 @RequestMapping("/api/v1/matriculas")
@@ -34,8 +30,7 @@ public class MatriculaController {
     private final MatriculaMapper matriculaMapper;
 
     @PostMapping
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
-    @RolesPermitidosMatricula({RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR})
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<MatriculaResponseDTO> matricular(@Valid @RequestBody MatriculaRequestDTO dto) {
         var resultado = matriculaService.matricular(dto.estudianteId(), dto.asignaturaId(), dto.semestreId());
         var respuesta = matriculaMapper.toResponseDTO(resultado.matricula());
@@ -44,8 +39,7 @@ public class MatriculaController {
     }
 
     @DeleteMapping("/{id}")
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
-    @RolesPermitidosMatricula({RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR})
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<Void> desvincular(@PathVariable UUID id,
                                              @RequestParam(defaultValue = "false") boolean confirmar) {
         matriculaService.desvincular(id, confirmar);
@@ -53,8 +47,7 @@ public class MatriculaController {
     }
 
     @GetMapping
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
-    @RolesPermitidosMatricula({RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR})
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<List<EstudianteMatriculadoDTO>> listarMatriculados(
             @RequestParam UUID asignaturaId,
             @RequestParam UUID semestreId,
@@ -64,8 +57,7 @@ public class MatriculaController {
     }
 
     @PostMapping("/con-estudiante")
-    //@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
-    @RolesPermitidosMatricula({RolUsuario.ADMINISTRADOR, RolUsuario.PROFESOR})
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<EstudianteConMatriculaResponseDTO> registrarYMatricular(
             @Valid @RequestBody MatriculaConEstudianteRequestDTO dto) {
         var resultado = matriculaService.registrarYMatricular(dto.estudiante(), dto.asignaturaId(), dto.semestreId());

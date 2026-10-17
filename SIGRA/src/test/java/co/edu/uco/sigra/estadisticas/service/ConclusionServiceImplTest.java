@@ -3,7 +3,7 @@ package co.edu.uco.sigra.estadisticas.service;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.dto.ConclusionFiltroDTO;
@@ -53,6 +53,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Servicio de conclusiones automáticas (RF-16)")
 class ConclusionServiceImplTest {
+
+    private static final UsuarioPrincipal ADMIN =
+            new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ADMINISTRADOR);
 
     private static final UUID ID_RA = UUID.randomUUID();
     private static final UUID ID_ASIGNATURA = UUID.randomUUID();
@@ -127,7 +130,7 @@ class ConclusionServiceImplTest {
             // Con menos del mínimo se corta antes de consultar contarEnBajoOMedio: solo se stubea contarEvaluados.
             when(proveedorNivelesLogro.contarEvaluados(ID_RA, ID_SEMESTRE)).thenReturn(2L);
 
-            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE);
+            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(respuesta.generada()).isFalse();
             assertThat(respuesta.motivo()).isEqualTo(ConclusionServiceImpl.MOTIVO_DATOS_INSUFICIENTES);
@@ -145,7 +148,7 @@ class ConclusionServiceImplTest {
             sinVigentePrevia(ID_SEMESTRE);
             evaluados(ID_SEMESTRE, 10, 4);
 
-            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE);
+            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(respuesta.generada()).isFalse();
             assertThat(respuesta.motivo()).isEqualTo(ConclusionServiceImpl.MOTIVO_DENTRO_DEL_UMBRAL);
@@ -161,7 +164,7 @@ class ConclusionServiceImplTest {
             sinVigentePrevia(ID_SEMESTRE);
             evaluados(ID_SEMESTRE, 10, 5);
 
-            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE);
+            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(respuesta.generada()).isTrue();
             assertThat(respuesta.motivo()).isEqualTo(ConclusionServiceImpl.MOTIVO_GENERADA);
@@ -186,7 +189,7 @@ class ConclusionServiceImplTest {
             when(conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
                     ID_RA, ID_SEMESTRE, EstadoConclusion.VIGENTE)).thenReturn(Optional.of(existente));
 
-            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE);
+            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(respuesta.generada()).isFalse();
             assertThat(respuesta.motivo()).isEqualTo(ConclusionServiceImpl.MOTIVO_YA_VIGENTE);
@@ -203,7 +206,7 @@ class ConclusionServiceImplTest {
             sinVigentePrevia(ID_SEMESTRE_2);
             evaluados(ID_SEMESTRE_2, 10, 6);
 
-            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE_2);
+            GenerarConclusionResponseDTO respuesta = service.generarConclusion(ID_RA, ID_SEMESTRE_2, ADMIN);
 
             assertThat(respuesta.generada()).isTrue();
             assertThat(respuesta.conclusion().semestreId()).isEqualTo(ID_SEMESTRE_2);
@@ -215,7 +218,7 @@ class ConclusionServiceImplTest {
         void raInexistente() {
             when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.generarConclusion(ID_RA, ID_SEMESTRE))
+            assertThatThrownBy(() -> service.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN))
                     .isInstanceOf(ResultadoAprendizajeNoEncontradoException.class);
             verifyNoInteractions(proveedorNivelesLogro);
         }
@@ -226,7 +229,7 @@ class ConclusionServiceImplTest {
             when(resultadoAprendizajeRepository.findById(ID_RA)).thenReturn(Optional.of(resultadoAprendizaje));
             when(semestreRepository.findById(ID_SEMESTRE)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.generarConclusion(ID_RA, ID_SEMESTRE))
+            assertThatThrownBy(() -> service.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN))
                     .isInstanceOf(SemestreNoEncontradoException.class);
             verifyNoInteractions(proveedorNivelesLogro);
         }
@@ -261,7 +264,7 @@ class ConclusionServiceImplTest {
                     .thenReturn(List.of(asignacion));
 
             List<co.edu.uco.sigra.estadisticas.dto.ConclusionResponseDTO> resultado = service.consultarConclusiones(
-                    sinFiltros, new IdentidadActual(profesorId, RolUsuario.PROFESOR));
+                    sinFiltros, new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR));
 
             assertThat(resultado).hasSize(1);
             assertThat(resultado.get(0).asignaturaId()).isEqualTo(ID_ASIGNATURA);
@@ -274,20 +277,21 @@ class ConclusionServiceImplTest {
             when(conclusionRepository.findAll()).thenReturn(List.of(unaConclusion));
 
             List<co.edu.uco.sigra.estadisticas.dto.ConclusionResponseDTO> resultado = service.consultarConclusiones(
-                    sinFiltros, new IdentidadActual(UUID.randomUUID(), RolUsuario.ADMINISTRADOR));
+                    sinFiltros, new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ADMINISTRADOR));
 
             assertThat(resultado).hasSize(1);
             verifyNoInteractions(asignacionDocenteRepository);
         }
 
         @Test
-        @DisplayName("Sin identidad (control por rol apagado) se ve todo, como siempre")
+        @DisplayName("Sin identidad se rechaza por cierre de seguridad")
         void sinIdentidad() {
             Conclusion unaConclusion = new Conclusion(resultadoAprendizaje, semestre, 60.0);
             when(conclusionRepository.findAll()).thenReturn(List.of(unaConclusion));
 
-            assertThat(service.consultarConclusiones(sinFiltros)).hasSize(1);
-            assertThat(service.consultarConclusiones(sinFiltros, null)).hasSize(1);
+            assertThat(service.consultarConclusiones(sinFiltros, ADMIN)).hasSize(1);
+            assertThatThrownBy(() -> service.consultarConclusiones(sinFiltros, null))
+                    .isInstanceOf(PermisoInsuficienteException.class);
             verifyNoInteractions(asignacionDocenteRepository);
         }
 
@@ -295,7 +299,7 @@ class ConclusionServiceImplTest {
         @DisplayName("Un ESTUDIANTE no consulta conclusiones")
         void estudianteNoConsulta() {
             assertThatThrownBy(() -> service.consultarConclusiones(sinFiltros,
-                    new IdentidadActual(UUID.randomUUID(), RolUsuario.ESTUDIANTE)))
+                    new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ESTUDIANTE)))
                     .isInstanceOf(PermisoInsuficienteException.class);
             verifyNoInteractions(conclusionRepository);
         }
@@ -313,7 +317,7 @@ class ConclusionServiceImplTest {
             ReflectionTestUtils.setField(conclusion, "id", id);
             when(conclusionRepository.findById(id)).thenReturn(Optional.of(conclusion));
 
-            assertThat(service.consultarPorId(id).id()).isEqualTo(id);
+            assertThat(service.consultarPorId(id, ADMIN).id()).isEqualTo(id);
         }
 
         @Test
@@ -322,7 +326,7 @@ class ConclusionServiceImplTest {
             UUID id = UUID.randomUUID();
             when(conclusionRepository.findById(id)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.consultarPorId(id))
+            assertThatThrownBy(() -> service.consultarPorId(id, ADMIN))
                     .isInstanceOf(ConclusionNoEncontradaException.class);
         }
     }

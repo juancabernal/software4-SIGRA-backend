@@ -9,7 +9,7 @@ import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ConteoPorAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.ProfesorDeAsignatura;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
@@ -17,6 +17,7 @@ import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
+import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,9 @@ class AsignaturaServiceMisAsignaturasTest {
     @Mock
     private AsignacionDocenteRepository asignacionDocenteRepository;
 
+    @Mock
+    private ResultadoAprendizajeService resultadoAprendizajeService;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
     private AsignaturaServiceImpl service;
     private Asignatura siete;
@@ -58,7 +62,8 @@ class AsignaturaServiceMisAsignaturasTest {
     @BeforeEach
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
-                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
+                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
+                resultadoAprendizajeService);
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setId(UUID.randomUUID());
         programa.setNombre("Programa Bruno Activo");
@@ -117,7 +122,7 @@ class AsignaturaServiceMisAsignaturasTest {
                 .thenReturn(List.of(siete, activa));
         conteosYProfesores();
 
-        List<MiAsignaturaDTO> resultado = service.misAsignaturas(new IdentidadActual(USUARIO, RolUsuario.PROFESOR));
+        List<MiAsignaturaDTO> resultado = service.misAsignaturas(new UsuarioPrincipal(USUARIO, RolUsuario.PROFESOR));
 
         assertThat(resultado).extracting(MiAsignaturaDTO::codigo).containsExactly("BRU10", "BRU07");
         MiAsignaturaDTO primera = resultado.getFirst();
@@ -137,7 +142,7 @@ class AsignaturaServiceMisAsignaturasTest {
                 .thenReturn(List.of(activa));
         conteosYProfesores();
 
-        List<MiAsignaturaDTO> resultado = service.misAsignaturas(new IdentidadActual(USUARIO, RolUsuario.ESTUDIANTE));
+        List<MiAsignaturaDTO> resultado = service.misAsignaturas(new UsuarioPrincipal(USUARIO, RolUsuario.ESTUDIANTE));
 
         assertThat(resultado).extracting(MiAsignaturaDTO::codigo).containsExactly("BRU10");
         verify(asignaturaRepository, never()).findAsignadasAProfesor(any(), any());
@@ -150,7 +155,7 @@ class AsignaturaServiceMisAsignaturasTest {
                 .thenReturn(List.of(siete, activa));
         conteosYProfesores();
 
-        service.misAsignaturas(new IdentidadActual(USUARIO, RolUsuario.PROFESOR));
+        service.misAsignaturas(new UsuarioPrincipal(USUARIO, RolUsuario.PROFESOR));
 
         verify(asignaturaRepository, times(1)).contarRaDe(anyCollection(), any());
         verify(asignaturaRepository, times(1)).contarMatriculasDe(anyCollection(), any());
@@ -163,14 +168,14 @@ class AsignaturaServiceMisAsignaturasTest {
     void vacia() {
         when(asignaturaRepository.findAsignadasAProfesor(USUARIO, EstadoRegistro.ACTIVO)).thenReturn(List.of());
 
-        assertThat(service.misAsignaturas(new IdentidadActual(USUARIO, RolUsuario.PROFESOR))).isEmpty();
+        assertThat(service.misAsignaturas(new UsuarioPrincipal(USUARIO, RolUsuario.PROFESOR))).isEmpty();
         verify(asignaturaRepository, never()).contarRaDe(any(), any());
     }
 
     @Test
     @DisplayName("Un ADMINISTRADOR no tiene «mis asignaturas» (403)")
     void administrador() {
-        assertThatThrownBy(() -> service.misAsignaturas(new IdentidadActual(USUARIO, RolUsuario.ADMINISTRADOR)))
+        assertThatThrownBy(() -> service.misAsignaturas(new UsuarioPrincipal(USUARIO, RolUsuario.ADMINISTRADOR)))
                 .isInstanceOf(PermisoInsuficienteException.class);
         verifyNoInteractions(asignaturaRepository);
     }

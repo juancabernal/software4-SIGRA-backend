@@ -5,6 +5,10 @@ import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.exception.CodigoAsignaturaDuplicadoException;
 import co.edu.uco.sigra.asignaturas.exception.RangoRaInvalidoException;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
+import co.edu.uco.sigra.auth.security.CurrentUser;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.common.enums.RolUsuario;
+import org.junit.jupiter.api.BeforeEach;
 import co.edu.uco.sigra.semestres.controller.SemestreController;
 import co.edu.uco.sigra.semestres.exception.SemestreDuplicadoException;
 import co.edu.uco.sigra.semestres.exception.SemestreNoEncontradoException;
@@ -29,6 +33,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -79,11 +84,20 @@ class PrecedenciaAdvicesTest {
         @MockitoBean
         private AsignaturaService asignaturaService;
 
+        @MockitoBean
+        private CurrentUser currentUser;
+
+        @BeforeEach
+        void configurarIdentidad() {
+            given(currentUser.required()).willReturn(
+                    new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co", RolUsuario.ADMINISTRADOR));
+        }
+
         @Test
         @DisplayName("AsignaturaNoEncontradaException sigue dando 404")
         void asignaturaNoEncontradaSigueDando404() throws Exception {
             UUID id = UUID.fromString("1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d");
-            given(asignaturaService.obtenerAsignatura(id))
+            given(asignaturaService.obtenerAsignatura(eq(id), any(UsuarioPrincipal.class)))
                     .willThrow(new AsignaturaNoEncontradaException(id));
 
             MvcResult resultado = mockMvc.perform(get(RUTA + "/" + id)).andReturn();

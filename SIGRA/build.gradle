@@ -2,6 +2,8 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.owasp.dependencycheck' version '13.0.0'
+	id 'jacoco' // <-- Plugin de JaCoCo agregado
 }
 
 group = 'com.sigra'
@@ -44,11 +46,27 @@ dependencies {
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
 }
 
+// SCA ejecutable para CI cuando la Dependency Review API de GitHub no está disponible.
+// CVSS >= 4.0 bloquea el build (moderada, alta y crítica); los errores del scanner también
+// bloquean para evitar un falso PASS por falta de datos NVD.
+dependencyCheck {
+	failBuildOnCVSS = 4.0
+	failOnError = true
+	formats = ['HTML', 'SARIF', 'JUNIT']
+	nvd {
+		def nvdApiKey = System.getenv('NVD_API_KEY')
+		if (nvdApiKey) {
+			apiKey = nvdApiKey
+		}
+	}
+}
+
 // Pruebas unitarias y de capa web (sin PostgreSQL). Se ejecutan con: .\gradlew.bat test
 tasks.named('test') {
 	useJUnitPlatform {
 		excludeTags 'integration'
 	}
+	finalizedBy jacocoTestReport // Genera el reporte automáticamente tras correr los unitarios
 }
 
 // Pruebas de integración: levantan el contexto completo y requieren PostgreSQL y .env.
@@ -63,3 +81,44 @@ tasks.register('integrationTest', Test) {
 		includeTags 'integration'
 	}
 }
+
+// Configuración de JaCoCo para reportes y verificación de umbral (>= 70%)
+jacoco {
+	toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+		html.required = true
+	}
+}
+
+jacocoTestCoverageVerification {
+	violationRules {
+		// Mínimo global del proyecto.
+		rule {
+			limit {
+				minimum = 0.7
+			}
+		}
+		// Módulos obligatorios: 70 % en cada paquete, no solo en el total, para que un módulo
+		// bien cubierto no esconda a otro que no lo está.
+		rule {
+			element = 'PACKAGE'
+			includes = [
+					'co.edu.uco.sigra.auth.service*',   // autenticación
+					'co.edu.uco.sigra.auth.controller',
+					'co.edu.uco.sigra.auth.security',   // RBAC (filtro JWT, CurrentUser, respuestas 401/403)
+					'co.edu.uco.sigra.config'
+					// Nivel de logro: agregar 'co.edu.uco.sigra.estadisticas.service*' cuando exista RF-14.
+			]
+			limit {
+				counter = 'INSTRUCTION'
+				minimum = 0.7
+			}
+		}
+	}
+}
+check.dependsOn jacocoTestCoverageVerification

@@ -8,11 +8,14 @@ import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.auth.exception.CredencialesInvalidasException;
 import co.edu.uco.sigra.auth.exception.UsuarioBloqueadoException;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
+import co.edu.uco.sigra.auth.security.RequestCorrelationFilter;
 import co.edu.uco.sigra.auth.service.AuthService;
 import co.edu.uco.sigra.auth.service.JwtService;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.util.Correos;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,8 @@ import java.util.Optional;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     public static final int MAX_INTENTOS_FALLIDOS = 5;
     public static final Duration DURACION_BLOQUEO = Duration.ofMinutes(15);
@@ -57,17 +62,23 @@ public class AuthServiceImpl implements AuthService {
         Optional<Usuario> usuarioEncontrado = usuarioRepository.findByCorreoInstitucionalIgnoreCase(correoNormalizado);
         if (usuarioEncontrado.isEmpty()) {
             compararConHashFicticio(request.contrasena());
+            log.warn("Evento seguridad=LOGIN_REJECTED requestId={} motivo=credenciales_invalidas",
+                    RequestCorrelationFilter.currentRequestId());
             throw new CredencialesInvalidasException();
         }
         Usuario usuario = usuarioEncontrado.get();
 
         if (usuario.getEstado() != EstadoRegistro.ACTIVO) {
             compararConHashFicticio(request.contrasena());
+            log.warn("Evento seguridad=LOGIN_REJECTED requestId={} motivo=usuario_inactivo",
+                    RequestCorrelationFilter.currentRequestId());
             throw new CredencialesInvalidasException();
         }
 
         // Bloqueado: se rechaza sin evaluar la contraseña y sin modificar el contador.
         if (usuario.estaBloqueado(ahora, DURACION_BLOQUEO)) {
+            log.warn("Evento seguridad=LOGIN_BLOCKED requestId={} usuarioId={}",
+                    RequestCorrelationFilter.currentRequestId(), usuario.getId());
             throw new UsuarioBloqueadoException();
         }
 
@@ -78,15 +89,23 @@ public class AuthServiceImpl implements AuthService {
 
         if (usuario.getPasswordHash() == null) {
             compararConHashFicticio(request.contrasena());
+            log.warn("Evento seguridad=LOGIN_REJECTED requestId={} motivo=credenciales_invalidas",
+                    RequestCorrelationFilter.currentRequestId());
             throw registrarFallo(usuario, ahora);
         }
 
         if (!passwordEncoder.matches(request.contrasena(), usuario.getPasswordHash())) {
+            log.warn("Evento seguridad=LOGIN_REJECTED requestId={} motivo=credenciales_invalidas",
+                    RequestCorrelationFilter.currentRequestId());
             throw registrarFallo(usuario, ahora);
         }
 
         usuario.reiniciarContadorIntentos();
         usuarioRepository.save(usuario);
+
+        log.info("Evento seguridad=LOGIN_SUCCESS requestId={} usuarioId={} rol={}",
+                RequestCorrelationFilter.currentRequestId(),
+                usuario.getId(), usuario.getRol());
 
         String token = jwtService.generarToken(usuario);
         UsuarioSesionDTO usuarioSesionDTO = new UsuarioSesionDTO(

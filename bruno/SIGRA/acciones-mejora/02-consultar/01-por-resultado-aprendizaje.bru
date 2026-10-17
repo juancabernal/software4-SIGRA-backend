@@ -21,6 +21,6 @@ assert {
 tests {
   test("solo trae acciones de mejora del RA pedido", function () {
     expect(res.body).to.be.an("array").with.length.at.least(1);
-    res.body.forEach((a) => expect(a.resultadoAprendizajeId).to.equal(bru.getVar("raConcMas40Id")));
+    res.body.forEach((a) => expect(a.resultadoAprendizajeId).to.equal(bru.getEnvVar("raConcMas40Id")));
   });
 }

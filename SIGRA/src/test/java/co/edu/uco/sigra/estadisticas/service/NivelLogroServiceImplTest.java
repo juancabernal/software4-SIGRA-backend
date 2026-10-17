@@ -3,7 +3,7 @@ package co.edu.uco.sigra.estadisticas.service;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
-import co.edu.uco.sigra.asignaturas.seguridad.IdentidadActual;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estadisticas.dto.DistribucionNivelLogroDTO;
@@ -67,6 +67,8 @@ class NivelLogroServiceImplTest {
     private static final UUID ID_ASIGNATURA = UUID.randomUUID();
     private static final UUID ID_SEMESTRE = UUID.randomUUID();
     private static final UUID ID_PROFESOR = UUID.randomUUID();
+    private static final UsuarioPrincipal ADMIN =
+            new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ADMINISTRADOR);
 
     @Mock private NivelLogroEstudianteRepository nivelLogroRepository;
     @Mock private FuenteCalificaciones fuenteCalificaciones;
@@ -119,7 +121,7 @@ class NivelLogroServiceImplTest {
         });
         when(matriculaRepository.buscarPorAsignaturaYSemestre(ID_ASIGNATURA, ID_SEMESTRE, EstadoMatricula.ACTIVA))
                 .thenReturn(matriculasActivas);
-        when(conclusionService.generarConclusion(ID_RA, ID_SEMESTRE))
+        when(conclusionService.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN))
                 .thenReturn(new GenerarConclusionResponseDTO(false, "motivo", null));
     }
 
@@ -158,7 +160,7 @@ class NivelLogroServiceImplTest {
             // (2.0·20 + 4.0·30 + 5.0·50) / 100 = 4.10 → ALTO
             calificaciones(nota(e, 2.0, 20), nota(e, 4.0, 30), nota(e, 5.0, 50));
 
-            service.recalcular(ID_RA, ID_SEMESTRE);
+            service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(guardados.get(e).getPromedioPonderado()).isEqualTo(4.10);
             assertThat(guardados.get(e).getNivelLogro()).isEqualTo(NivelLogro.ALTO);
@@ -172,7 +174,7 @@ class NivelLogroServiceImplTest {
             // (3.0·10 + 3.0·10 + 4.5·20) / 40 = 3.75 → MEDIO (sin normalizar daría 1.5)
             calificaciones(nota(e, 3.0, 10), nota(e, 3.0, 10), nota(e, 4.5, 20));
 
-            service.recalcular(ID_RA, ID_SEMESTRE);
+            service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(guardados.get(e).getPromedioPonderado()).isEqualTo(3.75);
             assertThat(guardados.get(e).getNivelLogro()).isEqualTo(NivelLogro.MEDIO);
@@ -185,7 +187,7 @@ class NivelLogroServiceImplTest {
             // (4.49 + 4.5 + 4.5) / 3 = 4.4966… → 4.50 → SOBRESALIENTE
             calificaciones(nota(e, 4.49, 10), nota(e, 4.5, 10), nota(e, 4.5, 10));
 
-            service.recalcular(ID_RA, ID_SEMESTRE);
+            service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(guardados.get(e).getPromedioPonderado()).isEqualTo(4.5);
             assertThat(guardados.get(e).getNivelLogro()).isEqualTo(NivelLogro.SOBRESALIENTE);
@@ -202,7 +204,7 @@ class NivelLogroServiceImplTest {
             UUID e = UUID.randomUUID();
             calificaciones(nota(e, 5.0, 50), nota(e, 5.0, 50));
 
-            RecalculoEstadisticasResponseDTO r = service.recalcular(ID_RA, ID_SEMESTRE);
+            RecalculoEstadisticasResponseDTO r = service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(guardados.get(e).getCantidadCalificaciones()).isEqualTo(2);
             assertThat(guardados.get(e).getPromedioPonderado()).isNull();
@@ -218,7 +220,7 @@ class NivelLogroServiceImplTest {
             UUID e = UUID.randomUUID();
             calificaciones(nota(e, 1.0, 10), nota(e, 2.0, 10), nota(e, 3.0, 10));
 
-            service.recalcular(ID_RA, ID_SEMESTRE);
+            service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(guardados.get(e).getNivelLogro()).isEqualTo(NivelLogro.BAJO);
         }
@@ -228,10 +230,10 @@ class NivelLogroServiceImplTest {
         void sinCalificacionesConservaFila() {
             UUID e = UUID.randomUUID();
             calificaciones(nota(e, 4.0, 10), nota(e, 4.0, 10), nota(e, 4.0, 10));
-            service.recalcular(ID_RA, ID_SEMESTRE);
+            service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
             calificaciones();
 
-            RecalculoEstadisticasResponseDTO r = service.recalcular(ID_RA, ID_SEMESTRE);
+            RecalculoEstadisticasResponseDTO r = service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(guardados.get(e).getCantidadCalificaciones()).isZero();
             assertThat(guardados.get(e).getNivelLogro()).isNull();
@@ -261,7 +263,7 @@ class NivelLogroServiceImplTest {
                     nota(sobresaliente, 5.0, 10), nota(sobresaliente, 5.0, 10), nota(sobresaliente, 5.0, 10),
                     nota(conDos, 5.0, 10), nota(conDos, 5.0, 10));
 
-            EstadisticasResultadoAprendizajeResponseDTO e = service.recalcular(ID_RA, ID_SEMESTRE).estadisticas();
+            EstadisticasResultadoAprendizajeResponseDTO e = service.recalcular(ID_RA, ID_SEMESTRE, ADMIN).estadisticas();
 
             assertThat(e.totalEstudiantes()).isEqualTo(6);
             assertThat(e.evaluados()).isEqualTo(4);
@@ -285,7 +287,7 @@ class NivelLogroServiceImplTest {
             matricular(UUID.randomUUID());
 
             EstadisticasResultadoAprendizajeResponseDTO e =
-                    service.consultarEstadisticas(ID_RA, ID_SEMESTRE, null);
+                    service.consultarEstadisticas(ID_RA, ID_SEMESTRE, ADMIN);
 
             assertThat(e.totalEstudiantes()).isEqualTo(2);
             assertThat(e.sinEvaluar()).isEqualTo(2);
@@ -302,7 +304,7 @@ class NivelLogroServiceImplTest {
             UUID desvinculado = UUID.randomUUID();
             calificaciones(nota(desvinculado, 4.0, 10), nota(desvinculado, 4.0, 10), nota(desvinculado, 4.0, 10));
 
-            EstadisticasResultadoAprendizajeResponseDTO e = service.recalcular(ID_RA, ID_SEMESTRE).estadisticas();
+            EstadisticasResultadoAprendizajeResponseDTO e = service.recalcular(ID_RA, ID_SEMESTRE, ADMIN).estadisticas();
 
             assertThat(e.totalEstudiantes()).isEqualTo(1);
             assertThat(e.evaluados()).isEqualTo(1);
@@ -320,14 +322,14 @@ class NivelLogroServiceImplTest {
             UUID e = UUID.randomUUID();
             calificaciones(nota(e, 2.0, 10), nota(e, 2.0, 10), nota(e, 2.0, 10));
             GenerarConclusionResponseDTO respuestaConclusion = new GenerarConclusionResponseDTO(true, "generada", null);
-            when(conclusionService.generarConclusion(ID_RA, ID_SEMESTRE)).thenReturn(respuestaConclusion);
+            when(conclusionService.generarConclusion(ID_RA, ID_SEMESTRE, ADMIN)).thenReturn(respuestaConclusion);
 
-            RecalculoEstadisticasResponseDTO r = service.recalcular(ID_RA, ID_SEMESTRE);
+            RecalculoEstadisticasResponseDTO r = service.recalcular(ID_RA, ID_SEMESTRE, ADMIN);
 
             InOrder orden = inOrder(nivelLogroRepository, conclusionService);
             orden.verify(nivelLogroRepository).saveAll(any());
             orden.verify(nivelLogroRepository).flush();
-            orden.verify(conclusionService).generarConclusion(ID_RA, ID_SEMESTRE);
+            orden.verify(conclusionService).generarConclusion(ID_RA, ID_SEMESTRE, ADMIN);
             assertThat(r.conclusion()).isSameAs(respuestaConclusion);
         }
     }
@@ -342,9 +344,9 @@ class NivelLogroServiceImplTest {
             UUID otro = UUID.randomUUID();
             when(resultadoAprendizajeRepository.findById(otro)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.recalcular(otro, ID_SEMESTRE))
+            assertThatThrownBy(() -> service.recalcular(otro, ID_SEMESTRE, ADMIN))
                     .isInstanceOf(ResultadoAprendizajeNoEncontradoException.class);
-            verify(conclusionService, never()).generarConclusion(any(), any());
+            verify(conclusionService, never()).generarConclusion(any(), any(), any());
         }
 
         @Test
@@ -353,7 +355,7 @@ class NivelLogroServiceImplTest {
             UUID otro = UUID.randomUUID();
             when(semestreRepository.findById(otro)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.consultarEstadisticas(ID_RA, otro, null))
+            assertThatThrownBy(() -> service.consultarEstadisticas(ID_RA, otro, ADMIN))
                     .isInstanceOf(SemestreNoEncontradoException.class);
         }
 
@@ -366,7 +368,7 @@ class NivelLogroServiceImplTest {
                     .thenReturn(List.of(asignacion));
 
             assertThat(service.consultarEstadisticas(ID_RA, ID_SEMESTRE,
-                    new IdentidadActual(ID_PROFESOR, RolUsuario.PROFESOR))).isNotNull();
+                    new UsuarioPrincipal(ID_PROFESOR, RolUsuario.PROFESOR))).isNotNull();
         }
 
         @Test
@@ -376,17 +378,26 @@ class NivelLogroServiceImplTest {
                     .thenReturn(List.of());
 
             assertThatThrownBy(() -> service.recalcular(ID_RA, ID_SEMESTRE,
-                    new IdentidadActual(ID_PROFESOR, RolUsuario.PROFESOR)))
+                    new UsuarioPrincipal(ID_PROFESOR, RolUsuario.PROFESOR)))
                     .isInstanceOf(PermisoInsuficienteException.class);
             verify(nivelLogroRepository, never()).saveAll(any());
-            verify(conclusionService, never()).generarConclusion(any(), any());
+            verify(conclusionService, never()).generarConclusion(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Sin identidad: falla cerrado con 403 y no recalcula")
+        void sinIdentidad() {
+            assertThatThrownBy(() -> service.recalcular(ID_RA, ID_SEMESTRE, null))
+                    .isInstanceOf(PermisoInsuficienteException.class);
+            verify(nivelLogroRepository, never()).saveAll(any());
+            verify(conclusionService, never()).generarConclusion(any(), any(), any());
         }
 
         @Test
         @DisplayName("ESTUDIANTE: 403")
         void estudiante() {
             assertThatThrownBy(() -> service.consultarEstadisticas(ID_RA, ID_SEMESTRE,
-                    new IdentidadActual(UUID.randomUUID(), RolUsuario.ESTUDIANTE)))
+                    new UsuarioPrincipal(UUID.randomUUID(), RolUsuario.ESTUDIANTE)))
                     .isInstanceOf(PermisoInsuficienteException.class);
         }
     }

@@ -6,7 +6,7 @@ Levantan el contexto completo de Spring Boot contra **PostgreSQL real** y llaman
 
 **Calificaciones de prueba.** Los módulos de evaluaciones y calificaciones todavía no existen, así que las notas se cargan en `sigra.registro_calificacion_prueba` (nota 0.0–5.0 y porcentaje de la evaluación), que es la tabla que lee `FuenteCalificacionesPruebaImpl`.
 
-**Seguridad.** Corren con `sigra.seguridad.roles.habilitado=true` (interceptor temporal compartido) y tokens JWT reales.
+**Seguridad.** Corren con la seguridad real del backend (JWT + `@PreAuthorize`) y tokens emitidos por `JwtService`; el alcance del PROFESOR lo aplica el servicio con el `UsuarioPrincipal` autenticado.
 
 | ID | Requisito | Escenario | Datos de entrada | Resultado esperado (respuesta) | Resultado esperado (base) |
 | --- | --- | --- | --- | --- | --- |

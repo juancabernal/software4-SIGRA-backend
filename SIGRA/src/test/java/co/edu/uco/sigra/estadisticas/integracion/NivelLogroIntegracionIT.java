@@ -63,7 +63,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // datos propios llevan el prefijo ITE / ite- y se borran en @AfterEach (y en @BeforeEach por si una corrida
 // anterior se interrumpió). Las calificaciones se cargan en la tabla de prueba registro_calificacion_prueba.
 @Tag("integration")
-@SpringBootTest(properties = "sigra.seguridad.roles.habilitado=true")
+@SpringBootTest
 @AutoConfigureMockMvc
 class NivelLogroIntegracionIT {
 
