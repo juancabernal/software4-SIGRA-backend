@@ -1,0 +1,28 @@
+meta {
+  name: 05 Crear con el porcentaje liberado (40%)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct01Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Quiz 2",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 40,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("evaQuiz2Id", res.body.id);
+}

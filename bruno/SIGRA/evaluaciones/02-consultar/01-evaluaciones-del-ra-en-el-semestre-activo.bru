@@ -1,0 +1,30 @@
+meta {
+  name: 01 Evaluaciones del RA en el semestre activo
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct01Id}}/evaluaciones
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.semestreId: eq {{evaSemestreActivoId}}
+}
+
+tests {
+  test("devuelve 3 evaluaciones", function () {
+    expect(res.body.evaluaciones).to.be.an("array").with.lengthOf(3);
+  });
+
+  test("porcentajeAsignado es 100", function () {
+    expect(Number(res.body.porcentajeAsignado)).to.equal(100);
+  });
+
+  test("porcentajeDisponible es 0", function () {
+    expect(Number(res.body.porcentajeDisponible)).to.equal(0);
+  });
+}

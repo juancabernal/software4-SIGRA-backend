@@ -1,0 +1,35 @@
+meta {
+  name: 04 Semestre inexistente
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct01Id}}/evaluaciones?semestreId={{evaIdInexistente}}
+  body: none
+  auth: none
+}
+
+params:query {
+  semestreId: {{evaIdInexistente}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe un semestre con id");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

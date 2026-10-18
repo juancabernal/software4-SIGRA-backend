@@ -1,0 +1,16 @@
+meta {
+  name: 07 Inactivar Quiz 2
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaQuiz2Id}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVA
+}

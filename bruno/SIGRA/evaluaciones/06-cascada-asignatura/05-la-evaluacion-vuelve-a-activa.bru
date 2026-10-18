@@ -1,0 +1,16 @@
+meta {
+  name: 05 La evaluacion vuelve a ACTIVA
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaCascadaId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+}

@@ -1,0 +1,44 @@
+meta {
+  name: 01 Crear evaluacion valida (EVA-ACT RA-01, 40%)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/00000000-0000-4000-e200-000000000101/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial 5",
+    "fechaTentativa": "2026-10-12",
+    "porcentaje": 20,
+    "descripcion": "Evaluacion escrita sobre fundamentos"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.nombre: eq Parcial 1
+  res.body.estado: eq ACTIVA
+  res.body.tieneCalificaciones: eq false
+  res.body.resultadoAprendizajeId: eq {{evaRaAct01Id}}
+}
+
+script:post-response {
+  bru.setVar("evaParcialId", res.body.id);
+  bru.setVar("evaSemestreActivoId", res.body.semestreId);
+}
+
+tests {
+  test("porcentaje es 40", function () {
+    expect(Number(res.body.porcentaje)).to.equal(40);
+  });
+  
+  test("queda en el semestre activo con la fecha enviada", function () {
+    expect(res.body.semestreId).to.be.a("string").and.not.be.empty;
+    expect(res.body.fechaTentativa).to.equal(bru.getVar("fechaHoy"));
+  });
+}

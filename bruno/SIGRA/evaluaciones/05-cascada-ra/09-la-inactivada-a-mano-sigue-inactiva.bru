@@ -1,0 +1,16 @@
+meta {
+  name: 09 La inactivada a mano sigue INACTIVA
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaRa6TallerId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVA
+}

@@ -1,0 +1,27 @@
+meta {
+  name: 02 Evaluaciones del RA en un semestre pasado
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct01Id}}/evaluaciones?semestreId={{evaSemestrePasadoId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  semestreId: {{evaSemestrePasadoId}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.semestreCodigo: eq EVA-PASADO
+  res.body.evaluaciones[0].nombre: eq Evaluacion historica
+}
+
+tests {
+  test("devuelve 1 evaluaciones", function () {
+    expect(res.body.evaluaciones).to.be.an("array").with.lengthOf(1);
+  });
+}
