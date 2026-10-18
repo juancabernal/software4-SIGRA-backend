@@ -1,0 +1,40 @@
+meta {
+  name: 14 Porcentaje con 3 decimales
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct02Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Tres decimales",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 10.555,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("el detalle senala el campo porcentaje", function () {
+    expect(res.body.detalles.some(function (d) { return d.startsWith("porcentaje:"); })).to.equal(true);
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

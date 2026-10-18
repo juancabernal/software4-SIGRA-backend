@@ -1,0 +1,32 @@
+meta {
+  name: 01 Modificar nombre, descripcion y bajar a 30%
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaParcialId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial 1 corregido",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 30,
+    "descripcion": "Evaluacion escrita sobre requisitos y casos de uso"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.nombre: eq Parcial 1 corregido
+  res.body.estado: eq ACTIVA
+}
+
+tests {
+  test("porcentaje es 30", function () {
+    expect(Number(res.body.porcentaje)).to.equal(30);
+  });
+}

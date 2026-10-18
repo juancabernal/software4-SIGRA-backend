@@ -1,0 +1,16 @@
+meta {
+  name: 08 La evaluacion inactivada con el RA vuelve a ACTIVA
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaRa6ParcialId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+}

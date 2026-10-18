@@ -1,0 +1,20 @@
+meta {
+  name: 02 Inactivar la asignatura EVA-CAS (administrador)
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{evaAsigCasId}}/inactivar
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVA
+}

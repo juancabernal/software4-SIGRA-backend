@@ -1,0 +1,17 @@
+meta {
+  name: 05 Por id
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaParcialId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.nombre: eq Parcial 1
+  res.body.estado: eq ACTIVA
+}

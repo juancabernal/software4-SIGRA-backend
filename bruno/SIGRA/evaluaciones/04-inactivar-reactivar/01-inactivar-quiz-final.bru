@@ -1,0 +1,16 @@
+meta {
+  name: 01 Inactivar Quiz final (30%)
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaQuizFinalId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVA
+}

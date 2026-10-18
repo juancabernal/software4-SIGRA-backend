@@ -1,0 +1,29 @@
+meta {
+  name: 03 RA sin evaluaciones (EVA-ACT RA-03)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct03Id}}/evaluaciones
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve 0 evaluaciones", function () {
+    expect(res.body.evaluaciones).to.be.an("array").with.lengthOf(0);
+  });
+
+  test("porcentajeAsignado es 0", function () {
+    expect(Number(res.body.porcentajeAsignado)).to.equal(0);
+  });
+
+  test("porcentajeDisponible es 100", function () {
+    expect(Number(res.body.porcentajeDisponible)).to.equal(100);
+  });
+}

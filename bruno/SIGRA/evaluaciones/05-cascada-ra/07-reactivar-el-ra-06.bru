@@ -1,0 +1,20 @@
+meta {
+  name: 07 Reactivar el RA-06 (administrador)
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct06Id}}/reactivar
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVO
+}

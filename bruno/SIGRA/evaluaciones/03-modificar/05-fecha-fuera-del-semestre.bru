@@ -1,0 +1,40 @@
+meta {
+  name: 05 Fecha fuera del semestre
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaParcialId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial 1 corregido",
+    "fechaTentativa": "2099-01-01",
+    "porcentaje": 30,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("La fecha tentativa debe estar dentro del semestre");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

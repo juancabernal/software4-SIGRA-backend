@@ -1,0 +1,40 @@
+meta {
+  name: 03 Nombre de otra evaluacion (taller 1)
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaParcialId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "taller 1",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 30,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Ya existe una evaluaci");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

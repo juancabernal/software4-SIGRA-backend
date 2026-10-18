@@ -1,0 +1,20 @@
+meta {
+  name: 04 Inactivar el RA-06 (administrador, 6 a 5 activos)
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct06Id}}/inactivar
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVO
+}

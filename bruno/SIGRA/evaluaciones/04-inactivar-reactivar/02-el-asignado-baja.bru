@@ -1,0 +1,29 @@
+meta {
+  name: 02 El porcentaje asignado baja a 60
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct01Id}}/evaluaciones
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve 3 evaluaciones", function () {
+    expect(res.body.evaluaciones).to.be.an("array").with.lengthOf(3);
+  });
+
+  test("porcentajeAsignado es 60", function () {
+    expect(Number(res.body.porcentajeAsignado)).to.equal(60);
+  });
+
+  test("porcentajeDisponible es 40", function () {
+    expect(Number(res.body.porcentajeDisponible)).to.equal(40);
+  });
+}

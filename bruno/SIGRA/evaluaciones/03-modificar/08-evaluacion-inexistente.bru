@@ -1,0 +1,36 @@
+meta {
+  name: 08 Evaluacion inexistente
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaIdInexistente}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 10,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

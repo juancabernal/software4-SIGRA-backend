@@ -1,0 +1,40 @@
+meta {
+  name: 06 Sin porcentaje disponible (0.5%)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct01Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Extra",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 0.5,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Porcentaje disponible: 0%");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}
