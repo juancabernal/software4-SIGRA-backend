@@ -1,13 +1,11 @@
 package co.edu.uco.sigra.evaluaciones.exception;
 
-import co.edu.uco.sigra.asignaturas.exception.AutenticacionRequeridaException;
 import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.common.exception.ErrorResponseBuilder;
 import co.edu.uco.sigra.resultadosaprendizaje.exception.ResultadoAprendizajeNoEncontradoException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -49,15 +47,6 @@ public class EvaluacionExceptionHandler {
     public ResponseEntity<Map<String, Object>> manejarIntegridad(DataIntegrityViolationException ex) {
         return ErrorResponseBuilder.build(HttpStatus.CONFLICT, "CONFLICT",
                 NombreEvaluacionDuplicadoException.MENSAJE, null);
-    }
-
-    @ExceptionHandler(AutenticacionRequeridaException.class)
-    public ResponseEntity<Map<String, Object>> manejarNoAutenticado(AutenticacionRequeridaException ex) {
-        ResponseEntity<Map<String, Object>> respuesta =
-                ErrorResponseBuilder.build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), null);
-        return ResponseEntity.status(respuesta.getStatusCode())
-                .header(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
-                .body(respuesta.getBody());
     }
 
     @ExceptionHandler(PermisoInsuficienteException.class)
