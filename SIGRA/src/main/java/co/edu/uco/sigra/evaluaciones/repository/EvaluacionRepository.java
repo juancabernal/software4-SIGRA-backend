@@ -2,6 +2,7 @@ package co.edu.uco.sigra.evaluaciones.repository;
 
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.evaluaciones.entity.Evaluacion;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -40,6 +41,25 @@ public interface EvaluacionRepository extends JpaRepository<Evaluacion, UUID> {
 
     List<Evaluacion> findByResultadoAprendizaje_IdAndSemestre_IdOrderByFechaTentativaAscNombreAsc(UUID raId,
                                                                                                  UUID semestreId);
+
+    /** Evaluaciones de un (RA, semestre) en el estado indicado. */
+    List<Evaluacion> findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(UUID raId, UUID semestreId,
+                                                                           EstadoEvaluacion estado);
+
+    /**
+     * Cuántas calificaciones tiene cada evaluación del estado indicado de un (RA, semestre), contando solo las
+     * de matrículas en el estado indicado (las ACTIVAS: las de estudiantes desvinculados no cuentan para saber
+     * si la evaluación ya se calificó completa). Cada fila es {@code [evaluacionId (UUID), cantidad (Long)]};
+     * las evaluaciones sin ninguna calificación no aparecen.
+     */
+    @Query("select c.evaluacion.id, count(c) from Calificacion c "
+            + "where c.evaluacion.resultadoAprendizaje.id = :raId and c.evaluacion.semestre.id = :semestreId "
+            + "and c.evaluacion.estado = :estadoEvaluacion and c.matricula.estado = :estadoMatricula "
+            + "group by c.evaluacion.id")
+    List<Object[]> contarCalificacionesPorEvaluacion(@Param("raId") UUID raId,
+                                                     @Param("semestreId") UUID semestreId,
+                                                     @Param("estadoEvaluacion") EstadoEvaluacion estadoEvaluacion,
+                                                     @Param("estadoMatricula") EstadoMatricula estadoMatricula);
 
     /** Cascada al inactivar un RA: sus evaluaciones activas pasan a INACTIVA marcadas como inactivadas con el RA. */
     @Modifying(flushAutomatically = true)

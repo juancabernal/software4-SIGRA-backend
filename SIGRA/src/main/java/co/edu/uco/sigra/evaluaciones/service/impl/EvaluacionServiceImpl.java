@@ -220,6 +220,11 @@ public class EvaluacionServiceImpl implements EvaluacionService {
     }
 
     @Override
+    public Optional<Semestre> consultarSemestreActivo() {
+        return obtenerSemestreActivo();
+    }
+
+    @Override
     @Transactional
     public BigDecimal consultarPorcentajeAsignado(UUID resultadoAprendizajeId, UUID semestreId) {
         return sumarActivas(resultadoAprendizajeId, semestreId);
