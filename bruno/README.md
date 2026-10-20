@@ -74,15 +74,15 @@ idempotente y usa su propio prefijo `BRUCONC`, independiente de los demás seeds
 
 ### Datos de nivel de logro (RF-14 / RF-15): calificaciones de prueba
 
-`nivel-logro/` depende de `seed/seed-nivel-logro.sql` (prefijo `BRUNIV`, idempotente). Las notas se cargan en
-`sigra.registro_calificacion_prueba`, que es un **dato de prueba**: los módulos de evaluaciones y calificaciones
-todavía no existen y, mientras tanto, `FuenteCalificacionesPruebaImpl` lee esa tabla. El administrador de Bruno
+`nivel-logro/` depende de `seed/seed-nivel-logro.sql` (prefijo `BRUNIV`, idempotente). Usa datos **reales** de
+evaluaciones, matrículas y calificaciones (lo que lee `FuenteCalificacionesImpl`), e incluye a propósito una evaluación
+INACTIVA con nota y un estudiante DESVINCULADO con notas, que no deben contar. El administrador de Bruno
 lo crea `seed/seed-roles.sql`. Ejecuta ambos antes de correr la carpeta:
 
 ```powershell
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -p <PUERTO> -d postgres -v ON_ERROR_STOP=1 -f bruno/SIGRA/seed/seed-roles.sql
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -p <PUERTO> -d postgres -v ON_ERROR_STOP=1 -f bruno/SIGRA/seed/seed-nivel-logro.sql
-bru run nivel-logro --env local
+bru run nivel-logro -r --env local
 ```
 
 Cada carpeta tiene un `folder.bru` con su `seq`, que fija el orden de ejecución, y cada petición lleva un prefijo numérico (`01-...`, `02-...`) con su `seq` dentro de la carpeta. **El orden importa**: algunas pruebas cambian el estado de las asignaturas de prueba (por ejemplo, `04-activar` deja `BRU05` en ACTIVA y `05-inactivar` la inactiva después; `04-activar` reactiva `BRU11` y `05-inactivar` reactiva `BRU10` y la vuelve a inactivar).

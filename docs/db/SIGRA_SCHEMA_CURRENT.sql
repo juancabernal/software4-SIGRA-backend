@@ -376,25 +376,4 @@ CREATE TABLE IF NOT EXISTS sigra.nivel_logro_estudiante (
     CONSTRAINT chk_nivel_logro_estudiante_nivel CHECK (nivel_logro IS NULL OR nivel_logro IN ('BAJO', 'MEDIO', 'ALTO', 'SOBRESALIENTE'))
 );
 
--- -----------------------------------------------------------------------------
--- Calificación de un estudiante en una evaluación de un (RA, semestre) — DATO DE PRUEBA (RF-14 / RF-15).
--- Los módulos "evaluaciones" y "calificaciones" todavía no existen; esta tabla es el puente temporal
--- que lee FuenteCalificacionesPruebaImpl. Se retira cuando esos módulos implementen FuenteCalificaciones.
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS sigra.registro_calificacion_prueba (
-    id                        UUID             NOT NULL DEFAULT gen_random_uuid(),
-    resultado_aprendizaje_id  UUID             NOT NULL,
-    semestre_id               UUID             NOT NULL,
-    estudiante_id             UUID             NOT NULL,
-    nota                      DOUBLE PRECISION NOT NULL,
-    porcentaje_evaluacion     DOUBLE PRECISION NOT NULL,
-    CONSTRAINT registro_calificacion_prueba_pkey PRIMARY KEY (id),
-    CONSTRAINT fk_calificacion_prueba_ra FOREIGN KEY (resultado_aprendizaje_id)
-        REFERENCES sigra.resultado_aprendizaje (id),
-    CONSTRAINT fk_calificacion_prueba_semestre FOREIGN KEY (semestre_id) REFERENCES sigra.semestre (id),
-    CONSTRAINT fk_calificacion_prueba_estudiante FOREIGN KEY (estudiante_id) REFERENCES sigra.estudiante (id),
-    CONSTRAINT chk_calificacion_prueba_nota CHECK (nota BETWEEN 0 AND 5),
-    CONSTRAINT chk_calificacion_prueba_porcentaje CHECK (porcentaje_evaluacion > 0 AND porcentaje_evaluacion <= 100)
-);
-
 COMMIT;

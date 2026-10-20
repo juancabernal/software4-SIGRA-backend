@@ -7,8 +7,8 @@ import java.util.UUID;
 /**
  * Estadísticas descriptivas de un RA en un semestre (RF-14 / RF-15).
  *
- * @param totalEstudiantes    matriculados activos en la asignatura del RA más quienes tienen calificaciones
- *                            en el RA (incluye desvinculados con calificaciones conservadas)
+ * @param totalEstudiantes    matriculados activos en la asignatura del RA más quienes conservan una fila de
+ *                            nivel con calificaciones (las de matrículas desvinculadas ya no cuentan)
  * @param evaluados           con nivel de logro calculado (3 o más calificaciones)
  * @param sinDatosSuficientes con 1 o 2 calificaciones: «sin datos suficientes para calcular»
  * @param sinEvaluar          sin ninguna calificación en el RA: «Sin evaluar»
