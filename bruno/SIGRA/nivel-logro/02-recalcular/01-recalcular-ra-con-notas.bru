@@ -15,12 +15,20 @@ assert {
   res.body.estadisticas.evaluados: eq 4
   res.body.estadisticas.sinDatosSuficientes: eq 1
   res.body.estadisticas.sinEvaluar: eq 1
-  res.body.conclusion.generada: eq true
-  res.body.conclusion.conclusion.estado: eq VIGENTE
-  res.body.conclusion.conclusion.porcentajeInsuficiente: eq 50
 }
 
 tests {
+  // El recalculo programado (cada 5 min) puede haber generado la conclusion antes que esta peticion:
+  // vale que se genere ahora o que ya exista una VIGENTE, nunca que no se genere por otro motivo.
+  test("RF-16: la conclusion queda VIGENTE (generada ahora o por el recalculo programado)", function () {
+    const c = res.body.conclusion;
+    if (c.generada) {
+      expect(c.conclusion.estado).to.equal("VIGENTE");
+      expect(c.conclusion.porcentajeInsuficiente).to.equal(50);
+    } else {
+      expect(c.motivo).to.contain("vigente");
+    }
+  });
   test("2 de 4 evaluados en Bajo o Medio (50%) superan el 40% de RF-16", function () {
     const d = res.body.estadisticas.distribucion;
     expect(d[0].cantidad + d[1].cantidad).to.equal(2);

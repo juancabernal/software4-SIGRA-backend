@@ -4,7 +4,9 @@ Clase: `SIGRA/src/test/java/co/edu/uco/sigra/estadisticas/integracion/NivelLogro
 
 Levantan el contexto completo de Spring Boot contra **PostgreSQL real** y llaman a la API con `MockMvc`. Cada caso verifica la **respuesta HTTP** y las **filas reales** en `sigra.nivel_logro_estudiante` y `sigra.conclusion`. No usan `@Transactional`: el servicio confirma de verdad.
 
-**Calificaciones de prueba.** Los módulos de evaluaciones y calificaciones todavía no existen, así que las notas se cargan en `sigra.registro_calificacion_prueba` (nota 0.0–5.0 y porcentaje de la evaluación), que es la tabla que lee `FuenteCalificacionesPruebaImpl`.
+**Calificaciones reales.** Las notas son `Calificacion` (RF-12) sobre `Evaluacion` del RA (RF-10) y `Matricula` de la asignatura, que es lo que lee `FuenteCalificacionesImpl`. El ayudante `calificar(...)` crea una evaluación ACTIVA por nota con su porcentaje, para que cada estudiante tenga sus propios pesos; la regla de suma ≤ 100 % la aplica el servicio de evaluaciones, que estas pruebas no usan.
+
+**Recálculo programado.** `src/test/resources/config/application.properties` lo apaga en todas las pruebas, así que estos casos solo recalculan con el endpoint manual.
 
 **Seguridad.** Corren con la seguridad real del backend (JWT + `@PreAuthorize`) y tokens emitidos por `JwtService`; el alcance del PROFESOR lo aplica el servicio con el `UsuarioPrincipal` autenticado.
 
@@ -15,10 +17,11 @@ Levantan el contexto completo de Spring Boot contra **PostgreSQL real** y llaman
 | IE-03 | RF-14/15 → RF-16 | El recálculo dispara la conclusión automática | 5 estudiantes, 3 en Bajo o Medio (60 %); se recalcula dos veces | 1.ª: `conclusion.generada` = true, `porcentajeInsuficiente` = 60; 2.ª: `generada` = false | Exactamente 1 conclusión VIGENTE con el mensaje de RF-16 |
 | IE-04 | Alcance por rol | Consultar y recalcular con distintos usuarios | Profesor asignado a la asignatura, profesor ajeno, estudiante y sin token | 200; 403 (GET y POST); 403; 401 | — |
 | IE-05 | Validaciones | RA o semestre inexistentes | UUID aleatorios | 404 sin detalles técnicos (GET y POST) | — |
+| IE-06 | RF-14/15: filtros de calificaciones reales | Solo cuentan evaluaciones ACTIVA y matrículas ACTIVA | Un estudiante activo con 4.0 en 3 evaluaciones ACTIVA y 1.0 en una INACTIVA; uno DESVINCULADO con 3 notas. Luego se inactiva una evaluación y después se desvincula al activo | 200 en cada recálculo | Activo: 3 calificaciones, 4.00 → `ALTO`; el desvinculado no tiene fila. Tras inactivar: 2 calificaciones, sin nivel. Tras desvincular: fila conservada en 0 y sin nivel |
 
 ## Cómo ejecutarlas
 
-Requieren PostgreSQL con el esquema de `docs/db/SIGRA_SCHEMA_CURRENT.sql` (incluye `nivel_logro_estudiante` y `registro_calificacion_prueba`), la migración `docs/db/RF08_matricula_fecha_y_estado_migration.sql` y un `SIGRA/.env` válido.
+Requieren PostgreSQL con el esquema de `docs/db/SIGRA_SCHEMA_CURRENT.sql` (incluye `evaluacion`, `calificacion` y `nivel_logro_estudiante`) y un `SIGRA/.env` válido. La tabla de prueba anterior se retira con `docs/db/RF14_drop_registro_calificacion_prueba.sql`.
 
 ```bash
 cd SIGRA
@@ -27,4 +30,4 @@ cd SIGRA
 
 ## Garantía de limpieza
 
-Todos los datos propios llevan el prefijo `ITE-` (asignaturas, semestres), `ITE Programa` o correos `ite-…@uco.net.co`. Un `@AfterEach`, que también corre al inicio de cada caso por si una corrida anterior se interrumpió, borra **solo** esas filas y sus dependientes (niveles, calificaciones de prueba, conclusiones, matrículas y asignaciones), en orden de claves foráneas.
+Todos los datos propios llevan el prefijo `ITE-` (asignaturas, semestres), `ITE Programa` o correos `ite-…@uco.net.co`. Un `@AfterEach`, que también corre al inicio de cada caso por si una corrida anterior se interrumpió, borra **solo** esas filas y sus dependientes (niveles, historial y calificaciones, evaluaciones, conclusiones, matrículas y asignaciones), en orden de claves foráneas.
