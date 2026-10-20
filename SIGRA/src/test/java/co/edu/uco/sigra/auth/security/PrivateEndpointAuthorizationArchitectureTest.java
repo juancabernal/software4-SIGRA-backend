@@ -14,6 +14,7 @@ import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
 import co.edu.uco.sigra.programas.service.ProgramaService;
+import co.edu.uco.sigra.resultadosaprendizaje.service.RendimientoResultadoAprendizajeService;
 import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.semestres.service.SemestreService;
 import org.junit.jupiter.api.Test;
@@ -95,6 +96,9 @@ class PrivateEndpointAuthorizationArchitectureTest {
 
     @MockitoBean
     private ResultadoAprendizajeService resultadoAprendizajeService;
+
+    @MockitoBean
+    private RendimientoResultadoAprendizajeService rendimientoResultadoAprendizajeService;
 
     @MockitoBean
     private SemestreService semestreService;

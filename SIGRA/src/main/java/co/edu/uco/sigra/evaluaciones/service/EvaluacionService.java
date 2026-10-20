@@ -5,8 +5,10 @@ import co.edu.uco.sigra.evaluaciones.dto.EvaluacionActualizarRequestDTO;
 import co.edu.uco.sigra.evaluaciones.dto.EvaluacionCrearRequestDTO;
 import co.edu.uco.sigra.evaluaciones.dto.EvaluacionResponseDTO;
 import co.edu.uco.sigra.evaluaciones.dto.EvaluacionesRaResumenDTO;
+import co.edu.uco.sigra.semestres.entity.Semestre;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -34,6 +36,12 @@ public interface EvaluacionService {
                                                              UsuarioPrincipal principal);
 
     EvaluacionResponseDTO consultarPorId(UUID id, UsuarioPrincipal principal);
+
+    /**
+     * El semestre activo: el que contiene la fecha de hoy en la zona de Colombia. Vacío si hoy no cae en
+     * ningún semestre. Lo usan los demás módulos que necesitan el mismo criterio (p. ej. el rendimiento del RA).
+     */
+    Optional<Semestre> consultarSemestreActivo();
 
     /** Suma de porcentajes de las evaluaciones ACTIVAS de un (RA, semestre). Lo usa RF-18. */
     BigDecimal consultarPorcentajeAsignado(UUID resultadoAprendizajeId, UUID semestreId);

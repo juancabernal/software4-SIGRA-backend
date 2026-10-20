@@ -714,6 +714,7 @@ class EvaluacionServiceImplTest {
             verify(evaluacionRepository).save(e);
         }
 
+
         @Test
         @DisplayName("Si ya está inactiva se rechaza")
         void yaInactiva() {
@@ -789,6 +790,7 @@ class EvaluacionServiceImplTest {
             assertThat(e.isInactivadaConRa()).isFalse();
             verify(evaluacionRepository).save(e);
         }
+
 
         @Test
         @DisplayName("Reactivar que completa exactamente 100% se permite")

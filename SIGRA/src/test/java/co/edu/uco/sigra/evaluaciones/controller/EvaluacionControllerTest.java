@@ -1,6 +1,5 @@
 package co.edu.uco.sigra.evaluaciones.controller;
 
-import co.edu.uco.sigra.asignaturas.exception.AutenticacionRequeridaException;
 import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.auth.security.CurrentUser;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -49,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Pruebas de la capa web en modo standalone: no levanta contexto Spring, base de datos ni seguridad.
  * Verifica rutas, códigos HTTP, validaciones de los DTO y el formato de error, usando el manejador
- * del módulo (negocio, 401 y 403) y el global (validaciones y errores genéricos), como en ejecución real.
+ * del módulo (negocio y 403) y el global (validaciones y errores genéricos), como en ejecución real.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Controlador de evaluaciones")
@@ -354,17 +353,6 @@ class EvaluacionControllerTest {
             mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath(JSON_STATUS).value(403));
-        }
-
-        @Test
-        @DisplayName("Si falta autenticación devuelve 401 con WWW-Authenticate: Bearer")
-        void sinAutenticacion() throws Exception {
-            when(service.crear(eq(ID_RA), any(EvaluacionCrearRequestDTO.class), any(UsuarioPrincipal.class)))
-                    .thenThrow(new AutenticacionRequeridaException());
-
-            mockMvc.perform(post(URL_POR_RA).contentType(MediaType.APPLICATION_JSON).content(CUERPO_VALIDO))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(header().string("WWW-Authenticate", "Bearer"));
         }
 
         private void rechazaCreacion(String cuerpo, String campo) throws Exception {
