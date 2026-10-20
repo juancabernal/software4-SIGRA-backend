@@ -1,0 +1,28 @@
+meta {
+  name: 01 Crear evaluacion en EVA-CAS RA-01
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaCas01Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial cascada",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 60,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("evaCascadaId", res.body.id);
+}

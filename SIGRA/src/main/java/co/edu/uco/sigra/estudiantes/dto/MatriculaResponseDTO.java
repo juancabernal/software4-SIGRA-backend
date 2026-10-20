@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.dto;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record MatriculaResponseDTO(
@@ -7,6 +8,7 @@ public record MatriculaResponseDTO(
         UUID estudianteId,
         UUID asignaturaId,
         UUID semestreId,
+        LocalDate fechaMatricula,
         String estado
 ) {
 }

@@ -1,0 +1,25 @@
+meta {
+  name: 01 Catalogo de niveles de logro
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/niveles-logro
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.length: eq 4
+  res.body[0].nivel: eq BAJO
+  res.body[0].notaMinima: eq 0
+  res.body[0].notaLimite: eq 3
+  res.body[1].nivel: eq MEDIO
+  res.body[2].nivel: eq ALTO
+  res.body[2].notaLimite: eq 4.5
+  res.body[3].nivel: eq SOBRESALIENTE
+  res.body[3].notaLimite: eq 5
+  res.body[3].limiteIncluido: eq true
+}

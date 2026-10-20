@@ -1,0 +1,28 @@
+meta {
+  name: 01 Recalcular RA con notas (genera conclusion RF-16)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raNivConNotasId}}/semestres/{{semBruNivId}}/estadisticas/recalculo
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estadisticas.evaluados: eq 4
+  res.body.estadisticas.sinDatosSuficientes: eq 1
+  res.body.estadisticas.sinEvaluar: eq 1
+  res.body.conclusion.generada: eq true
+  res.body.conclusion.conclusion.estado: eq VIGENTE
+  res.body.conclusion.conclusion.porcentajeInsuficiente: eq 50
+}
+
+tests {
+  test("2 de 4 evaluados en Bajo o Medio (50%) superan el 40% de RF-16", function () {
+    const d = res.body.estadisticas.distribucion;
+    expect(d[0].cantidad + d[1].cantidad).to.equal(2);
+  });
+}

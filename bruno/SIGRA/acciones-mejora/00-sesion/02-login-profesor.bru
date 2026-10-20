@@ -1,0 +1,37 @@
+meta {
+  name: 02 Login profesor
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "correoInstitucional": "{{authCorreoNormal}}",
+    "contrasena": "{{authPasswordCorrecto}}"
+  }
+}
+
+script:pre-request {
+  req.deleteHeader("Authorization");
+}
+
+assert {
+  res.status: eq 200
+  res.body.usuario.rol: eq PROFESOR
+}
+
+script:post-response {
+  bru.setVar("tokenProfesor", res.body.token);
+}
+
+tests {
+  test("entrega un token", function () {
+    expect(res.body.token).to.be.a("string").and.not.be.empty;
+  });
+}

@@ -1,0 +1,40 @@
+meta {
+  name: 10 RA inexistente
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaIdInexistente}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 10,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No existe un resultado de aprendizaje con id");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,47 @@
+meta {
+  name: 02 Documento ya registrado
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas/con-estudiante
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudiante": {
+      "tipoDocumentoId": "{{tipoDocCc}}",
+      "numeroDocumento": "1000000005",
+      "nombreCompleto": "Bruno Alta Duplicada",
+      "correoInstitucional": "bruno.altaduplicada@uco.net.co"
+    },
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstActivo2}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje esperado", function () {
+    // 1000000005 es el documento sembrado de idEstudianteMatriculaValida (bruno.matricula@uco.net.co):
+    // el rechazo debe decir que ya esta registrado, igual que el registro normal, para que el
+    // profesor lo asocie con la matricula normal en lugar de duplicarlo.
+    expect(res.body.mensaje).to.include("El estudiante con el documento 1000000005 ya está registrado en el sistema");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

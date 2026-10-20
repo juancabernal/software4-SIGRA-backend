@@ -27,6 +27,10 @@ tests {
   });
 
   test("todas las filas devueltas estan activas", function () {
-    res.body.forEach((m) => expect(m.estado).to.equal("ACTIVO"));
+    res.body.forEach((m) => expect(m.estado).to.equal("ACTIVA"));
+  });
+
+  test("cada fila trae su fecha de matricula", function () {
+    res.body.forEach((m) => expect(m.fechaMatricula).to.match(/^\d{4}-\d{2}-\d{2}$/));
   });
 }

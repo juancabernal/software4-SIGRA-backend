@@ -1,0 +1,40 @@
+meta {
+  name: 06 Evaluacion de un semestre pasado (solo lectura)
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaEvaluacionHistoricaId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Historica editada",
+    "fechaTentativa": "2001-03-01",
+    "porcentaje": 100,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("solo se puede consultar");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 03 Por asignatura
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/conclusiones?asignaturaId={{asignaturaBruConcId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  asignaturaId: {{asignaturaBruConcId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("solo trae conclusiones de la asignatura pedida", function () {
+    expect(res.body).to.be.an("array").with.length.at.least(1);
+    res.body.forEach((c) => expect(c.asignaturaId).to.equal(bru.getEnvVar("asignaturaBruConcId")));
+  });
+}

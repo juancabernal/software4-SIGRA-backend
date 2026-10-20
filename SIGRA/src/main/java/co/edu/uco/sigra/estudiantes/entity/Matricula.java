@@ -1,21 +1,28 @@
 package co.edu.uco.sigra.estudiantes.entity;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
-import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.semestres.entity.Semestre;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
  * Vínculo entre un estudiante, una asignatura y un semestre (RF-08, RF-09).
  * <p>
  * La terna (estudiante, asignatura, semestre) es única sin importar el estado: desvincular
- * no borra el registro, lo pasa a {@link EstadoRegistro#INACTIVO}, y volver a matricular esa
- * misma terna reactiva el registro existente en vez de crear uno nuevo. Las relaciones hacia
- * {@link Asignatura} y {@link Semestre} son unidireccionales: esas entidades no conocen esta clase.
+ * no borra el registro, lo pasa a {@link EstadoMatricula#DESVINCULADA}, y volver a matricular
+ * esa misma terna reactiva el registro existente en vez de crear uno nuevo, de modo que las
+ * calificaciones sigan colgando de la misma matrícula.
+ * <p>
+ * {@code fechaMatricula} es obligatoria y la fija el servicio con su reloj inyectado, nunca el
+ * cliente. En una rematrícula se actualiza a la fecha en que el estudiante volvió a quedar
+ * matriculado: es la fecha en que el vínculo vigente empezó.
+ * <p>
+ * Las relaciones hacia {@link Asignatura} y {@link Semestre} son unidireccionales: esas
+ * entidades no conocen esta clase.
  */
 @Entity
 @Table(name = "matricula",
@@ -41,7 +48,10 @@ public class Matricula {
     @JoinColumn(name = "semestre_id", nullable = false)
     private Semestre semestre;
 
+    @Column(name = "fecha_matricula", nullable = false)
+    private LocalDate fechaMatricula;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EstadoRegistro estado = EstadoRegistro.ACTIVO;
+    private EstadoMatricula estado = EstadoMatricula.ACTIVA;
 }

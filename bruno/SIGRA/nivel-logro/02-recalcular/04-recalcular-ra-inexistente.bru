@@ -1,0 +1,15 @@
+meta {
+  name: 04 Recalcular RA inexistente 404
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{idInexistente}}/semestres/{{semBruNivId}}/estadisticas/recalculo
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}

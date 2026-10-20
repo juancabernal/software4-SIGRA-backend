@@ -7,9 +7,17 @@
 -- Es IDEMPOTENTE: borra los datos de prueba anteriores (prefijo BRU en programa,
 -- asignatura y semestre; ids fijos en estudiante y matricula) y los vuelve a
 -- crear. Ejecutalo ANTES de cada corrida completa de la coleccion, porque las
--- pruebas de 03-modificar-inactivar, 04-matricular y 05-desvincular-consultar
--- cambian el estado de los datos de prueba (un estudiante queda INACTIVO, varias
--- matriculas quedan ACTIVAS/INACTIVAS).
+-- pruebas de 03-modificar-inactivar, 04-matricular, 05-desvincular-consultar,
+-- 06-registrar-con-matricula y 07-confirmacion-desvincular cambian el estado de
+-- los datos de prueba (un estudiante queda INACTIVO, varias matriculas quedan
+-- ACTIVAS/DESVINCULADAS).
+--
+-- Requiere que docs/db/RF08_matricula_fecha_y_estado_migration.sql ya se haya
+-- corrido: la columna fecha_matricula es NOT NULL y el CHECK de estado solo
+-- admite 'ACTIVA'/'DESVINCULADA' desde esa migracion. Si no se corrio, este
+-- seed debe fallar ruidosamente (columna inexistente o violacion del CHECK
+-- viejo) en vez de insertar datos a medias: es la senal mas temprana de un
+-- entorno sin migrar.
 --
 -- Crea su PROPIO programa, asignaturas y semestres (prefijo BRUEST) en lugar de
 -- reutilizar los de seed-asignaturas.sql o seed-semestres.sql, para que este seed
@@ -37,6 +45,12 @@ BEGIN
     IF to_regclass('sigra.matricula') IS NULL THEN
         RAISE EXCEPTION 'Seed abortado: la tabla sigra.matricula no existe. Falta su migracion en docs/db (la entidad Matricula del codigo no tiene script de creacion de tabla todavia).';
     END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+         WHERE table_schema = 'sigra' AND table_name = 'matricula' AND column_name = 'fecha_matricula'
+    ) THEN
+        RAISE EXCEPTION 'Seed abortado: sigra.matricula no tiene la columna fecha_matricula. Aplique docs/db/RF08_matricula_fecha_y_estado_migration.sql antes de volver a correr este seed.';
+    END IF;
     IF to_regclass('sigra.tipo_documento') IS NULL THEN
         RAISE EXCEPTION 'Seed abortado: la tabla sigra.tipo_documento no existe. Aplique SIGRA_SCHEMA_CURRENT.sql.';
     END IF;
@@ -56,7 +70,8 @@ DELETE FROM sigra.matricula WHERE id IN (
     '00000000-0000-4000-f300-000000000004',
     '00000000-0000-4000-f300-000000000005',
     '00000000-0000-4000-f300-000000000006',
-    '00000000-0000-4000-f300-000000000007'
+    '00000000-0000-4000-f300-000000000007',
+    '00000000-0000-4000-f300-000000000008'
 ) OR asignatura_id IN (
     '00000000-0000-4000-f100-000000000001',
     '00000000-0000-4000-f100-000000000002'
@@ -69,7 +84,8 @@ DELETE FROM sigra.estudiante WHERE id IN (
     '00000000-0000-4000-f300-000000000004',
     '00000000-0000-4000-f300-000000000005',
     '00000000-0000-4000-f300-000000000006',
-    '00000000-0000-4000-f300-000000000007'
+    '00000000-0000-4000-f300-000000000007',
+    '00000000-0000-4000-f300-000000000008'
 );
 
 DELETE FROM sigra.usuario WHERE id IN (
@@ -79,7 +95,8 @@ DELETE FROM sigra.usuario WHERE id IN (
     '00000000-0000-4000-f300-000000000004',
     '00000000-0000-4000-f300-000000000005',
     '00000000-0000-4000-f300-000000000006',
-    '00000000-0000-4000-f300-000000000007'
+    '00000000-0000-4000-f300-000000000007',
+    '00000000-0000-4000-f300-000000000008'
 );
 
 DELETE FROM sigra.asignatura WHERE codigo LIKE 'BRUEST%';
@@ -94,11 +111,21 @@ INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
   ('00000000-0000-4000-f100-000000000001', 'BRUEST10', 'Bruno Estudiantes Activa',   '00000000-0000-4000-f000-000000000001', 'ACTIVA'),
   ('00000000-0000-4000-f100-000000000002', 'BRUEST11', 'Bruno Estudiantes Borrador', '00000000-0000-4000-f000-000000000001', 'BORRADOR');
 
--- 3. Semestres propios (BRUEST-), con fechas relativas para permanecer activos
--- sin cruzarse con semestres reales ni con los de seed-semestres.sql.
+-- 3. Semestres propios (BRUEST-). BRUEST-A1/A2 usan fechas RELATIVAS a hoy
+-- (CURRENT_DATE +/- un margen amplio) en lugar de anios fijos lejanos: desde el
+-- cambio matricula-desvinculacion (design.md D3), la vigencia de un semestre se
+-- juzga por sus FECHAS, no por su columna estado, asi que un semestre con
+-- fecha_inicio en 2080 nunca es vigente hoy y el camino feliz de 04-matricular
+-- fallaria con 400 "no esta vigente" en vez de 201. (Hallazgo confirmado
+-- ejecutando la coleccion contra el backend real: con los anios fijos viejos,
+-- SemestreServiceImpl.actualizarEstadoSiCambio ya habia recalculado estas filas
+-- a INACTIVO apenas alguien las consultaba.) BRUEST-IN si puede seguir fija en
+-- el pasado (1980): una fecha_fin ya pasada sigue siendo "no vigente" sin
+-- importar cuando se ejecute este seed, que es exactamente lo que ese caso
+-- necesita probar.
 INSERT INTO sigra.semestre (id, codigo, fecha_inicio, fecha_fin, estado) VALUES
-  ('00000000-0000-4000-f200-000000000001', 'BRUEST-A1', CURRENT_DATE - 1, CURRENT_DATE + 180, 'ACTIVO'),
-  ('00000000-0000-4000-f200-000000000002', 'BRUEST-A2', CURRENT_DATE - 1, CURRENT_DATE + 365, 'ACTIVO'),
+  ('00000000-0000-4000-f200-000000000001', 'BRUEST-A1', (CURRENT_DATE - INTERVAL '2 years')::date, (CURRENT_DATE + INTERVAL '3 years')::date, 'ACTIVO'),
+  ('00000000-0000-4000-f200-000000000002', 'BRUEST-A2', (CURRENT_DATE - INTERVAL '1 year')::date,  (CURRENT_DATE + INTERVAL '4 years')::date, 'ACTIVO'),
   ('00000000-0000-4000-f200-000000000003', 'BRUEST-IN', '1980-01-20', '1980-06-10', 'INACTIVO');
 
 -- 4. Estudiantes de prueba. Desde RF-04, Estudiante es subtipo de Usuario: tipo
@@ -129,7 +156,8 @@ BEGIN
       ('00000000-0000-4000-f300-000000000004', v_tipo_doc_id, 'Bruno Otro Correo',                  'bruno.otrocorreo@uco.net.co',       'ACTIVO'),
       ('00000000-0000-4000-f300-000000000005', v_tipo_doc_id, 'Bruno Matricula Valida',             'bruno.matricula@uco.net.co',        'ACTIVO'),
       ('00000000-0000-4000-f300-000000000006', v_tipo_doc_id, 'Bruno Matricula Inactivo',           'bruno.inactivo@uco.net.co',         'INACTIVO'),
-      ('00000000-0000-4000-f300-000000000007', v_tipo_doc_id, 'Bruno Listado Matriculados',         'bruno.listado@uco.net.co',          'ACTIVO');
+      ('00000000-0000-4000-f300-000000000007', v_tipo_doc_id, 'Bruno Listado Matriculados',         'bruno.listado@uco.net.co',          'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000008', v_tipo_doc_id, 'Bruno Confirmacion Desvincular',     'bruno.confirmacion@uco.net.co',     'ACTIVO');
 
     INSERT INTO sigra.estudiante (id, numero_documento) VALUES
       ('00000000-0000-4000-f300-000000000001', '1000000001'),
@@ -138,18 +166,23 @@ BEGIN
       ('00000000-0000-4000-f300-000000000004', '1000000004'),
       ('00000000-0000-4000-f300-000000000005', '1000000005'),
       ('00000000-0000-4000-f300-000000000006', '1000000006'),
-      ('00000000-0000-4000-f300-000000000007', '1000000007');
+      ('00000000-0000-4000-f300-000000000007', '1000000007'),
+      ('00000000-0000-4000-f300-000000000008', '1000000008');
 END $$;
 
--- 5. Matricula pre-sembrada e INACTIVA, para que el listado de matriculados de
--- BRUEST10/BRUEST-A1 tenga una fila inactiva ademas de la que crea/retira/
--- reactiva la coleccion (04-matricular y 05-desvincular-consultar).
-INSERT INTO sigra.matricula (id, estudiante_id, asignatura_id, semestre_id, estado) VALUES
+-- 5. Matricula pre-sembrada y DESVINCULADA, para que el listado de matriculados
+-- de BRUEST10/BRUEST-A1 tenga una fila desvinculada ademas de la que crea/
+-- retira/reactiva la coleccion (04-matricular y 05-desvincular-consultar).
+-- fecha_matricula es relativa a hoy (como el rango de BRUEST-A1 de la seccion 3)
+-- para que siga siendo una fecha plausible dentro de ese semestre sin importar
+-- cuando se ejecute este seed.
+INSERT INTO sigra.matricula (id, estudiante_id, asignatura_id, semestre_id, fecha_matricula, estado) VALUES
   ('00000000-0000-4000-f400-000000000001',
    '00000000-0000-4000-f300-000000000007',
    '00000000-0000-4000-f100-000000000001',
    '00000000-0000-4000-f200-000000000001',
-   'INACTIVO');
+   (CURRENT_DATE - INTERVAL '6 months')::date,
+   'DESVINCULADA');
 
 COMMIT;
 

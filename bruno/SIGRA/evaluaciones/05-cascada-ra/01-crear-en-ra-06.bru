@@ -1,0 +1,28 @@
+meta {
+  name: 01 Crear evaluacion en EVA-ACT RA-06 (50%)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct06Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial RA6",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 50,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("evaRa6ParcialId", res.body.id);
+}

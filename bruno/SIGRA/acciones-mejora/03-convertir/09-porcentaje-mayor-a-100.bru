@@ -1,0 +1,28 @@
+meta {
+  name: 09 Porcentaje mayor a 100
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{accionMejoraId}}/conversion
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "fechaTentativa": "{{fechaTentativaConversion}}",
+    "porcentaje": 150
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("el detalle senala el campo porcentaje", function () {
+    expect(res.body.detalles.some(function (d) { return d.startsWith("porcentaje:"); })).to.equal(true);
+  });
+}

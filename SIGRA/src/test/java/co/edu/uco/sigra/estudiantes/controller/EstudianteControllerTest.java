@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import tools.jackson.databind.JsonNode;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -293,10 +294,10 @@ class EstudianteControllerTest {
             List<AsignaturaDeEstudianteDTO> asignaturas = List.of(
                     new AsignaturaDeEstudianteDTO(
                             UUID.fromString("9c0d1e2f-3a4b-4c5d-6e7f-809122334455"),
-                            "Cálculo I", "2026-1", "ACTIVO"),
+                            "Cálculo I", "2026-1", LocalDate.of(2026, 2, 9), "ACTIVA"),
                     new AsignaturaDeEstudianteDTO(
                             UUID.fromString("0d1e2f3a-4b5c-4d6e-7f80-912233445566"),
-                            "Álgebra Lineal", "2025-2", "INACTIVO"));
+                            "Álgebra Lineal", "2025-2", LocalDate.of(2025, 8, 4), "DESVINCULADA"));
 
             given(matriculaService.listarAsignaturasDeEstudiante(id)).willReturn(matriculas);
             given(matriculaMapper.toAsignaturaDeEstudianteDTOList(matriculas)).willReturn(asignaturas);
@@ -307,11 +308,13 @@ class EstudianteControllerTest {
                     .andExpect(jsonPath("$[0].matriculaId").value("9c0d1e2f-3a4b-4c5d-6e7f-809122334455"))
                     .andExpect(jsonPath("$[0].asignaturaNombre").value("Cálculo I"))
                     .andExpect(jsonPath("$[0].semestreCodigo").value("2026-1"))
-                    .andExpect(jsonPath("$[0].estado").value("ACTIVO"))
+                    .andExpect(jsonPath("$[0].fechaMatricula").value("2026-02-09"))
+                    .andExpect(jsonPath("$[0].estado").value("ACTIVA"))
                     .andExpect(jsonPath("$[1].matriculaId").value("0d1e2f3a-4b5c-4d6e-7f80-912233445566"))
                     .andExpect(jsonPath("$[1].asignaturaNombre").value("Álgebra Lineal"))
                     .andExpect(jsonPath("$[1].semestreCodigo").value("2025-2"))
-                    .andExpect(jsonPath("$[1].estado").value("INACTIVO"));
+                    .andExpect(jsonPath("$[1].fechaMatricula").value("2025-08-04"))
+                    .andExpect(jsonPath("$[1].estado").value("DESVINCULADA"));
         }
 
         @Test

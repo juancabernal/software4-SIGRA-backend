@@ -27,6 +27,11 @@ tests {
     expect(res.body.estudianteId).to.equal(bru.getEnvVar("idEstudianteMatriculaValida"));
     expect(res.body.asignaturaId).to.equal(bru.getEnvVar("idAsigBruEstActiva"));
     expect(res.body.semestreId).to.equal(bru.getEnvVar("idSemBruEstActivo2"));
-    expect(res.body.estado).to.equal("ACTIVO");
+    expect(res.body.estado).to.equal("ACTIVA");
+  });
+
+  test("es una matricula nueva e independiente, con su propia fecha", function () {
+    expect(res.body.fechaMatricula).to.match(/^\d{4}-\d{2}-\d{2}$/);
+    expect(res.body.id).to.not.equal(bru.getVar("matriculaValidaId"));
   });
 }

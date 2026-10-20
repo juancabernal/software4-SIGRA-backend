@@ -5,6 +5,7 @@ import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +41,7 @@ class SecurityAuthorizationServiceTest {
         UUID estudiante = UUID.randomUUID();
         Authentication authentication = authentication(profesor, RolUsuario.PROFESOR);
         when(matriculaRepository.countActiveByStudentAndProfessor(
-                estudiante, profesor, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO))
+                estudiante, profesor, EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO))
                 .thenReturn(1L);
         SecurityAuthorizationService service = service();
 

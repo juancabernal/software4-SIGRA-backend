@@ -1,0 +1,16 @@
+meta {
+  name: 08 Reactivar Quiz final
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaQuizFinalId}}/reactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+}

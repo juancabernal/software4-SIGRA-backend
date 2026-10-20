@@ -1,7 +1,8 @@
 package co.edu.uco.sigra.estudiantes.repository;
 
-import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,7 +33,7 @@ public interface MatriculaRepository extends JpaRepository<Matricula, UUID> {
 
     /**
      * Lista las matrículas de una asignatura en un semestre. Cuando {@code estado} es nulo
-     * devuelve activas e inactivas; cuando se indica un estado, filtra por él. Una sola
+     * devuelve activas y desvinculadas; cuando se indica un estado, filtra por él. Una sola
      * consulta cubre los dos listados (con y sin filtro de estado) que pide el servicio.
      */
     @Query("""
@@ -46,7 +47,7 @@ public interface MatriculaRepository extends JpaRepository<Matricula, UUID> {
             """)
     List<Matricula> buscarPorAsignaturaYSemestre(@Param("asignaturaId") UUID asignaturaId,
                                                   @Param("semestreId") UUID semestreId,
-                                                  @Param("estado") EstadoRegistro estado);
+                                                  @Param("estado") EstadoMatricula estado);
 
     /**
      * Historial completo de matrículas de un estudiante, sin importar el estado.
@@ -71,7 +72,7 @@ public interface MatriculaRepository extends JpaRepository<Matricula, UUID> {
             """)
     long countActiveByStudentAndProfessor(@Param("estudianteId") UUID estudianteId,
                                           @Param("profesorId") UUID profesorId,
-                                          @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                          @Param("matriculaEstado") EstadoMatricula matriculaEstado,
                                           @Param("asignacionEstado") EstadoRegistro asignacionEstado,
                                           @Param("estudianteEstado") EstadoRegistro estudianteEstado);
 
@@ -92,7 +93,7 @@ public interface MatriculaRepository extends JpaRepository<Matricula, UUID> {
             """)
     List<Matricula> buscarPorEstudianteYProfesor(@Param("estudianteId") UUID estudianteId,
                                                   @Param("profesorId") UUID profesorId,
-                                                  @Param("matriculaEstado") EstadoRegistro matriculaEstado,
+                                                  @Param("matriculaEstado") EstadoMatricula matriculaEstado,
                                                   @Param("asignacionEstado") EstadoRegistro asignacionEstado,
                                                   @Param("estudianteEstado") EstadoRegistro estudianteEstado);
 }

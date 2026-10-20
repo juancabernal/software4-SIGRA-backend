@@ -20,6 +20,7 @@ import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
+import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
@@ -66,6 +67,9 @@ class AsignaturaServiceImplTest {
     @Mock
     private AsignacionDocenteRepository asignacionDocenteRepository;
 
+    @Mock
+    private ResultadoAprendizajeService resultadoAprendizajeService;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
 
     private AsignaturaServiceImpl service;
@@ -74,7 +78,8 @@ class AsignaturaServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
-                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper);
+                resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
+                resultadoAprendizajeService);
         programa = programa(EstadoRegistro.ACTIVO);
         UsuarioPrincipal principal = new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co",
                 RolUsuario.ADMINISTRADOR);
@@ -308,7 +313,7 @@ class AsignaturaServiceImplTest {
 
             service.activar(ID_ASIGNATURA);
 
-            verify(resultadoAprendizajeRepository, never()).restaurarInactivadosConAsignatura(any(), any());
+            verify(resultadoAprendizajeService, never()).restaurarPorAsignatura(any());
         }
 
         @ParameterizedTest(name = "Reactivar con {0} RA restaurados queda ACTIVA")
@@ -321,9 +326,8 @@ class AsignaturaServiceImplTest {
 
             AsignaturaResponseDTO respuesta = service.activar(ID_ASIGNATURA);
 
-            var orden = inOrder(resultadoAprendizajeRepository);
-            orden.verify(resultadoAprendizajeRepository)
-                    .restaurarInactivadosConAsignatura(ID_ASIGNATURA, EstadoRegistro.ACTIVO);
+            var orden = inOrder(resultadoAprendizajeService, resultadoAprendizajeRepository);
+            orden.verify(resultadoAprendizajeService).restaurarPorAsignatura(ID_ASIGNATURA);
             orden.verify(resultadoAprendizajeRepository)
                     .countByAsignatura_IdAndEstado(ID_ASIGNATURA, EstadoRegistro.ACTIVO);
             assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.ACTIVA);
@@ -392,8 +396,7 @@ class AsignaturaServiceImplTest {
 
             assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.INACTIVA);
             assertThat(respuesta.cantidadRa()).isZero();
-            verify(resultadoAprendizajeRepository, times(1))
-                    .inactivarActivosPorAsignatura(ID_ASIGNATURA, EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
+            verify(resultadoAprendizajeService, times(1)).inactivarPorAsignatura(ID_ASIGNATURA);
             verify(asignaturaRepository, never()).delete(any());
             verify(asignaturaRepository, never()).deleteById(any());
             verify(resultadoAprendizajeRepository, never()).delete(any());
@@ -409,7 +412,7 @@ class AsignaturaServiceImplTest {
             assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
                     .isInstanceOf(TransicionEstadoInvalidaException.class);
             verify(asignaturaRepository, never()).save(any());
-            verify(resultadoAprendizajeRepository, never()).inactivarActivosPorAsignatura(any(), any(), any());
+            verify(resultadoAprendizajeService, never()).inactivarPorAsignatura(any());
         }
 
         @Test
@@ -420,7 +423,7 @@ class AsignaturaServiceImplTest {
             assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
                     .isInstanceOf(TransicionEstadoInvalidaException.class);
             verify(asignaturaRepository, never()).save(any());
-            verify(resultadoAprendizajeRepository, never()).inactivarActivosPorAsignatura(any(), any(), any());
+            verify(resultadoAprendizajeService, never()).inactivarPorAsignatura(any());
         }
 
         @Test

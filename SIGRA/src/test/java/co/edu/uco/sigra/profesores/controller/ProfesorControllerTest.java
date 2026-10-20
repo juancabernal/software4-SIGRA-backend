@@ -56,6 +56,7 @@ class ProfesorControllerTest {
     private static final String RUTA = "/api/v1/profesores";
 
     private static final UUID ID = UUID.fromString("1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d");
+    private static final UUID ID_TIPO_DOCUMENTO = UUID.fromString("6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05");
 
     private static final String CUERPO_VALIDO = """
             {
@@ -74,7 +75,8 @@ class ProfesorControllerTest {
 
     private static ProfesorResponseDTO respuestaDeAna(UUID id) {
         return new ProfesorResponseDTO(
-                id, "Cédula de Ciudadanía", "1098765432", "Ana Gómez", "ana.gomez@uco.net.co", "ACTIVO", false);
+                id, ID_TIPO_DOCUMENTO, "Cédula de Ciudadanía", "1098765432", "Ana Gómez", "ana.gomez@uco.net.co",
+                "ACTIVO", false);
     }
 
     private static String cuerpoCon(String campo, String valorJson) {
@@ -99,6 +101,7 @@ class ProfesorControllerTest {
                             .content(CUERPO_VALIDO))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").value(ID.toString()))
+                    .andExpect(jsonPath("$.tipoDocumentoId").value(ID_TIPO_DOCUMENTO.toString()))
                     .andExpect(jsonPath("$.numeroDocumento").value("1098765432"))
                     .andExpect(jsonPath("$.nombreCompleto").value("Ana Gómez"))
                     .andExpect(jsonPath("$.correoInstitucional").value("ana.gomez@uco.net.co"))

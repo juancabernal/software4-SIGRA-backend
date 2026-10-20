@@ -153,6 +153,7 @@ class ProfesorServiceImplTest {
 
             assertThat(respuesta.id()).isEqualTo(ID_PROFESOR);
             assertThat(respuesta.estado()).isEqualTo(EstadoRegistro.ACTIVO.name());
+            assertThat(respuesta.tipoDocumentoId()).isEqualTo(ID_TIPO_DOCUMENTO);
             assertThat(respuesta.tipoDocumentoNombre()).isEqualTo(NOMBRE_TIPO_DOCUMENTO);
             assertThat(respuesta.numeroDocumento()).isEqualTo(NUMERO_DOCUMENTO);
             assertThat(respuesta.nombreCompleto()).isEqualTo(NOMBRE_COMPLETO);
@@ -162,6 +163,7 @@ class ProfesorServiceImplTest {
             ArgumentCaptor<Profesor> captor = ArgumentCaptor.forClass(Profesor.class);
             verify(profesorRepository).save(captor.capture());
             Profesor persistido = captor.getValue();
+            assertThat(persistido.getId()).isEqualTo(ID_PROFESOR);
             assertThat(persistido.getCorreoInstitucional()).isEqualTo(CORREO);
             assertThat(persistido.getTipoDocumento().getId()).isEqualTo(ID_TIPO_DOCUMENTO);
             assertThat(persistido.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
@@ -279,6 +281,36 @@ class ProfesorServiceImplTest {
         }
 
         @Test
+        @DisplayName("Filtra por nombre sin distinguir tildes: «gomez» encuentra a «Ana Gómez»")
+        void filtroSinTildes() {
+            when(profesorRepository.findAll()).thenReturn(List.of(uno, dos));
+
+            List<ProfesorResponseDTO> resultado = service.consultar("  GOMEZ ");
+
+            assertThat(resultado).extracting(ProfesorResponseDTO::id).containsExactly(ID_PROFESOR);
+        }
+
+        @Test
+        @DisplayName("Filtra por correo institucional")
+        void filtroPorCorreo() {
+            when(profesorRepository.findAll()).thenReturn(List.of(uno, dos));
+
+            List<ProfesorResponseDTO> resultado = service.consultar("luis.perez@");
+
+            assertThat(resultado).extracting(ProfesorResponseDTO::id).containsExactly(ID_OTRO_PROFESOR);
+        }
+
+        @Test
+        @DisplayName("Un filtro en blanco equivale a no filtrar")
+        void filtroEnBlanco() {
+            when(profesorRepository.findAll()).thenReturn(List.of(uno, dos));
+
+            List<ProfesorResponseDTO> resultado = service.consultar("   ");
+
+            assertThat(resultado).hasSize(2);
+        }
+
+        @Test
         @DisplayName("Sin coincidencias devuelve lista vacía y no consulta asignaciones")
         void sinCoincidencias() {
             when(profesorRepository.findAll()).thenReturn(List.of(uno, dos));
@@ -387,6 +419,28 @@ class ProfesorServiceImplTest {
             assertThat(respuesta.numeroDocumento()).isEqualTo(NUMERO_DOCUMENTO);
             assertThat(existente.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
             verify(profesorRepository).save(existente);
+        }
+
+        @Test
+        @DisplayName("La respuesta refleja las asignaciones activas reales (antes devolvía siempre false)")
+        void respuestaReflejaAsignacionesActivas() {
+            existe();
+            when(profesorRepository.existsByTipoDocumento_IdAndNumeroDocumentoAndIdNot(
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, ID_PROFESOR)).thenReturn(false);
+            when(usuarioRepository.existsByCorreoInstitucionalIgnoreCaseAndIdNot(CORREO, ID_PROFESOR))
+                    .thenReturn(false);
+            when(tipoDocumentoRepository.findById(ID_TIPO_DOCUMENTO)).thenReturn(Optional.of(tipoDocumento()));
+            when(profesorRepository.save(any(Profesor.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(asignacionDocenteRepository.existsByProfesor_IdAndEstado(ID_PROFESOR, EstadoRegistro.ACTIVO))
+                    .thenReturn(true);
+
+            ProfesorRequestDTO dto = new ProfesorRequestDTO(
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, "Profesor Con Asignaciones", CORREO);
+
+            ProfesorResponseDTO respuesta = service.modificarProfesor(ID_PROFESOR, dto);
+
+            assertThat(respuesta.tieneAsignacionesActivas()).isTrue();
+            assertThat(respuesta.tipoDocumentoId()).isEqualTo(ID_TIPO_DOCUMENTO);
         }
 
         @Test

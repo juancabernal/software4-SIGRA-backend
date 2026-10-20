@@ -1,0 +1,25 @@
+meta {
+  name: 04 Su propio nombre con otras mayusculas
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaParcialId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "PARCIAL 1 CORREGIDO",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 30,
+    "descripcion": "Evaluacion escrita sobre requisitos y casos de uso"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.nombre: eq PARCIAL 1 CORREGIDO
+}

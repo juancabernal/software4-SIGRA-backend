@@ -3,6 +3,7 @@ package co.edu.uco.sigra.estudiantes.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
@@ -15,6 +16,11 @@ public record EstudianteRequestDTO(
         String numeroDocumento,
 
         @NotBlank(message = "El nombre completo es obligatorio")
+        @Size(min = 3, max = 150, message = "El nombre completo debe tener entre 3 y 150 caracteres")
+        @Pattern(
+                regexp = "^\\p{L}+(?:\\s\\p{L}+)*$",
+                message = "El nombre completo solo puede contener letras y un único espacio entre cada palabra"
+        )
         String nombreCompleto,
 
         @NotBlank(message = "El correo institucional es obligatorio")

@@ -22,9 +22,11 @@ import co.edu.uco.sigra.asignaturas.repository.ProfesorDeAsignatura;
 import co.edu.uco.sigra.auth.security.CurrentUser;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
+import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import jakarta.transaction.Transactional;
@@ -48,6 +50,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     private final ResultadoAprendizajeRepository resultadoAprendizajeRepository;
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final AsignaturaMapper asignaturaMapper;
+    private final ResultadoAprendizajeService resultadoAprendizajeService;
     private final CurrentUser currentUser;
 
     @Autowired
@@ -56,23 +59,26 @@ public class AsignaturaServiceImpl implements AsignaturaService {
                                  ResultadoAprendizajeRepository resultadoAprendizajeRepository,
                                  AsignacionDocenteRepository asignacionDocenteRepository,
                                  AsignaturaMapper asignaturaMapper,
+                                 ResultadoAprendizajeService resultadoAprendizajeService,
                                  CurrentUser currentUser) {
         this.asignaturaRepository = asignaturaRepository;
         this.programaAcademicoRepository = programaAcademicoRepository;
         this.resultadoAprendizajeRepository = resultadoAprendizajeRepository;
         this.asignacionDocenteRepository = asignacionDocenteRepository;
         this.asignaturaMapper = asignaturaMapper;
+        this.resultadoAprendizajeService = resultadoAprendizajeService;
         this.currentUser = currentUser;
     }
 
-    /** Constructor reducido conservado para pruebas unitarias; las consultas siguen fallando cerrado sin identidad. */
+    /** Constructor reducido conservado para pruebas unitarias; la identidad sigue resolviéndose desde Spring Security. */
     public AsignaturaServiceImpl(AsignaturaRepository asignaturaRepository,
                                  ProgramaAcademicoRepository programaAcademicoRepository,
                                  ResultadoAprendizajeRepository resultadoAprendizajeRepository,
                                  AsignacionDocenteRepository asignacionDocenteRepository,
-                                 AsignaturaMapper asignaturaMapper) {
+                                 AsignaturaMapper asignaturaMapper,
+                                 ResultadoAprendizajeService resultadoAprendizajeService) {
         this(asignaturaRepository, programaAcademicoRepository, resultadoAprendizajeRepository,
-                asignacionDocenteRepository, asignaturaMapper, new CurrentUser());
+                asignacionDocenteRepository, asignaturaMapper, resultadoAprendizajeService, new CurrentUser());
     }
 
     @Override
@@ -160,7 +166,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         if (asignatura.getEstado() == EstadoAsignatura.INACTIVA) {
             // Reactivar: primero vuelven a ACTIVO solo los RA inactivados con la asignatura. Si luego el
             // rango no es válido, activar() lanza la excepción y la transacción revierte la restauración.
-            resultadoAprendizajeRepository.restaurarInactivadosConAsignatura(id, EstadoRegistro.ACTIVO);
+            // RF-10: el servicio de RA restaura también las evaluaciones de esos RA.
+            resultadoAprendizajeService.restaurarPorAsignatura(id);
         }
         long cantidadRa = contarRaActivos(id);
         asignatura.activar(cantidadRa);
@@ -176,13 +183,14 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         // Cascada: el SRS (RF-06c) exime del mínimo de RA a la asignatura que se inactiva, así que sus RA
         // activos pasan a INACTIVO en la misma transacción, marcados para restaurarse si se reactiva.
         // No se borra nada.
-        resultadoAprendizajeRepository.inactivarActivosPorAsignatura(id, EstadoRegistro.INACTIVO, EstadoRegistro.ACTIVO);
+        // RF-10: el servicio de RA inactiva también las evaluaciones activas de esos RA.
+        resultadoAprendizajeService.inactivarPorAsignatura(id);
         return asignaturaMapper.toResponseDTO(guardada, contarRaActivos(id));
     }
 
     /**
-     * Asignaturas visibles para la identidad: null significa «todas» (sin identidad, o ADMINISTRADOR).
-     * El PROFESOR solo ve las suyas con asignación docente ACTIVA; un ESTUDIANTE no consulta el catálogo.
+     * Asignaturas visibles para la identidad: el ADMINISTRADOR ve todas. El PROFESOR solo ve las
+     * suyas con asignación docente ACTIVA; un ESTUDIANTE no consulta el catálogo.
      */
     private Set<UUID> alcanceDe(UsuarioPrincipal identidad) {
         if (identidad == null) {
@@ -223,7 +231,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         }
         List<Asignatura> asignaturas = switch (identidad.rol()) {
             case PROFESOR -> asignaturaRepository.findAsignadasAProfesor(identidad.id(), EstadoRegistro.ACTIVO);
-            case ESTUDIANTE -> asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoRegistro.ACTIVO);
+            case ESTUDIANTE -> asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoMatricula.ACTIVA);
             default -> throw new PermisoInsuficienteException();
         };
         if (asignaturas.isEmpty()) {
@@ -233,7 +241,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         // Tres consultas agrupadas para todas las asignaturas a la vez (sin N+1).
         Set<UUID> ids = asignaturas.stream().map(Asignatura::getId).collect(Collectors.toSet());
         Map<UUID, Long> ra = porAsignatura(asignaturaRepository.contarRaDe(ids, EstadoRegistro.ACTIVO));
-        Map<UUID, Long> estudiantes = porAsignatura(asignaturaRepository.contarMatriculasDe(ids, EstadoRegistro.ACTIVO));
+        Map<UUID, Long> estudiantes = porAsignatura(asignaturaRepository.contarMatriculasDe(ids, EstadoMatricula.ACTIVA));
         Map<UUID, List<String>> profesores = asignaturaRepository.profesoresDe(ids, EstadoRegistro.ACTIVO).stream()
                 .collect(Collectors.groupingBy(ProfesorDeAsignatura::getAsignaturaId,
                         Collectors.mapping(ProfesorDeAsignatura::getNombre, Collectors.toList())));

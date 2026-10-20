@@ -1,0 +1,50 @@
+meta {
+  name: 03 Documento con formato invalido
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/matriculas/con-estudiante
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "estudiante": {
+      "tipoDocumentoId": "{{tipoDocCc}}",
+      "numeroDocumento": "abc123defg",
+      "nombreCompleto": "Bruno Alta Formato Invalido",
+      "correoInstitucional": "bruno.altaformatoinvalido@uco.net.co"
+    },
+    "asignaturaId": "{{idAsigBruEstActiva}}",
+    "semestreId": "{{idSemBruEstActivo}}"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("Los datos de entrada no cumplen con las validaciones requeridas");
+  });
+
+  test("detalles nombra el campo invalido anidado en estudiante", function () {
+    expect(res.body).to.have.property("detalles");
+    const detalles = JSON.stringify(res.body.detalles);
+    expect(detalles).to.include("numeroDocumento");
+  });
+
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("timestamp");
+    expect(res.body).to.have.property("status");
+    expect(res.body).to.have.property("error");
+    expect(res.body).to.have.property("mensaje");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

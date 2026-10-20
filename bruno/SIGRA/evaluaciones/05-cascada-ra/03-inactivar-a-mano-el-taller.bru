@@ -1,0 +1,16 @@
+meta {
+  name: 03 Inactivar a mano el Taller RA6
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/evaluaciones/{{evaRa6TallerId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVA
+}

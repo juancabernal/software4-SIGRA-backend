@@ -1,0 +1,17 @@
+meta {
+  name: 03 Recalcular RA sin notas (datos insuficientes, no genera)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raNivSinNotasId}}/semestres/{{semBruNivId}}/estadisticas/recalculo
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estadisticas.evaluados: eq 0
+  res.body.conclusion.generada: eq false
+}

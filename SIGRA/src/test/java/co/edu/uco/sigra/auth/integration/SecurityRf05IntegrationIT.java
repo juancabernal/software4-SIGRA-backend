@@ -13,6 +13,7 @@ import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
 import co.edu.uco.sigra.profesores.entity.Profesor;
@@ -139,13 +140,21 @@ class SecurityRf05IntegrationIT {
         String tokenProfesorB = token(profesorB);
         String tokenEstudianteA = token(estudianteA);
 
+        assertThat(matriculaRepository.countActiveByStudentAndProfessor(
+                estudianteA.getId(), profesorA.getId(), EstadoMatricula.ACTIVA,
+                EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO))
+                .as("la fixture debe dejar estudianteA visible para profesorA")
+                .isEqualTo(1);
+
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteA.getId()), null)
                 .getResponse().getStatus()).isEqualTo(401);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteA.getId()), "token-manipulado")
                 .getResponse().getStatus()).isEqualTo(401);
 
-        assertThat(enviar(get("/api/v1/estudiantes/" + estudianteA.getId()), tokenProfesorA)
-                .getResponse().getStatus()).isEqualTo(200);
+        MvcResult estudianteAParaProfesorA = enviar(
+                get("/api/v1/estudiantes/" + estudianteA.getId()), tokenProfesorA);
+        assertThat(estudianteAParaProfesorA.getResponse().getStatus())
+                .as(estudianteAParaProfesorA.getResponse().getContentAsString()).isEqualTo(200);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteB.getId()), tokenProfesorA)
                 .getResponse().getStatus()).isEqualTo(403);
         assertThat(enviar(get("/api/v1/estudiantes/" + estudianteB.getId()), tokenProfesorB)
@@ -242,7 +251,8 @@ class SecurityRf05IntegrationIT {
         matricula.setEstudiante(estudiante);
         matricula.setAsignatura(asignatura);
         matricula.setSemestre(semestre);
-        matricula.setEstado(EstadoRegistro.ACTIVO);
+        matricula.setFechaMatricula(LocalDate.now());
+        matricula.setEstado(EstadoMatricula.ACTIVA);
         matriculaRepository.save(matricula);
     }
 

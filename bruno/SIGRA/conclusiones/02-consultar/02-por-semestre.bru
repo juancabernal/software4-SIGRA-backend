@@ -1,0 +1,26 @@
+meta {
+  name: 02 Por semestre
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/conclusiones?semestreId={{semBruConcId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  semestreId: {{semBruConcId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("solo trae conclusiones del semestre pedido", function () {
+    expect(res.body).to.be.an("array").with.length.at.least(1);
+    res.body.forEach((c) => expect(c.semestreId).to.equal(bru.getEnvVar("semBruConcId")));
+  });
+}

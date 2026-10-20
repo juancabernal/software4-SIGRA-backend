@@ -24,7 +24,11 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("El semestre con id " + bru.getEnvVar("idSemBruEstInactivo") + " no está activo");
+    // El mensaje cambio de "no esta activo" a "no esta vigente": la vigencia ahora se juzga
+    // por las fechas del semestre (fecha_fin ya paso), no por su marca de estado almacenada
+    // (design.md D3). BRUEST-IN sigue sirviendo para este caso porque sus fechas (1980) ya
+    // pasaron, sin importar que su estado guardado diga ACTIVO/INACTIVO.
+    expect(res.body.mensaje).to.include("El semestre con id " + bru.getEnvVar("idSemBruEstInactivo") + " no está vigente");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

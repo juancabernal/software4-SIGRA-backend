@@ -5,6 +5,7 @@ import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -43,7 +44,7 @@ public class SecurityAuthorizationService {
         }
         return principal.rol() == RolUsuario.PROFESOR
                 && matriculaRepository.countActiveByStudentAndProfessor(
-                studentId, principal.id(), EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO,
+                studentId, principal.id(), EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO,
                 EstadoRegistro.ACTIVO) > 0;
     }
 

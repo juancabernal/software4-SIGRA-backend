@@ -1,0 +1,29 @@
+meta {
+  name: 05 Completa exactamente el 100% (30%)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct01Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Quiz final",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 30,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.estado: eq ACTIVA
+}
+
+script:post-response {
+  bru.setVar("evaQuizFinalId", res.body.id);
+}

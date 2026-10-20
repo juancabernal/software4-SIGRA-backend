@@ -185,6 +185,11 @@ SIGRA es un **sistema independiente**: no se integra con SIS, LMS ni pasarelas d
 - **Arquitectura en capas** dentro de cada módulo: controller → service → repository → entity.
 - **API REST sin estado.** Cada petición lleva su JWT; el servidor no guarda sesión.
 
+La arquitectura de seguridad definitiva y la integración de los módulos de `develop` están descritas
+en [`docs/integracion/main-develop-definitiva-2026-10-16.md`](docs/integracion/main-develop-definitiva-2026-10-16.md).
+No se mantienen interceptores ni identidades paralelas de desarrollo: los controladores usan
+Spring Security y los servicios fallan cerradamente cuando falta el principal validado.
+
 ### Capas
 
 | Capa | Responsabilidad | Tecnología |
@@ -198,7 +203,8 @@ SIGRA es un **sistema independiente**: no se integra con SIS, LMS ni pasarelas d
 ### Decisiones transversales
 
 - **Seguridad en dos niveles.** Ocultar una opción en la interfaz nunca basta: cada endpoint valida el rol en el backend según la Matriz RBAC (RF-05, RNF-13). Sin token o con token vencido → `401`; con rol insuficiente → `403`.
-- **Nada se borra físicamente.** Programas, asignaturas, RA, profesores y matrículas se inactivan (estado `ACTIVO` / `INACTIVO`). Las calificaciones se conservan aunque el estudiante se desvincule (RF-19).
+- **Nada se borra físicamente.** Programas, asignaturas, RA, profesores y usuarios conservan sus estados
+  propios; una matrícula usa `ACTIVA` / `DESVINCULADA` y conserva sus calificaciones históricas.
 - **Auditoría append-only.** La tabla de historial no admite `UPDATE` ni `DELETE`, ni siquiera para el administrador; la restricción se impone a nivel de base de datos. Retención mínima: 5 años (RNF-16).
 - **Análisis sin IA.** Estadísticas y conclusiones se calculan con agregaciones y reglas de negocio explícitas.
 - **Errores sin detalles técnicos.** Los mensajes al usuario no exponen trazas, rutas internas ni consultas SQL (RNF-17).
@@ -363,6 +369,10 @@ Las pruebas se separan por etiqueta para saber siempre qué se ejecutó:
 
 Las 5 pruebas de integración del módulo Asignaturas (casos, datos y limpieza con prefijo ITG) están en [docs/pruebas/asignaturas-integracion.md](docs/pruebas/asignaturas-integracion.md).
 
+La matriz de pruebas de matrícula y la migración de `fecha_matricula`/`EstadoMatricula` están en
+[`docs/pruebas/matricula-integracion.md`](docs/pruebas/matricula-integracion.md) y
+[`docs/db/RF08_matricula_fecha_y_estado_migration.sql`](docs/db/RF08_matricula_fecha_y_estado_migration.sql).
+
 Un fallo de `integrationTest` por credenciales o conexión no invalida el resultado de `test`.
 
 El reporte de cobertura quedará en `build/reports/jacoco/test/html/index.html` cuando se agregue el plugin de JaCoCo.
@@ -473,6 +483,7 @@ Estado de RF-02/RF-03 (autenticación y autorización) y lo que sigue abierto:
 | Matriz RBAC | Apéndice 4.1 del SRS |
 | Matriz de compatibilidad de pruebas | Apéndice 4.2 del SRS |
 | Plan de pruebas | TestLink |
+| Integración definitiva main/develop | `docs/integracion/main-develop-definitiva-2026-10-16.md` |
 
 ---
 
