@@ -47,4 +47,22 @@ public interface CalificacionesNivelLogroRepository extends Repository<NivelLogr
     @Query("select distinct e.resultadoAprendizaje.id, e.semestre.id from Evaluacion e "
             + "where e.semestre.fechaInicio <= :hoy and e.semestre.fechaFin >= :hoy")
     List<Object[]> buscarParesConEvaluacionesEnSemestreEnCurso(@Param("hoy") LocalDate hoy);
+
+    /**
+     * Para cada (RA, semestre) con calificaciones que cuentan (mismo filtro que
+     * {@link #buscarCalificacionesQueCuentan}) en un semestre en curso, el instante de la más reciente de ellas
+     * (el {@code coalesce} más alto). Se usa para saber si hay calificaciones más nuevas que el último cálculo.
+     *
+     * @return filas {@code [resultadoAprendizajeId (UUID), semestreId (UUID), instante (LocalDateTime)]}
+     */
+    @Query("select c.evaluacion.resultadoAprendizaje.id, c.evaluacion.semestre.id, "
+            + "max(coalesce(c.fechaModificacion, c.fechaRegistro)) from Calificacion c "
+            + "where c.evaluacion.estado = :estadoEvaluacion and c.evaluacion.porcentaje > 0 "
+            + "and c.matricula.estado = :estadoMatricula "
+            + "and c.evaluacion.semestre.fechaInicio <= :hoy and c.evaluacion.semestre.fechaFin >= :hoy "
+            + "group by c.evaluacion.resultadoAprendizaje.id, c.evaluacion.semestre.id")
+    List<Object[]> buscarUltimaCalificacionQueCuentaPorParEnSemestreEnCurso(
+            @Param("estadoEvaluacion") EstadoEvaluacion estadoEvaluacion,
+            @Param("estadoMatricula") EstadoMatricula estadoMatricula,
+            @Param("hoy") LocalDate hoy);
 }
