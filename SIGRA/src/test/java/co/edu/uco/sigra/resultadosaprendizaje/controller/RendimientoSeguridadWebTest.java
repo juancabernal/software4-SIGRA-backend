@@ -93,6 +93,32 @@ class RendimientoSeguridadWebTest {
     }
 
     @Test
+    @DisplayName("El parámetro semestreId se entrega al servicio (consulta de un semestre pasado)")
+    void consultaUnSemestreEspecifico() throws Exception {
+        UUID semestreId = UUID.fromString("00000000-0000-4000-f100-0000000000aa");
+        configurarToken("token-admin", RolUsuario.ADMINISTRADOR);
+        when(rendimientoService.consultarPorAsignatura(ID_ASIGNATURA, semestreId))
+                .thenReturn(new RendimientoAsignaturaResponseDTO(ID_ASIGNATURA, semestreId, "2026-1", List.of()));
+
+        mockMvc.perform(get(RUTA).param("semestreId", semestreId.toString())
+                        .header("Authorization", "Bearer token-admin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.semestreId").value(semestreId.toString()))
+                .andExpect(jsonPath("$.semestreCodigo").value("2026-1"));
+    }
+
+    @Test
+    @DisplayName("Un semestreId que no es UUID devuelve 400")
+    void semestreIdInvalidoEs400() throws Exception {
+        configurarToken("token-admin", RolUsuario.ADMINISTRADOR);
+
+        mockMvc.perform(get(RUTA).param("semestreId", "no-es-uuid")
+                        .header("Authorization", "Bearer token-admin"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(rendimientoService);
+    }
+
+    @Test
     @DisplayName("El profesor con asignación docente activa consulta el rendimiento")
     void profesorAsignadoAccede() throws Exception {
         configurarToken("token-profesor", RolUsuario.PROFESOR);
@@ -116,7 +142,7 @@ class RendimientoSeguridadWebTest {
     }
 
     private void respuestaVacia() {
-        when(rendimientoService.consultarPorAsignatura(ID_ASIGNATURA))
+        when(rendimientoService.consultarPorAsignatura(ID_ASIGNATURA, null))
                 .thenReturn(new RendimientoAsignaturaResponseDTO(ID_ASIGNATURA, null, null, List.of()));
     }
 

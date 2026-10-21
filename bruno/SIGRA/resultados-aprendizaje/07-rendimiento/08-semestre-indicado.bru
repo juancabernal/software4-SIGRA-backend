@@ -1,0 +1,28 @@
+meta {
+  name: 08 Rendimiento de un semestre indicado
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{asigBruNivId}}/resultados-aprendizaje/rendimiento?semestreId={{semBruNivId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.semestreId: eq {{semBruNivId}}
+  res.body.semestreCodigo: eq BRUNIV-A1
+}
+
+tests {
+  test("el RA con nivel aparece en el semestre pedido", function () {
+    const ra = res.body.resultados.find(function (r) { return r.codigo === "RA-NIV-01"; });
+    expect(ra.estado).to.equal("CON_NIVEL");
+  });
+}
+
+docs {
+  semestreId es opcional: sin el, se usa el semestre activo. Con el se puede consultar un semestre pasado.
+}

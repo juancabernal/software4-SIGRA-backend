@@ -80,6 +80,8 @@ class EvaluacionServiceImplTest {
     private static final String NOMBRE = "Parcial 1";
     private static final String DESCRIPCION = "Primer parcial del corte";
     private static final LocalDate FECHA = LocalDate.of(2026, 11, 10);
+    /** Hoy según el reloj fijo de la prueba. */
+    private static final LocalDate HOY = LocalDate.of(2026, 10, 13);
 
     private static final UsuarioPrincipal PROFESOR = new UsuarioPrincipal(ID_PROFESOR, RolUsuario.PROFESOR);
 
@@ -391,15 +393,67 @@ class EvaluacionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Las fechas de inicio y de fin del semestre son válidas (límites incluidos)")
-        void fechasLimiteValidas() {
+        @DisplayName("El último día del semestre es una fecha válida (límite incluido)")
+        void fechaFinDelSemestreValida() {
             raActivoExiste();
             hayEnCursoYPasado();
             asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
             guardarDevuelveArgumento();
 
-            assertThat(service.crear(ID_RA, crearDto(INICIO_ACTUAL), PROFESOR).fechaTentativa()).isEqualTo(INICIO_ACTUAL);
             assertThat(service.crear(ID_RA, crearDto(FIN_ACTUAL), PROFESOR).fechaTentativa()).isEqualTo(FIN_ACTUAL);
+        }
+
+        @Test
+        @DisplayName("La fecha de hoy se rechaza: debe ser posterior a hoy")
+        void fechaDeHoyRechazada() {
+            raActivoExiste();
+            hayEnCursoYPasado();
+
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto(HOY), PROFESOR))
+                    .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.fechaNoPosteriorAHoy()));
+
+            verify(evaluacionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Una fecha pasada dentro del semestre se rechaza")
+        void fechaPasadaDentroDelSemestreRechazada() {
+            raActivoExiste();
+            hayEnCursoYPasado();
+
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto(HOY.minusDays(1)), PROFESOR))
+                    .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.fechaNoPosteriorAHoy()));
+            assertThatThrownBy(() -> service.crear(ID_RA, crearDto(INICIO_ACTUAL), PROFESOR))
+                    .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.fechaNoPosteriorAHoy()));
+
+            verify(evaluacionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Mañana es la primera fecha válida")
+        void fechaDeMananaValida() {
+            raActivoExiste();
+            hayEnCursoYPasado();
+            asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
+            guardarDevuelveArgumento();
+
+            assertThat(service.crear(ID_RA, crearDto(HOY.plusDays(1)), PROFESOR).fechaTentativa())
+                    .isEqualTo(HOY.plusDays(1));
+        }
+
+        @Test
+        @DisplayName("Bloquea la fila del RA antes de validar la suma de porcentajes")
+        void bloqueaElRa() {
+            raActivoExiste();
+            hayEnCursoYPasado();
+            asignadoActivas(ID_SEMESTRE_ACTUAL, "0");
+            guardarDevuelveArgumento();
+
+            service.crear(ID_RA, crearDto("30"), PROFESOR);
+
+            var orden = inOrder(resultadoAprendizajeRepository, evaluacionRepository);
+            orden.verify(resultadoAprendizajeRepository).bloquearPorId(ID_RA);
+            orden.verify(evaluacionRepository).sumarPorcentajes(ID_RA, ID_SEMESTRE_ACTUAL, EstadoEvaluacion.ACTIVA);
         }
 
         @Test
@@ -621,6 +675,33 @@ class EvaluacionServiceImplTest {
                     .isInstanceOf(NombreEvaluacionDuplicadoException.class);
 
             verify(evaluacionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Con una nueva fecha que no es posterior a hoy se rechaza")
+        void nuevaFechaNoPosteriorAHoy() {
+            evaluacionExiste(existente);
+            hayEnCursoYPasado();
+
+            assertThatThrownBy(() -> service.modificar(ID_EVALUACION,
+                    actualizarDto(NOMBRE, HOY, "30", DESCRIPCION), PROFESOR))
+                    .satisfies(e -> assertRegla(e, EvaluacionReglaNegocioException.fechaNoPosteriorAHoy()));
+
+            verify(evaluacionRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Si la fecha no cambia, una fecha que ya pasó no impide editar otros campos")
+        void fechaPasadaSinCambioNoSeRevalida() {
+            existente.setFechaTentativa(HOY.minusDays(5));
+            evaluacionExiste(existente);
+            hayEnCursoYPasado();
+            guardarDevuelveArgumento();
+
+            EvaluacionResponseDTO respuesta = service.modificar(ID_EVALUACION,
+                    actualizarDto("Parcial uno", HOY.minusDays(5), "30", DESCRIPCION), PROFESOR);
+
+            assertThat(respuesta.nombre()).isEqualTo("Parcial uno");
         }
 
         @Test
@@ -1044,36 +1125,58 @@ class EvaluacionServiceImplTest {
         @Test
         @DisplayName("Al inactivar un RA se inactivan sus evaluaciones activas")
         void inactivarPorResultado() {
+            hayEnCursoYPasado();
+
             service.inactivarPorResultadoAprendizaje(ID_RA);
 
-            verify(evaluacionRepository).inactivarActivasPorResultado(ID_RA, EstadoEvaluacion.INACTIVA,
-                    EstadoEvaluacion.ACTIVA);
+            verify(evaluacionRepository).inactivarActivasPorResultado(ID_RA, ID_SEMESTRE_ACTUAL,
+                    EstadoEvaluacion.INACTIVA, EstadoEvaluacion.ACTIVA);
         }
 
         @Test
         @DisplayName("Al reactivar un RA se restauran las evaluaciones que se inactivaron con él")
         void restaurarPorResultado() {
+            hayEnCursoYPasado();
+
             service.restaurarPorResultadoAprendizaje(ID_RA);
 
-            verify(evaluacionRepository).restaurarInactivadasConResultado(ID_RA, EstadoEvaluacion.ACTIVA);
+            verify(evaluacionRepository).restaurarInactivadasConResultado(ID_RA, ID_SEMESTRE_ACTUAL,
+                    EstadoEvaluacion.ACTIVA);
         }
 
         @Test
         @DisplayName("Al inactivar una asignatura se inactivan las evaluaciones activas de sus RA")
         void inactivarPorAsignatura() {
+            hayEnCursoYPasado();
+
             service.inactivarPorAsignatura(ID_ASIGNATURA);
 
-            verify(evaluacionRepository).inactivarActivasPorAsignatura(ID_ASIGNATURA, EstadoEvaluacion.INACTIVA,
-                    EstadoEvaluacion.ACTIVA);
+            verify(evaluacionRepository).inactivarActivasPorAsignatura(ID_ASIGNATURA, ID_SEMESTRE_ACTUAL,
+                    EstadoEvaluacion.INACTIVA, EstadoEvaluacion.ACTIVA);
         }
 
         @Test
         @DisplayName("Al reactivar una asignatura se restauran solo las de RA que quedaron ACTIVOS")
         void restaurarPorAsignatura() {
+            hayEnCursoYPasado();
+
             service.restaurarPorAsignatura(ID_ASIGNATURA);
 
-            verify(evaluacionRepository).restaurarInactivadasPorAsignatura(ID_ASIGNATURA, EstadoEvaluacion.ACTIVA,
-                    EstadoRegistro.ACTIVO);
+            verify(evaluacionRepository).restaurarInactivadasPorAsignatura(ID_ASIGNATURA, ID_SEMESTRE_ACTUAL,
+                    EstadoEvaluacion.ACTIVA, EstadoRegistro.ACTIVO);
+        }
+
+        @Test
+        @DisplayName("Sin semestre activo las cascadas no tocan ninguna evaluación")
+        void sinSemestreActivoNoTocanNada() {
+            hoyNoHaySemestreEnCurso();
+
+            service.inactivarPorResultadoAprendizaje(ID_RA);
+            service.restaurarPorResultadoAprendizaje(ID_RA);
+            service.inactivarPorAsignatura(ID_ASIGNATURA);
+            service.restaurarPorAsignatura(ID_ASIGNATURA);
+
+            verifyNoInteractions(evaluacionRepository);
         }
     }
 }

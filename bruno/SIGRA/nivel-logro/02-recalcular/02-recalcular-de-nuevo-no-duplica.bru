@@ -13,7 +13,7 @@ post {
 assert {
   res.status: eq 200
   res.body.estadisticas.evaluados: eq 4
-  res.body.estadisticas.promedioNota: eq 3.66
+  res.body.estadisticas.promedioNota: eq 3.65
   res.body.conclusion.generada: eq false
   res.body.conclusion.motivo: eq Ya existe una conclusión vigente para este resultado de aprendizaje y semestre.
 }

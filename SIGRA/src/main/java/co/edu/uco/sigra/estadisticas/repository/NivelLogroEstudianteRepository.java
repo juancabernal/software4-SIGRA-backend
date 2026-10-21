@@ -3,6 +3,7 @@ package co.edu.uco.sigra.estadisticas.repository;
 import co.edu.uco.sigra.estadisticas.entity.NivelLogro;
 import co.edu.uco.sigra.estadisticas.entity.NivelLogroEstudiante;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -22,4 +23,13 @@ public interface NivelLogroEstudianteRepository extends JpaRepository<NivelLogro
     long countByResultadoAprendizaje_IdAndSemestre_IdAndNivelLogroIn(UUID resultadoAprendizajeId,
                                                                      UUID semestreId,
                                                                      Collection<NivelLogro> niveles);
+
+    /**
+     * Para cada (RA, semestre) con algún nivel de logro calculado, el instante del cálculo más reciente.
+     *
+     * @return filas {@code [resultadoAprendizajeId (UUID), semestreId (UUID), instante (LocalDateTime)]}
+     */
+    @Query("select n.resultadoAprendizaje.id, n.semestre.id, max(n.fechaCalculo) from NivelLogroEstudiante n "
+            + "group by n.resultadoAprendizaje.id, n.semestre.id")
+    List<Object[]> buscarUltimoCalculoPorPar();
 }

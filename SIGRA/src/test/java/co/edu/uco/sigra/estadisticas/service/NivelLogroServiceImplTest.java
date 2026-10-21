@@ -299,8 +299,8 @@ class NivelLogroServiceImplTest {
         }
 
         @Test
-        @DisplayName("Un desvinculado con calificaciones sigue contando (no está en las matrículas activas)")
-        void desvinculadoConCalificaciones() {
+        @DisplayName("Quien tiene calificaciones que cuentan aunque no aparezca en la consulta de matrículas activas igual suma al total")
+        void conCalificacionesFueraDeMatriculasActivas() {
             UUID desvinculado = UUID.randomUUID();
             calificaciones(nota(desvinculado, 4.0, 10), nota(desvinculado, 4.0, 10), nota(desvinculado, 4.0, 10));
 

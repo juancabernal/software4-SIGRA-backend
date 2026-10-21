@@ -1,0 +1,21 @@
+meta {
+  name: 09 Semestre inexistente
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{asigBruNivId}}/resultados-aprendizaje/rendimiento?semestreId={{raIdInexistente}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("No se encontró el semestre");
+  });
+}

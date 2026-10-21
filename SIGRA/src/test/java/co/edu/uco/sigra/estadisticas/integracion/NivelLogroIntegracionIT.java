@@ -8,6 +8,8 @@ import co.edu.uco.sigra.auth.entity.Administrador;
 import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.auth.service.JwtService;
+import co.edu.uco.sigra.calificaciones.entity.Calificacion;
+import co.edu.uco.sigra.calificaciones.repository.CalificacionRepository;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
@@ -15,14 +17,15 @@ import co.edu.uco.sigra.estadisticas.entity.Conclusion;
 import co.edu.uco.sigra.estadisticas.entity.EstadoConclusion;
 import co.edu.uco.sigra.estadisticas.entity.NivelLogro;
 import co.edu.uco.sigra.estadisticas.entity.NivelLogroEstudiante;
-import co.edu.uco.sigra.estadisticas.entity.RegistroCalificacionPrueba;
 import co.edu.uco.sigra.estadisticas.repository.ConclusionRepository;
 import co.edu.uco.sigra.estadisticas.repository.NivelLogroEstudianteRepository;
-import co.edu.uco.sigra.estadisticas.repository.RegistroCalificacionPruebaRepository;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.estudiantes.entity.Matricula;
 import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
+import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
+import co.edu.uco.sigra.evaluaciones.entity.Evaluacion;
+import co.edu.uco.sigra.evaluaciones.repository.EvaluacionRepository;
 import co.edu.uco.sigra.profesores.entity.Profesor;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
@@ -40,13 +43,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,7 +68,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // INTEGRATION: contexto completo + PostgreSQL real (SIGRA/.env). Ejecutar con: .\gradlew.bat integrationTest
 // Mismo patrón que ConclusionIntegracionIT: sin @Transactional (el servicio confirma de verdad), todos los
 // datos propios llevan el prefijo ITE / ite- y se borran en @AfterEach (y en @BeforeEach por si una corrida
-// anterior se interrumpió). Las calificaciones se cargan en la tabla de prueba registro_calificacion_prueba.
+// anterior se interrumpió). Las notas son calificaciones REALES (RF-12): cada una es una Calificacion sobre una
+// Evaluacion del RA (RF-10) y una Matricula de la asignatura, que es lo que lee FuenteCalificacionesImpl.
 @Tag("integration")
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -87,12 +95,17 @@ class NivelLogroIntegracionIT {
     @Autowired private MatriculaRepository matriculaRepository;
     @Autowired private ConclusionRepository conclusionRepository;
     @Autowired private NivelLogroEstudianteRepository nivelLogroRepository;
-    @Autowired private RegistroCalificacionPruebaRepository calificacionRepository;
+    @Autowired private CalificacionRepository calificacionRepository;
+    @Autowired private EvaluacionRepository evaluacionRepository;
+    @Autowired private JdbcTemplate jdbc;
 
     private TransactionTemplate tx;
     private TipoDocumento tipoDocumento;
     private ProgramaAcademico programa;
     private String tokenAdmin;
+    /** Matrícula de cada (estudiante, asignatura, semestre) ya creada en la prueba: una por terna (restricción única). */
+    private final Map<String, Matricula> matriculas = new HashMap<>();
+    private int consecutivoEvaluacion;
 
     @BeforeEach
     void preparar() {
@@ -115,9 +128,14 @@ class NivelLogroIntegracionIT {
             nivelLogroRepository.deleteAll(nivelLogroRepository.findAll().stream()
                     .filter(r -> deIte.test(r.getResultadoAprendizaje().getAsignatura())).toList());
             nivelLogroRepository.flush();
-            calificacionRepository.deleteAll(calificacionRepository.findAll().stream()
-                    .filter(r -> deIte.test(r.getResultadoAprendizaje().getAsignatura())).toList());
-            calificacionRepository.flush();
+            // Calificaciones y evaluaciones de las asignaturas ITE (mismo patrón SQL que CalificacionIntegracionIT).
+            String evaluacionesIte = "select e.id from sigra.evaluacion e join sigra.resultado_aprendizaje r "
+                    + "on r.id = e.resultado_aprendizaje_id join sigra.asignatura a on a.id = r.asignatura_id "
+                    + "where a.codigo like '" + PREFIJO_CODIGO + "%'";
+            jdbc.update("delete from sigra.historial_calificacion where calificacion_id in "
+                    + "(select id from sigra.calificacion where evaluacion_id in (" + evaluacionesIte + "))");
+            jdbc.update("delete from sigra.calificacion where evaluacion_id in (" + evaluacionesIte + ")");
+            jdbc.update("delete from sigra.evaluacion where id in (" + evaluacionesIte + ")");
             conclusionRepository.deleteAll(conclusionRepository.findAll().stream()
                     .filter(c -> deIte.test(c.getResultadoAprendizaje().getAsignatura())).toList());
             conclusionRepository.flush();
@@ -286,6 +304,65 @@ class NivelLogroIntegracionIT {
         assertThat(estado(post(raInexistente + "/recalculo"), tokenAdmin)).isEqualTo(404);
     }
 
+    // ---------------------------------------------------------------- IE-06
+
+    @Test
+    @DisplayName("IE-06 Solo cuentan evaluaciones ACTIVA y matrículas ACTIVA; al inactivar o desvincular, el nivel se recalcula")
+    void ie06FiltrosDeCalificacionesReales() throws Exception {
+        Asignatura asignatura = crearAsignatura("ITE-601");
+        ResultadoAprendizaje ra = crearRa(asignatura, "RA1");
+        Semestre semestre = crearSemestre();
+        Estudiante activa = crearEstudiante("activa");
+        Estudiante desvinculada = crearEstudiante("desv");
+        Matricula matriculaActiva = matriculaDe(activa, asignatura, semestre);
+        Matricula matriculaDesvinculada = crearMatricula(desvinculada, asignatura, semestre,
+                EstadoMatricula.DESVINCULADA);
+
+        Evaluacion e1 = crearEvaluacion(ra, semestre, 25, EstadoEvaluacion.ACTIVA);
+        Evaluacion e2 = crearEvaluacion(ra, semestre, 25, EstadoEvaluacion.ACTIVA);
+        Evaluacion e3 = crearEvaluacion(ra, semestre, 25, EstadoEvaluacion.ACTIVA);
+        Evaluacion inactiva = crearEvaluacion(ra, semestre, 25, EstadoEvaluacion.INACTIVA);
+        // La activa: 4.0 en tres evaluaciones ACTIVA y 1.0 en una INACTIVA (no debe contar).
+        calificar(e1, matriculaActiva, 4.0);
+        calificar(e2, matriculaActiva, 4.0);
+        calificar(e3, matriculaActiva, 4.0);
+        calificar(inactiva, matriculaActiva, 1.0);
+        // La desvinculada: tres notas en evaluaciones ACTIVA (no deben contar).
+        calificar(e1, matriculaDesvinculada, 2.0);
+        calificar(e2, matriculaDesvinculada, 2.0);
+        calificar(e3, matriculaDesvinculada, 2.0);
+
+        recalcular(ra, semestre);
+        Map<UUID, NivelLogroEstudiante> enBase = nivelesEnBase(ra, semestre);
+        assertThat(enBase.get(activa.getId()).getCantidadCalificaciones()).isEqualTo(3);
+        assertThat(enBase.get(activa.getId()).getPromedioPonderado()).isEqualTo(4.0);
+        assertThat(enBase.get(activa.getId()).getNivelLogro()).isEqualTo(NivelLogro.ALTO);
+        assertThat(enBase).doesNotContainKey(desvinculada.getId());
+
+        // Al inactivar una de sus evaluaciones queda con 2 calificaciones: sin datos suficientes.
+        tx.executeWithoutResult(st -> {
+            Evaluacion e = evaluacionRepository.findById(e3.getId()).orElseThrow();
+            e.setEstado(EstadoEvaluacion.INACTIVA);
+            evaluacionRepository.save(e);
+        });
+        recalcular(ra, semestre);
+        NivelLogroEstudiante trasInactivar = nivelesEnBase(ra, semestre).get(activa.getId());
+        assertThat(trasInactivar.getCantidadCalificaciones()).isEqualTo(2);
+        assertThat(trasInactivar.getNivelLogro()).isNull();
+        assertThat(trasInactivar.getPromedioPonderado()).isNull();
+
+        // Al desvincularla, sus notas dejan de contar: la fila se conserva en 0, sin nivel ni promedio.
+        tx.executeWithoutResult(st -> {
+            Matricula m = matriculaRepository.findById(matriculaActiva.getId()).orElseThrow();
+            m.setEstado(EstadoMatricula.DESVINCULADA);
+            matriculaRepository.save(m);
+        });
+        recalcular(ra, semestre);
+        NivelLogroEstudiante trasDesvincular = nivelesEnBase(ra, semestre).get(activa.getId());
+        assertThat(trasDesvincular.getCantidadCalificaciones()).isZero();
+        assertThat(trasDesvincular.getNivelLogro()).isNull();
+    }
+
     // ---------------------------------------------------------------- utilidades
 
     private static String url(ResultadoAprendizaje ra, Semestre semestre) {
@@ -326,9 +403,45 @@ class NivelLogroIntegracionIT {
         calificar(ra, semestre, estudiante, nota, 40);
     }
 
-    private void calificar(ResultadoAprendizaje ra, Semestre semestre, Estudiante estudiante, double nota,
-                           double porcentaje) {
-        calificacionRepository.save(new RegistroCalificacionPrueba(ra, semestre, estudiante, nota, porcentaje));
+    /**
+     * Registra una calificación real: crea una evaluación ACTIVA del RA con ese porcentaje y le pone la nota al
+     * estudiante sobre su matrícula ACTIVA en la asignatura (la crea si no existe). Una evaluación por nota permite
+     * dar a cada estudiante sus propios porcentajes; la regla de suma ≤ 100 % la aplica el servicio de evaluaciones,
+     * que esta prueba no usa porque lo que se verifica es el cálculo del nivel de logro.
+     */
+    private Calificacion calificar(ResultadoAprendizaje ra, Semestre semestre, Estudiante estudiante, double nota,
+                                   double porcentaje) {
+        return calificar(crearEvaluacion(ra, semestre, porcentaje, EstadoEvaluacion.ACTIVA),
+                matriculaDe(estudiante, ra.getAsignatura(), semestre), nota);
+    }
+
+    private Calificacion calificar(Evaluacion evaluacion, Matricula matricula, double nota) {
+        Calificacion c = new Calificacion();
+        c.setEvaluacion(evaluacion);
+        c.setMatricula(matricula);
+        c.setNota(BigDecimal.valueOf(nota));
+        c.setObservacion("ITE observacion de prueba");
+        c.setFechaRegistro(LocalDateTime.now());
+        c.setFueraDeFecha(false);
+        return calificacionRepository.save(c);
+    }
+
+    private Evaluacion crearEvaluacion(ResultadoAprendizaje ra, Semestre semestre, double porcentaje,
+                                       EstadoEvaluacion estado) {
+        Evaluacion e = new Evaluacion();
+        e.setResultadoAprendizaje(ra);
+        e.setSemestre(semestre);
+        e.setNombre("ITE Eval " + (++consecutivoEvaluacion));
+        e.setFechaTentativa(LocalDate.now());
+        e.setPorcentaje(BigDecimal.valueOf(porcentaje));
+        e.setDescripcion("ITE evaluacion de prueba");
+        e.setEstado(estado);
+        return evaluacionRepository.save(e);
+    }
+
+    private Matricula matriculaDe(Estudiante estudiante, Asignatura asignatura, Semestre semestre) {
+        return matriculas.computeIfAbsent(estudiante.getId() + "|" + asignatura.getId() + "|" + semestre.getId(),
+                k -> crearMatricula(estudiante, asignatura, semestre, EstadoMatricula.ACTIVA));
     }
 
     private ProgramaAcademico crearPrograma() {
@@ -371,13 +484,18 @@ class NivelLogroIntegracionIT {
     }
 
     private void matricular(Estudiante estudiante, Asignatura asignatura, Semestre semestre) {
+        matriculaDe(estudiante, asignatura, semestre);
+    }
+
+    private Matricula crearMatricula(Estudiante estudiante, Asignatura asignatura, Semestre semestre,
+                                     EstadoMatricula estado) {
         Matricula m = new Matricula();
         m.setEstudiante(estudiante);
         m.setAsignatura(asignatura);
         m.setSemestre(semestre);
         m.setFechaMatricula(LocalDate.now());
-        m.setEstado(EstadoMatricula.ACTIVA);
-        matriculaRepository.save(m);
+        m.setEstado(estado);
+        return matriculaRepository.save(m);
     }
 
     private Semestre crearSemestre() {

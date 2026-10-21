@@ -12,8 +12,8 @@ post {
 
 body:json {
   {
-    "correoInstitucional": "{{authCorreoAdmin}}",
-    "contrasena": "{{authPasswordCorrecto}}"
+    "correoInstitucional": "{{bruCorreoAdmin}}",
+    "contrasena": "{{bruPassword}}"
   }
 }
 
@@ -31,6 +31,9 @@ script:post-response {
   const d = new Date();
   const p = function (n) { return String(n).padStart(2, "0"); };
   bru.setVar("fechaHoy", d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()));
+  // La fecha tentativa debe ser posterior a hoy: el dia siguiente es la primera fecha valida.
+  const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  bru.setVar("fechaManana", m.getFullYear() + "-" + p(m.getMonth() + 1) + "-" + p(m.getDate()));
 }
 
 tests {
