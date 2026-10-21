@@ -1,0 +1,33 @@
+meta {
+  name: 06 RA sin calificaciones (RA-NIV-02)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{asigBruNivId}}/resultados-aprendizaje/rendimiento
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("SIN_EVALUAR, sin nivel ni promedio y sin evaluaciones", function () {
+    const ra = res.body.resultados.find(function (r) { return r.codigo === "RA-NIV-02"; });
+    expect(ra.estado).to.equal("SIN_EVALUAR");
+    expect(ra.nivelLogro).to.equal(null);
+    expect(ra.promedioNota).to.equal(null);
+    expect(ra.porcentajeAsignado).to.equal(0);
+    expect(ra.porcentajeEvaluado).to.equal(0);
+    expect(ra.evaluacionesActivas).to.equal(0);
+    expect(ra.completo).to.equal(false);
+  });
+
+  test("la respuesta trae solo RA activos de la asignatura, ordenados por codigo", function () {
+    const codigos = res.body.resultados.map(function (r) { return r.codigo; });
+    expect(codigos).to.deep.equal(["RA-NIV-01", "RA-NIV-02"]);
+  });
+}

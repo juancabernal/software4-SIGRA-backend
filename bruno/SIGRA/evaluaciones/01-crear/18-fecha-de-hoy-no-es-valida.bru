@@ -1,0 +1,30 @@
+meta {
+  name: 18 La fecha de hoy se rechaza (debe ser posterior a hoy)
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{evaRaAct02Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Fecha de hoy",
+    "fechaTentativa": "{{fechaHoy}}",
+    "porcentaje": 10,
+    "descripcion": "Evaluacion de prueba del resultado de aprendizaje"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("La fecha tentativa debe ser posterior a la fecha de hoy");
+  });
+}

@@ -1,0 +1,42 @@
+meta {
+  name: 05 RA con nivel y evaluado parcial (RA-NIV-01)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{asigBruNivId}}/resultados-aprendizaje/rendimiento
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.semestreCodigo: eq BRUNIV-A1
+}
+
+tests {
+  const ra = () => res.body.resultados.find(function (r) { return r.codigo === "RA-NIV-01"; });
+
+  test("nivel del RA: promedio de (2.00, 3.60, 4.20, 4.80) = 3.65 -> MEDIO", function () {
+    expect(ra().estado).to.equal("CON_NIVEL");
+    expect(ra().promedioNota).to.equal(3.65);
+    expect(ra().nivelLogro).to.equal("MEDIO");
+  });
+
+  test("3 evaluaciones activas que suman 100% (la INACTIVA no cuenta)", function () {
+    expect(ra().evaluacionesActivas).to.equal(3);
+    expect(ra().minimoEvaluaciones).to.equal(3);
+    expect(ra().porcentajeAsignado).to.equal(100);
+  });
+
+  test("parcial: ninguna evaluacion esta calificada a los 6 matriculados activos", function () {
+    expect(ra().porcentajeEvaluado).to.equal(0);
+    expect(ra().completo).to.equal(false);
+  });
+}
+
+docs {
+  Si falla por semestreCodigo, hay otro semestre cuyas fechas contienen hoy: el rendimiento se calcula
+  sobre el semestre activo (por fechas) y debe ser BRUNIV-A1.
+}
