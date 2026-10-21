@@ -1,0 +1,15 @@
+meta {
+  name: 03 Asignatura que no es UUID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/no-es-uuid/resultados-aprendizaje/rendimiento
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+}

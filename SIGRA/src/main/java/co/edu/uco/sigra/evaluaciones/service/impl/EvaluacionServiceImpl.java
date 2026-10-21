@@ -94,6 +94,10 @@ public class EvaluacionServiceImpl implements EvaluacionService {
         Semestre semestre = obtenerSemestreActivo()
                 .orElseThrow(EvaluacionReglaNegocioException::sinSemestreActivo);
         verificarFechaEnSemestre(dto.fechaTentativa(), semestre);
+        verificarFechaPosteriorAHoy(dto.fechaTentativa());
+
+        // Serializa a quien valide la suma de este RA: sin el bloqueo, dos peticiones simultáneas podrían pasar.
+        bloquearResultado(resultadoAprendizajeId);
 
         if (evaluacionRepository.existsByResultadoAprendizaje_IdAndSemestre_IdAndNombreIgnoreCase(
                 resultadoAprendizajeId, semestre.getId(), dto.nombre())) {
@@ -132,7 +136,9 @@ public class EvaluacionServiceImpl implements EvaluacionService {
         UUID semestreId = evaluacion.getSemestre().getId();
         if (cambiaFecha) {
             verificarFechaEnSemestre(dto.fechaTentativa(), evaluacion.getSemestre());
+            verificarFechaPosteriorAHoy(dto.fechaTentativa());
         }
+        bloquearResultado(raId);
         if (evaluacionRepository.existsByResultadoAprendizaje_IdAndSemestre_IdAndNombreIgnoreCaseAndIdNot(
                 raId, semestreId, dto.nombre(), id)) {
             throw new NombreEvaluacionDuplicadoException();
@@ -178,6 +184,7 @@ public class EvaluacionServiceImpl implements EvaluacionService {
             throw EvaluacionReglaNegocioException.yaActiva();
         }
         verificarResultadoYAsignaturaActivos(resultado);
+        bloquearResultado(resultado.getId());
         verificarPorcentaje(sumarActivas(resultado.getId(), evaluacion.getSemestre().getId()),
                 evaluacion.getPorcentaje());
 
@@ -235,28 +242,29 @@ public class EvaluacionServiceImpl implements EvaluacionService {
     @Override
     @Transactional
     public void inactivarPorResultadoAprendizaje(UUID resultadoAprendizajeId) {
-        evaluacionRepository.inactivarActivasPorResultado(resultadoAprendizajeId,
-                EstadoEvaluacion.INACTIVA, EstadoEvaluacion.ACTIVA);
+        obtenerSemestreActivo().ifPresent(semestre -> evaluacionRepository.inactivarActivasPorResultado(
+                resultadoAprendizajeId, semestre.getId(), EstadoEvaluacion.INACTIVA, EstadoEvaluacion.ACTIVA));
     }
 
     @Override
     @Transactional
     public void restaurarPorResultadoAprendizaje(UUID resultadoAprendizajeId) {
-        evaluacionRepository.restaurarInactivadasConResultado(resultadoAprendizajeId, EstadoEvaluacion.ACTIVA);
+        obtenerSemestreActivo().ifPresent(semestre -> evaluacionRepository.restaurarInactivadasConResultado(
+                resultadoAprendizajeId, semestre.getId(), EstadoEvaluacion.ACTIVA));
     }
 
     @Override
     @Transactional
     public void inactivarPorAsignatura(UUID asignaturaId) {
-        evaluacionRepository.inactivarActivasPorAsignatura(asignaturaId,
-                EstadoEvaluacion.INACTIVA, EstadoEvaluacion.ACTIVA);
+        obtenerSemestreActivo().ifPresent(semestre -> evaluacionRepository.inactivarActivasPorAsignatura(
+                asignaturaId, semestre.getId(), EstadoEvaluacion.INACTIVA, EstadoEvaluacion.ACTIVA));
     }
 
     @Override
     @Transactional
     public void restaurarPorAsignatura(UUID asignaturaId) {
-        evaluacionRepository.restaurarInactivadasPorAsignatura(asignaturaId,
-                EstadoEvaluacion.ACTIVA, EstadoRegistro.ACTIVO);
+        obtenerSemestreActivo().ifPresent(semestre -> evaluacionRepository.restaurarInactivadasPorAsignatura(
+                asignaturaId, semestre.getId(), EstadoEvaluacion.ACTIVA, EstadoRegistro.ACTIVO));
     }
 
     // ------------------------------------------------------------------ Auxiliares
@@ -323,6 +331,18 @@ public class EvaluacionServiceImpl implements EvaluacionService {
             throw EvaluacionReglaNegocioException.fechaFueraDelSemestre(semestre.getCodigo(),
                     semestre.getFechaInicio(), semestre.getFechaFin());
         }
+    }
+
+    /** La fecha tentativa debe ser posterior a hoy (fecha del reloj de evaluaciones, zona Colombia). */
+    private void verificarFechaPosteriorAHoy(LocalDate fecha) {
+        if (!fecha.isAfter(LocalDate.now(reloj))) {
+            throw EvaluacionReglaNegocioException.fechaNoPosteriorAHoy();
+        }
+    }
+
+    /** Bloquea la fila del RA hasta el fin de la transacción para validar la suma de porcentajes sin carreras. */
+    private void bloquearResultado(UUID resultadoAprendizajeId) {
+        resultadoAprendizajeRepository.bloquearPorId(resultadoAprendizajeId);
     }
 
     /** RF-11: lo ya asignado más el nuevo porcentaje no puede superar 100. */

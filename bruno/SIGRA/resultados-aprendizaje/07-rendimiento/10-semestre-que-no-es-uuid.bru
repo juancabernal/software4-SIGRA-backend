@@ -1,0 +1,15 @@
+meta {
+  name: 10 semestreId que no es UUID
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{asigBruNivId}}/resultados-aprendizaje/rendimiento?semestreId=no-es-uuid
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+}

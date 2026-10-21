@@ -45,6 +45,13 @@ La tabla documenta los mappings de negocio actuales, incluido el login público.
 | 37 | `GET /api/v1/semestres` | ✓ | ✓ | ✓ | Lectura |
 | 38 | `GET /api/v1/semestres/{codigo}` | ✓ | ✓ | ✓ | Lectura |
 | 39 | `PATCH /api/v1/semestres/{codigo}` | ✓ | — | — | Gestión |
+| 40 | `POST /api/v1/resultados-aprendizaje/{raId}/evaluaciones` | — | ✓ | — | Profesor solo con asignación docente ACTIVA sobre la asignatura del RA (verificado en el servicio) |
+| 41 | `GET /api/v1/resultados-aprendizaje/{raId}/evaluaciones` | — | ✓ | — | Mismo alcance docente; sin `semestreId` usa el semestre activo |
+| 42 | `GET /api/v1/evaluaciones/{id}` | — | ✓ | — | Profesor solo si la evaluación pertenece a una asignatura asignada ACTIVA |
+| 43 | `PUT /api/v1/evaluaciones/{id}` | — | ✓ | — | Mismo alcance docente; solo semestre en curso y evaluación ACTIVA |
+| 44 | `PATCH /api/v1/evaluaciones/{id}/inactivar` | — | ✓ | — | Mismo alcance docente |
+| 45 | `PATCH /api/v1/evaluaciones/{id}/reactivar` | — | ✓ | — | Mismo alcance docente |
+| 46 | `GET /api/v1/asignaturas/{asignaturaId}/resultados-aprendizaje/rendimiento` | ✓ | ✓ | — | Profesor solo con asignación docente ACTIVA sobre la asignatura (`@securityAuthorization.hasActiveAssignment`); calcula sobre el semestre activo |
 
 ## Identidad y datos
 
