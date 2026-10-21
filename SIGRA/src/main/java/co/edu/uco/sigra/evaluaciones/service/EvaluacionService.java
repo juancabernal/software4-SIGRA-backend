@@ -46,13 +46,13 @@ public interface EvaluacionService {
     /** Suma de porcentajes de las evaluaciones ACTIVAS de un (RA, semestre). Lo usa RF-18. */
     BigDecimal consultarPorcentajeAsignado(UUID resultadoAprendizajeId, UUID semestreId);
 
-    /** Cascada al inactivar un RA. */
+    /** Cascada al inactivar un RA: solo sus evaluaciones del semestre activo; las de otros semestres no se tocan. */
     void inactivarPorResultadoAprendizaje(UUID resultadoAprendizajeId);
 
-    /** Al reactivar un RA: restaura solo las evaluaciones inactivadas con él. */
+    /** Al reactivar un RA: restaura solo las evaluaciones del semestre activo inactivadas con él. */
     void restaurarPorResultadoAprendizaje(UUID resultadoAprendizajeId);
 
-    /** Cascada al inactivar una asignatura. */
+    /** Cascada al inactivar una asignatura: solo las evaluaciones del semestre activo. */
     void inactivarPorAsignatura(UUID asignaturaId);
 
     /** Al reactivar una asignatura (después de restaurar sus RA). */

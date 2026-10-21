@@ -40,6 +40,11 @@ public class EvaluacionReglaNegocioException extends RuntimeException {
                         + " y " + fin + ").");
     }
 
+    /** La fecha tentativa de una evaluación debe ser posterior a hoy. */
+    public static EvaluacionReglaNegocioException fechaNoPosteriorAHoy() {
+        return new EvaluacionReglaNegocioException("La fecha tentativa debe ser posterior a la fecha de hoy.");
+    }
+
     /** RF-10b: con calificaciones registradas solo se editan el nombre y la descripción. */
     public static EvaluacionReglaNegocioException camposBloqueadosPorCalificaciones() {
         return new EvaluacionReglaNegocioException(
