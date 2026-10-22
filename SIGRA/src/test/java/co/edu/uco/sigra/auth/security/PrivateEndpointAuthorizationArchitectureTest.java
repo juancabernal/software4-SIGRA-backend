@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.auth.security;
 
+import co.edu.uco.sigra.auditoria.service.AuditoriaService;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.asignaturas.service.AsignacionDocenteService;
 import co.edu.uco.sigra.auth.service.AuthService;
@@ -51,6 +52,9 @@ class PrivateEndpointAuthorizationArchitectureTest {
     // La prueba necesita levantar todos los controladores, pero no sus servicios ni PostgreSQL.
     @MockitoBean
     private AsignaturaService asignaturaService;
+
+    @MockitoBean
+    private AuditoriaService auditoriaService;
 
     @MockitoBean
     private AsignacionDocenteService asignacionDocenteService;
