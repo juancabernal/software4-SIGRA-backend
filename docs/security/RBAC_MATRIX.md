@@ -14,9 +14,9 @@ La tabla documenta los mappings de negocio actuales, incluido el login público.
 | 6 | `PATCH /api/v1/asignaturas/{id}/activar` | ✓ | — | — | Gestión |
 | 7 | `PATCH /api/v1/asignaturas/{id}/inactivar` | ✓ | — | — | Gestión |
 | 8 | `POST /api/v1/auth/login` | Público | Público | Público | Credenciales institucionales; no requiere token |
-| 9 | `GET /api/v1/tipos-documento` | ✓ | — | — | Catálogo administrativo |
+| 9 | `GET /api/v1/tipos-documento` | ✓ | ✓ | — | Catálogo; profesor lo necesita para registrar estudiantes (fila 10) |
 | 10 | `POST /api/v1/estudiantes` | ✓ | ✓ | — | Alta; el profesor puede registrar cuando la regla de negocio lo permite |
-| 11 | `GET /api/v1/estudiantes` | ✓ | ✓ | — | Admin global; profesor solo estudiantes con matrícula y asignación ACTIVA |
+| 11 | `GET /api/v1/estudiantes` | ✓ | ✓ | — | Admin global; profesor con `filtro` busca entre todos los estudiantes ACTIVOS (RF-09a, D18, para poder matricular a quien aún no tiene relación con él); sin `filtro` ve su propio roster (matrícula y asignación ACTIVA) |
 | 12 | `GET /api/v1/estudiantes/{id}` | ✓ | ✓ | ✓ | Admin global; profesor relación ACTIVA; estudiante solo sí mismo |
 | 13 | `PUT /api/v1/estudiantes/{id}` | ✓ | — | — | Gestión |
 | 14 | `DELETE /api/v1/estudiantes/{id}` | ✓ | — | — | Gestión; inactivación lógica |
