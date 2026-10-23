@@ -51,7 +51,6 @@ class ApiDocumentacionIT {
             Map.entry("semestre-controller", "co.edu.uco.sigra.semestres.controller.SemestreController"),
             Map.entry("tipo-documento-controller", "co.edu.uco.sigra.common.controller.TipoDocumentoController"),
             Map.entry("evaluacion-controller", "co.edu.uco.sigra.evaluaciones.controller.EvaluacionController"),
-            Map.entry("conclusion-controller", "co.edu.uco.sigra.estadisticas.controller.ConclusionController"),
             Map.entry("accion-mejora-controller", "co.edu.uco.sigra.mejoras.controller.AccionMejoraController")
     );
 
