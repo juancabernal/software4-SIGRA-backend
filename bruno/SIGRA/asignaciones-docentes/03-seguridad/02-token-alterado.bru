@@ -1,0 +1,28 @@
+meta {
+  name: 02-token-alterado
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer token-no-valido
+}
+
+body:json {
+  {
+    "profesorIds": ["{{idProfesorPrueba}}"],
+    "asignaturaIds": ["{{idAsigBruEstActiva}}"]
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.error: eq UNAUTHORIZED
+}

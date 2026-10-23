@@ -1,0 +1,33 @@
+meta {
+  name: 03-reactivar-tras-desasignar
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "profesorIds": ["{{idProfesorPrueba}}"],
+    "asignaturaIds": ["{{idAsigBruEstActiva}}"]
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("reactiva la fila desasignada en lugar de omitirla", function () {
+    expect(res.body.creadas).to.have.lengthOf(1);
+    expect(res.body.omitidas).to.have.lengthOf(0);
+  });
+}

@@ -39,9 +39,11 @@ public class AsignacionDocenteServiceImpl implements AsignacionDocenteService {
     @Transactional
     public ResultadoAsignacionMasivaDTO asignarMasivo(AsignacionMasivaRequestDTO dto) {
         List<Profesor> profesores = dto.profesorIds().stream()
+                .distinct()
                 .map(this::buscarProfesorOLanzar)
                 .toList();
         List<Asignatura> asignaturas = dto.asignaturaIds().stream()
+                .distinct()
                 .map(this::buscarAsignaturaOLanzar)
                 .toList();
 
