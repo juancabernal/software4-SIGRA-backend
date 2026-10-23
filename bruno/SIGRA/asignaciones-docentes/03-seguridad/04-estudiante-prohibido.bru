@@ -1,0 +1,20 @@
+meta {
+  name: 04-estudiante-prohibido
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes/{{idInexistente}}/desasignar
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenEstudiante}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error: eq FORBIDDEN
+}

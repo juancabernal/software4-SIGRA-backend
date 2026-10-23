@@ -1,0 +1,28 @@
+meta {
+  name: 03-profesor-prohibido
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+body:json {
+  {
+    "profesorIds": ["{{idProfesorPrueba}}"],
+    "asignaturaIds": ["{{idAsigBruEstActiva}}"]
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.error: eq FORBIDDEN
+}
