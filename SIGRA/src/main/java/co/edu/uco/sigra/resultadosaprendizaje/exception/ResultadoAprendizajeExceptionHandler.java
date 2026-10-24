@@ -2,6 +2,7 @@ package co.edu.uco.sigra.resultadosaprendizaje.exception;
 
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.common.exception.ErrorResponseBuilder;
+import co.edu.uco.sigra.evaluaciones.exception.SemestreNoEncontradoException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,8 +31,12 @@ public class ResultadoAprendizajeExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), null);
     }
 
-    /** Incluye la asignatura inexistente: su manejador solo aplica al controlador de asignaturas. */
-    @ExceptionHandler({ResultadoAprendizajeNoEncontradoException.class, AsignaturaNoEncontradaException.class})
+    /**
+     * Incluye la asignatura inexistente (su manejador solo aplica al controlador de asignaturas) y el semestre
+     * inexistente pedido en la consulta de rendimiento.
+     */
+    @ExceptionHandler({ResultadoAprendizajeNoEncontradoException.class, AsignaturaNoEncontradaException.class,
+            SemestreNoEncontradoException.class})
     public ResponseEntity<Map<String, Object>> manejarNoEncontrado(RuntimeException ex) {
         return ErrorResponseBuilder.build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), null);
     }
