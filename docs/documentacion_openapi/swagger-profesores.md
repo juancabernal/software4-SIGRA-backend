@@ -1,6 +1,6 @@
 # Guía de documentación Swagger (OpenAPI)
 
-Cómo documentar un controlador de SIGRA para que todos los módulos queden con el mismo formato. El primer módulo documentado con este patrón es **Profesores** (`ProfesorController`); `AuthController` conserva su propio estilo.
+Cómo documentar un controlador de SIGRA para que todos los módulos queden con el mismo formato. Los módulos documentados con este patrón son **Profesores** (`ProfesorController`), **Estudiantes** (`EstudianteController`) y **Matrículas** (`MatriculaController`); `AuthController` conserva su propio estilo.
 
 ## Ver la documentación
 
@@ -51,7 +51,7 @@ Se documentan los códigos que el endpoint **realmente puede devolver**; no se a
 
 ## Verificación automática
 
-`ProfesorApiDocumentacionIT` lee `/v3/api-docs` y comprueba que exista el esquema `bearerAuth` y que cada endpoint de Profesores exija Bearer y documente sus códigos. Para otro módulo, copia la clase y cambia las rutas y los códigos esperados. Es una prueba de integración: se ejecuta con `./gradlew.bat integrationTest --tests "*ApiDocumentacionIT*"`.
+`ProfesorApiDocumentacionIT`, `EstudianteApiDocumentacionIT` y `MatriculaApiDocumentacionIT` leen `/v3/api-docs` y comprueban que exista el esquema `bearerAuth` y que cada endpoint del módulo exija Bearer y documente sus códigos. Para otro módulo, copia una de esas clases y cambia las rutas y los códigos esperados. Es una prueba de integración: se ejecuta con `./gradlew.bat integrationTest --tests "*ApiDocumentacionIT*"`.
 
 ## Requisito en `SecurityConfig`
 

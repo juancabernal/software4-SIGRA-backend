@@ -42,8 +42,6 @@ class ApiDocumentacionIT {
 
     /** Tag por defecto de springdoc → clase del controlador pendiente de documentar. */
     private static final Map<String, String> PENDIENTES = Map.ofEntries(
-            Map.entry("estudiante-controller", "co.edu.uco.sigra.estudiantes.controller.EstudianteController"),
-            Map.entry("matricula-controller", "co.edu.uco.sigra.estudiantes.controller.MatriculaController"),
             Map.entry("programa-academico-controller",
                     "co.edu.uco.sigra.programas.controller.ProgramaAcademicoController"),
             Map.entry("semestre-controller", "co.edu.uco.sigra.semestres.controller.SemestreController"),
