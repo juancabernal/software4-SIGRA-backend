@@ -1,0 +1,31 @@
+meta {
+  name: 01 Setup - generar una tercera conclusion sobre el mismo RA y semestre
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{raConcMas40Id}}/semestres/{{semBruConcId}}/conclusiones
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Las dos conclusiones anteriores sobre este (RA, semestre) ya quedaron
+  ATENDIDAS en 01-registrar y en 03-convertir, asi que generar() crea una
+  nueva VIGENTE. Es infraestructura para tener una accion de mejora sin
+  convertir sobre la que probar la edicion (RF-17).
+}
+
+assert {
+  res.status: eq 200
+  res.body.generada: eq true
+}
+
+script:post-response {
+  bru.setVar("conclusionVigente3Id", res.body.conclusion.id);
+}

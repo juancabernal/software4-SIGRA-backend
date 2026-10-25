@@ -3,6 +3,7 @@ package co.edu.uco.sigra.mejoras.service;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
+import co.edu.uco.sigra.mejoras.dto.ActualizarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 
@@ -19,6 +20,9 @@ public interface AccionMejoraService {
     List<AccionMejoraResponseDTO> consultarAcciones(AccionMejoraFiltroDTO filtro, UsuarioPrincipal principal);
 
     AccionMejoraResponseDTO consultarPorId(UUID id, UsuarioPrincipal principal);
+
+    /** RF-17: edita nombre y descripción; rechaza la edición si la acción ya fue convertida en evaluación. */
+    AccionMejoraResponseDTO actualizar(UUID id, ActualizarAccionMejoraRequestDTO datos, UsuarioPrincipal principal);
 
     /**
      * RF-18: convierte la acción en una evaluación nueva del módulo evaluaciones (semestre activo), con el
