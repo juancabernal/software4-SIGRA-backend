@@ -1,0 +1,36 @@
+meta {
+  name: 01 Modificar nombre exitoso
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/api/v1/programas/{{programaCreadoId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Programa Bruno Renombrado {{programaCreadoCodigo}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("programaCreadoNombre", res.body.nombre);
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("cambia el nombre y conserva el codigo", function () {
+    expect(res.body.nombre).to.equal("Programa Bruno Renombrado " + bru.getVar("programaCreadoCodigo"));
+    expect(res.body.codigo).to.equal(bru.getVar("programaCreadoCodigo"));
+  });
+}

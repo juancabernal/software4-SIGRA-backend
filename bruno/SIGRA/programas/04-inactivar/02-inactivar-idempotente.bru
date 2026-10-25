@@ -1,0 +1,21 @@
+meta {
+  name: 02 Inactivar idempotente
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/programas/{{programaCreadoId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("repetir la inactivacion sigue dando INACTIVO sin error", function () {
+    expect(res.body.estado).to.equal("INACTIVO");
+  });
+}

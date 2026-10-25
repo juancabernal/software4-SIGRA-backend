@@ -1,0 +1,48 @@
+meta {
+  name: 01 Registrar programa valido
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/programas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Programa Bruno Valido {{codigoNuevo}}",
+    "codigo": "{{codigoNuevo}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("codigoNuevo", "BRU" + String(Date.now()).slice(-7));
+}
+
+script:post-response {
+  bru.setVar("programaCreadoId", res.body.id);
+  bru.setVar("programaCreadoNombre", res.body.nombre);
+  bru.setVar("programaCreadoCodigo", res.body.codigo);
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("datos del programa creado", function () {
+    expect(res.body.nombre).to.equal("Programa Bruno Valido " + bru.getVar("codigoNuevo"));
+    expect(res.body.codigo).to.equal(bru.getVar("codigoNuevo"));
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+
+  test("devuelve el id generado", function () {
+    expect(res.body.id).to.be.a("string").and.not.be.empty;
+  });
+}
