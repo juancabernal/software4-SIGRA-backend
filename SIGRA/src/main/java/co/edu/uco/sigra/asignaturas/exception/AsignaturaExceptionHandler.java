@@ -75,7 +75,8 @@ public class AsignaturaExceptionHandler {
         return construirRespuestaError(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
-    @ExceptionHandler({CodigoAsignaturaDuplicadoException.class, TransicionEstadoInvalidaException.class})
+    @ExceptionHandler({CodigoAsignaturaDuplicadoException.class, TransicionEstadoInvalidaException.class,
+            ConfirmacionRequeridaException.class})
     public ResponseEntity<Map<String, Object>> manejarConflicto(RuntimeException ex) {
         return construirRespuestaError(HttpStatus.CONFLICT, ex.getMessage(), null);
     }

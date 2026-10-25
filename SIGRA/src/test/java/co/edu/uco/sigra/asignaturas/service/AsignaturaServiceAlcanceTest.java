@@ -8,10 +8,12 @@ import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.asignaturas.repository.EvaluacionAbiertaRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
@@ -53,6 +55,12 @@ class AsignaturaServiceAlcanceTest {
     @Mock
     private ResultadoAprendizajeService resultadoAprendizajeService;
 
+    @Mock
+    private EvaluacionService evaluacionService;
+
+    @Mock
+    private EvaluacionAbiertaRepository evaluacionAbiertaRepository;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
     private AsignaturaServiceImpl service;
     private Asignatura suya;
@@ -62,7 +70,7 @@ class AsignaturaServiceAlcanceTest {
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
                 resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
-                resultadoAprendizajeService);
+                resultadoAprendizajeService, evaluacionService, evaluacionAbiertaRepository);
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setId(UUID.randomUUID());
         programa.setNombre("Ingeniería de Sistemas");

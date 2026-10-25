@@ -9,8 +9,10 @@ import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
+import co.edu.uco.sigra.asignaturas.repository.EvaluacionAbiertaRepository;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
@@ -61,6 +63,12 @@ class AsignaturaServiceConsultaTest {
     @Mock
     private ResultadoAprendizajeService resultadoAprendizajeService;
 
+    @Mock
+    private EvaluacionService evaluacionService;
+
+    @Mock
+    private EvaluacionAbiertaRepository evaluacionAbiertaRepository;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
 
     private AsignaturaServiceImpl service;
@@ -74,7 +82,7 @@ class AsignaturaServiceConsultaTest {
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
                 resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
-                resultadoAprendizajeService);
+                resultadoAprendizajeService, evaluacionService, evaluacionAbiertaRepository);
 
         UsuarioPrincipal principal = new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co",
                 RolUsuario.ADMINISTRADOR);

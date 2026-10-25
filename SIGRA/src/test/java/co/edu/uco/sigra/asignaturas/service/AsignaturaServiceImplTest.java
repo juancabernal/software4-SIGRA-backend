@@ -7,6 +7,7 @@ import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.exception.CodigoAsignaturaDuplicadoException;
+import co.edu.uco.sigra.asignaturas.exception.ConfirmacionRequeridaException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaInactivoException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaNoEncontradoException;
 import co.edu.uco.sigra.asignaturas.exception.RangoRaInvalidoException;
@@ -14,13 +15,17 @@ import co.edu.uco.sigra.asignaturas.exception.TransicionEstadoInvalidaException;
 import co.edu.uco.sigra.asignaturas.mapper.AsignaturaMapper;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.asignaturas.repository.EvaluacionAbiertaRepository;
 import co.edu.uco.sigra.asignaturas.service.impl.AsignaturaServiceImpl;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
+import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
@@ -70,6 +75,12 @@ class AsignaturaServiceImplTest {
     @Mock
     private ResultadoAprendizajeService resultadoAprendizajeService;
 
+    @Mock
+    private EvaluacionService evaluacionService;
+
+    @Mock
+    private EvaluacionAbiertaRepository evaluacionAbiertaRepository;
+
     private final AsignaturaMapper mapper = Mappers.getMapper(AsignaturaMapper.class);
 
     private AsignaturaServiceImpl service;
@@ -79,12 +90,13 @@ class AsignaturaServiceImplTest {
     void setUp() {
         service = new AsignaturaServiceImpl(asignaturaRepository, programaAcademicoRepository,
                 resultadoAprendizajeRepository, asignacionDocenteRepository, mapper,
-                resultadoAprendizajeService);
+                resultadoAprendizajeService, evaluacionService, evaluacionAbiertaRepository);
         programa = programa(EstadoRegistro.ACTIVO);
         UsuarioPrincipal principal = new UsuarioPrincipal(UUID.randomUUID(), "test-admin@uco.net.co",
                 RolUsuario.ADMINISTRADOR);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                 principal, null, java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))));
+        lenient().when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.empty());
     }
 
     @AfterEach
@@ -385,6 +397,12 @@ class AsignaturaServiceImplTest {
     @DisplayName("Inactivar")
     class Inactivar {
 
+        private Semestre semestreActivo() {
+            Semestre semestre = new Semestre();
+            ReflectionTestUtils.setField(semestre, "id", UUID.randomUUID());
+            return semestre;
+        }
+
         @Test
         @DisplayName("Desde ACTIVA queda INACTIVA, inactiva en cascada sus RA activos y no elimina nada")
         void desdeActiva() {
@@ -392,7 +410,7 @@ class AsignaturaServiceImplTest {
             raActivos(0);
             saveDevuelveArgumento();
 
-            AsignaturaResponseDTO respuesta = service.inactivar(ID_ASIGNATURA);
+            AsignaturaResponseDTO respuesta = service.inactivar(ID_ASIGNATURA, false);
 
             assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.INACTIVA);
             assertThat(respuesta.cantidadRa()).isZero();
@@ -409,7 +427,7 @@ class AsignaturaServiceImplTest {
         void desdeBorrador() {
             existe(EstadoAsignatura.BORRADOR);
 
-            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
+            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA, false))
                     .isInstanceOf(TransicionEstadoInvalidaException.class);
             verify(asignaturaRepository, never()).save(any());
             verify(resultadoAprendizajeService, never()).inactivarPorAsignatura(any());
@@ -420,7 +438,7 @@ class AsignaturaServiceImplTest {
         void desdeInactiva() {
             existe(EstadoAsignatura.INACTIVA);
 
-            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
+            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA, false))
                     .isInstanceOf(TransicionEstadoInvalidaException.class);
             verify(asignaturaRepository, never()).save(any());
             verify(resultadoAprendizajeService, never()).inactivarPorAsignatura(any());
@@ -431,9 +449,74 @@ class AsignaturaServiceImplTest {
         void inexistente() {
             noExiste();
 
-            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA))
+            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA, false))
                     .isInstanceOf(AsignaturaNoEncontradaException.class);
             verifyNoInteractions(resultadoAprendizajeRepository);
+        }
+
+        @Test
+        @DisplayName("Sin evaluaciones abiertas en el semestre en curso, inactiva sin confirmar")
+        void sinEvaluacionesAbiertas() {
+            existe(EstadoAsignatura.ACTIVA);
+            raActivos(0);
+            saveDevuelveArgumento();
+            Semestre semestre = semestreActivo();
+            when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.of(semestre));
+            when(evaluacionAbiertaRepository.countByResultadoAprendizaje_Asignatura_IdAndSemestre_IdAndEstado(
+                    ID_ASIGNATURA, semestre.getId(), EstadoEvaluacion.ACTIVA)).thenReturn(0L);
+
+            AsignaturaResponseDTO respuesta = service.inactivar(ID_ASIGNATURA, false);
+
+            assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.INACTIVA);
+        }
+
+        @Test
+        @DisplayName("Con evaluaciones abiertas en el semestre en curso y sin confirmar, exige confirmación y no cambia nada")
+        void conEvaluacionesAbiertasSinConfirmar() {
+            Asignatura asignatura = existe(EstadoAsignatura.ACTIVA);
+            Semestre semestre = semestreActivo();
+            when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.of(semestre));
+            when(evaluacionAbiertaRepository.countByResultadoAprendizaje_Asignatura_IdAndSemestre_IdAndEstado(
+                    ID_ASIGNATURA, semestre.getId(), EstadoEvaluacion.ACTIVA)).thenReturn(2L);
+
+            assertThatThrownBy(() -> service.inactivar(ID_ASIGNATURA, false))
+                    .isInstanceOf(ConfirmacionRequeridaException.class)
+                    .hasMessageContaining("2")
+                    .hasMessageContaining("Debe confirmar la inactivación");
+            assertThat(asignatura.getEstado()).isEqualTo(EstadoAsignatura.ACTIVA);
+            verify(asignaturaRepository, never()).save(any());
+            verify(resultadoAprendizajeService, never()).inactivarPorAsignatura(any());
+        }
+
+        @Test
+        @DisplayName("Con evaluaciones abiertas en el semestre en curso y confirmar=true, inactiva igual")
+        void conEvaluacionesAbiertasConfirmando() {
+            existe(EstadoAsignatura.ACTIVA);
+            raActivos(0);
+            saveDevuelveArgumento();
+            Semestre semestre = semestreActivo();
+            lenient().when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.of(semestre));
+            lenient().when(evaluacionAbiertaRepository.countByResultadoAprendizaje_Asignatura_IdAndSemestre_IdAndEstado(
+                    ID_ASIGNATURA, semestre.getId(), EstadoEvaluacion.ACTIVA)).thenReturn(2L);
+
+            AsignaturaResponseDTO respuesta = service.inactivar(ID_ASIGNATURA, true);
+
+            assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.INACTIVA);
+            verify(resultadoAprendizajeService, times(1)).inactivarPorAsignatura(ID_ASIGNATURA);
+        }
+
+        @Test
+        @DisplayName("Sin semestre en curso, no hay nada que verificar e inactiva igual")
+        void sinSemestreEnCurso() {
+            existe(EstadoAsignatura.ACTIVA);
+            raActivos(0);
+            saveDevuelveArgumento();
+            when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.empty());
+
+            AsignaturaResponseDTO respuesta = service.inactivar(ID_ASIGNATURA, false);
+
+            assertThat(respuesta.estado()).isEqualTo(EstadoAsignatura.INACTIVA);
+            verifyNoInteractions(evaluacionAbiertaRepository);
         }
     }
 }
