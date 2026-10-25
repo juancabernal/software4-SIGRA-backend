@@ -104,6 +104,9 @@ iniciar sesión hasta que se les asigne una.
 | `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK) |
 | `fecha_asignacion` | DATE | no | Por defecto `CURRENT_DATE`. Informativa: no participa en ninguna validación |
 
+El par `(profesor_id, asignatura_id)` es único. Una asignación inactivada conserva la misma fila y
+se reactiva si se vuelve a asignar el mismo profesor a la misma asignatura; no se crea un duplicado.
+
 En bases anteriores a este cambio, `asignatura_id` se agrega con
 `RF09_estudiante_y_asignacion_docente_migration.sql`; si había asignaciones antiguas sin
 asignatura, la columna queda sin `NOT NULL` hasta que se corrijan esas filas.
@@ -192,6 +195,7 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | `docs/db/RF08_matricula_migration.sql` | Migración idempotente | Crea `sigra.matricula` en bases creadas antes de RF-08/RF-09 |
 | `docs/db/RF03_ra_inactivado_con_asignatura_migration.sql` | Migración idempotente | Agrega `resultado_aprendizaje.inactivado_con_asignatura` para poder reactivar asignaturas |
 | `docs/db/RF07_asignacion_docente_fecha_migration.sql` | Migración idempotente | Agrega `asignacion_docente.fecha_asignacion` en bases creadas antes de este cambio |
+| `docs/db/RF07_asignacion_docente_unicidad_migration.sql` | Migración idempotente | Impide pares duplicados de `(profesor_id, asignatura_id)` sin eliminar datos |
 | `bruno/SIGRA/seed/seed-roles.sql` | Datos de prueba | Un administrador y un estudiante de Bruno para RF-04, idempotente |
 | `bruno/SIGRA/seed/seed-auth.sql` | Datos de prueba | Usuarios de Bruno para RF-04, idempotente |
 

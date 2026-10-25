@@ -150,6 +150,8 @@ Si tu base no tiene la tabla `matricula`, ejecuta `docs/db/RF08_matricula_migrat
 
 Si tu base no tiene la columna `resultado_aprendizaje.inactivado_con_asignatura` (necesaria para reactivar asignaturas), ejecuta `docs/db/RF03_ra_inactivado_con_asignatura_migration.sql`.
 
+Si tu base no tiene la restricción única de `asignacion_docente` por `(profesor_id, asignatura_id)`, ejecuta `docs/db/RF07_asignacion_docente_unicidad_migration.sql`. El script se detiene sin modificar el esquema si encuentra pares duplicados.
+
 Orden recomendado de migraciones sobre una base existente:
 
 ```text
@@ -157,6 +159,7 @@ Orden recomendado de migraciones sobre una base existente:
 2. RF04_administrador_y_estudiante_subtipos_migration.sql
 3. RF08_matricula_migration.sql
 4. RF03_ra_inactivado_con_asignatura_migration.sql
+5. RF07_asignacion_docente_unicidad_migration.sql
 ```
 
 ## 4. Si tus tablas antiguas están en `public`

@@ -1,0 +1,30 @@
+meta {
+  name: 01-sin-token
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "profesorIds": ["{{idProfesorPrueba}}"],
+    "asignaturaIds": ["{{idAsigBruEstActiva}}"]
+  }
+}
+
+script:pre-request {
+  req.deleteHeader("Authorization");
+}
+
+assert {
+  res.status: eq 401
+}

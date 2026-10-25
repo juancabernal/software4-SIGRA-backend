@@ -1,0 +1,26 @@
+meta {
+  name: 03-profesor-inexistente
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "profesorIds": ["{{idInexistente}}"],
+    "asignaturaIds": ["{{idAsigBruEstActiva}}"]
+  }
+}
+
+assert {
+  res.status: eq 404
+}

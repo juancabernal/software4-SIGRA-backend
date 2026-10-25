@@ -1,0 +1,32 @@
+meta {
+  name: 02-duplicado-se-omite
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "profesorIds": ["{{idProfesorPrueba}}"],
+    "asignaturaIds": ["{{idAsigBruEstActiva}}"]
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("informa el par previamente activo como omitido", function () {
+    expect(res.body.omitidas).to.have.lengthOf(1);
+  });
+}

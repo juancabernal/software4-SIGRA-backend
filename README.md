@@ -476,6 +476,8 @@ Estado de RF-02/RF-03 (autenticación y autorización) y lo que sigue abierto:
 
 ## Documentación del proyecto
 
+### Documentos generales
+
 | Documento | Ubicación |
 | --- | --- |
 | Especificación de Requisitos de Software (IEEE 830) | Documento del equipo, versión 2.0 corregida |
@@ -484,6 +486,127 @@ Estado de RF-02/RF-03 (autenticación y autorización) y lo que sigue abierto:
 | Matriz de compatibilidad de pruebas | Apéndice 4.2 del SRS |
 | Plan de pruebas | TestLink |
 | Integración definitiva main/develop | `docs/integracion/main-develop-definitiva-2026-10-16.md` |
+
+### Documentos de análisis y diseño
+
+Cada apartado corresponde a una hoja del archivo compartido `documentosAndres/Documentación SIGRA (2).xlsx`. El responsable indicado es quien debe completar aquí su parte (resumen, enlace al documento o archivo embebido); mientras tanto queda marcado como pendiente.
+
+#### Visión y estrategia
+
+##### Visión
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+##### Trade-Off
+**Responsable:** Santiago Torres
+
+_Pendiente de completar._
+
+##### Mapa de empatía
+**Responsable:** Andrés Felipe Vélez
+
+_Pendiente de completar._
+
+#### Historias de usuario
+
+##### Historias de usuario
+**Responsable:** Juan José Narváez
+
+_Pendiente de completar._
+
+##### Criterios de aceptación
+**Responsable:** Juan José Narváez
+
+_Pendiente de completar._
+
+##### Mapa de historias de usuario
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+#### Modelo de dominio
+
+##### Modelo de dominio
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+##### Objetos de dominio
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+##### Muestreo de datos de objetos
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+##### Mockups
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+#### Modelado de datos
+
+##### MER
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+##### Entidades
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+##### MR
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+#### Arquitectura y solución
+
+##### Arquitectura de referencia
+**Responsable:** José Alejandro Valencia
+
+_Pendiente de completar._
+
+##### Arquetipo de referencia
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+##### Alternativa de solución
+**Responsable:** Juan Camilo Bernal
+
+_Pendiente de completar._
+
+#### Diagramas de clases y componentes
+
+##### Diagrama de clases
+**Responsable:** Jean Paul Ortiz
+
+_Pendiente de completar._
+
+##### Diagrama de componentes — back end
+**Responsable:** Jean Paul Ortiz
+
+_Pendiente de completar._
+
+##### Componentes — back end
+**Responsable:** Jean Paul Ortiz
+
+_Pendiente de completar._
+
+##### Diagrama de componentes — front end
+**Responsable:** Por definir
+
+_Pendiente de completar._
+
+##### Componentes — front end
+**Responsable:** Por definir
+
+_Pendiente de completar._
 
 ---
 

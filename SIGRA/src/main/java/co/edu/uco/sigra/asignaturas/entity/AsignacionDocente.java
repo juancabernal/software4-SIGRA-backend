@@ -11,7 +11,13 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "asignacion_docente")
+@Table(
+        name = "asignacion_docente",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_asignacion_docente_profesor_asignatura",
+                columnNames = {"profesor_id", "asignatura_id"}
+        )
+)
 @NoArgsConstructor
 @Getter
 @Setter

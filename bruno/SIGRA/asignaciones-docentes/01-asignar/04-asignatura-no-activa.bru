@@ -1,0 +1,32 @@
+meta {
+  name: 04-asignatura-no-activa
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "profesorIds": ["{{idProfesorPrueba}}"],
+    "asignaturaIds": ["{{idAsigBruEstBorrador}}"]
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("reporta el par rechazado", function () {
+    expect(res.body.rechazadas).to.have.lengthOf(1);
+  });
+}

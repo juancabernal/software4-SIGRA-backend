@@ -19,7 +19,7 @@ public class TipoDocumentoController {
     private final TipoDocumentoService tipoDocumentoService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR')")
     public ResponseEntity<List<TipoDocumentoResponseDTO>> consultarTiposDocumento() {
         return ResponseEntity.ok(tipoDocumentoService.consultar());
     }

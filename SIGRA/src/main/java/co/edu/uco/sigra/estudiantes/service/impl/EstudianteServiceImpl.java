@@ -91,12 +91,21 @@ public class EstudianteServiceImpl implements EstudianteService {
     public List<EstudianteResponseDTO> consultar(String filtro, UsuarioPrincipal principal) {
         validarPrincipal(principal);
         String criterio = (filtro == null || filtro.isBlank()) ? "" : filtro;
-        List<Estudiante> estudiantes = principal.rol() == RolUsuario.PROFESOR
-                ? estudianteRepository.buscarVisiblesParaProfesor(
-                principal.id(), criterio, EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO)
-                : (criterio.isEmpty()
-                ? estudianteRepository.findAll()
-                : estudianteRepository.buscarPorNombreODocumento(criterio));
+        List<Estudiante> estudiantes;
+        if (principal.rol() == RolUsuario.PROFESOR) {
+            // Con criterio, busca en todo el directorio de estudiantes ACTIVOS (RF-09a, D18): el
+            // profesor necesita poder encontrar a quien aún no tiene matrícula con él para
+            // matricularlo. Sin criterio, se conserva su propio roster: estudiantes con los que ya
+            // tiene una relación activa.
+            estudiantes = criterio.isEmpty()
+                    ? estudianteRepository.buscarVisiblesParaProfesor(
+                    principal.id(), criterio, EstadoMatricula.ACTIVA, EstadoRegistro.ACTIVO, EstadoRegistro.ACTIVO)
+                    : estudianteRepository.buscarActivosPorNombreODocumento(criterio, EstadoRegistro.ACTIVO);
+        } else {
+            estudiantes = criterio.isEmpty()
+                    ? estudianteRepository.findAll()
+                    : estudianteRepository.buscarPorNombreODocumento(criterio);
+        }
         return estudiantes.stream()
                 .map(estudianteMapper::toResponseDTO)
                 .toList();
