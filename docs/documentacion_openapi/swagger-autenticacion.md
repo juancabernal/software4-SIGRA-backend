@@ -65,6 +65,8 @@ Los errores usan el esquema `RespuestaError`, con `timestamp`, `status`, `error`
 | 503 | La capa de autenticación no puede consultar temporalmente la persistencia | `El servicio no está disponible temporalmente` |
 | 500 | Fallo inesperado | `Ocurrió un error inesperado en el servidor` |
 
+> Nota de compatibilidad: el contrato actual conserva el `503` para la capa de autenticación. En la implementación revisada, el handler explícito de `503` está en `JwtAuthenticationFilter` cuando no puede consultar la identidad de un JWT; `AuthServiceImpl` no tiene un mapeo específico de una caída de repositorio durante el login y su fallback general es `500`. Esta diferencia queda reportada para una decisión funcional separada y no se modifica en esta tarea documental.
+
 Ejemplo `401`:
 
 ```json
