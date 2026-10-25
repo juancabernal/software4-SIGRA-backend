@@ -6,6 +6,7 @@ import co.edu.uco.sigra.common.openapi.RespuestaErrorDoc;
 import co.edu.uco.sigra.config.OpenApiConfig;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
+import co.edu.uco.sigra.mejoras.dto.ActualizarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
@@ -27,6 +28,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -206,6 +208,46 @@ public class AccionMejoraController {
             @Parameter(description = "Identificador (UUID) de la acción de mejora", example = ACCION_ID_EJEMPLO)
             @PathVariable UUID id) {
         return ResponseEntity.ok(accionMejoraService.consultarPorId(id, currentUser.required()));
+    }
+
+    @Operation(
+            summary = "Editar una acción de mejora",
+            description = "Edita el nombre y la descripción de una acción de mejora que aún no fue convertida en "
+                    + "evaluación. Solo el PROFESOR con asignación docente ACTIVA sobre la asignatura de la acción "
+                    + "puede editarla."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Acción de mejora actualizada",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = AccionMejoraResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EjemplosError.VALIDACION_400))),
+            @ApiResponse(responseCode = "401", description = "Falta el token o es inválido o expiró",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EjemplosError.NO_AUTENTICADO_401))),
+            @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene el rol PROFESOR, o es un PROFESOR sin asignación docente activa sobre la asignatura de la acción de mejora",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EjemplosError.PROHIBIDO_403))),
+            @ApiResponse(responseCode = "404", description = "No existe una acción de mejora con ese id",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EJ_ACCION_NO_ENCONTRADA))),
+            @ApiResponse(responseCode = "409", description = "La acción de mejora ya fue convertida en evaluación",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EJ_ACCION_YA_CONVERTIDA)))
+    })
+    @PutMapping("/acciones-mejora/{id}")
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<AccionMejoraResponseDTO> actualizar(
+            @Parameter(description = "Identificador (UUID) de la acción de mejora", example = ACCION_ID_EJEMPLO)
+            @PathVariable UUID id,
+            @Valid @RequestBody ActualizarAccionMejoraRequestDTO datos) {
+        return ResponseEntity.ok(accionMejoraService.actualizar(id, datos, currentUser.required()));
     }
 
     @Operation(

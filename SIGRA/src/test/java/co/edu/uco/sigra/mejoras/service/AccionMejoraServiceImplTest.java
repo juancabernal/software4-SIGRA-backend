@@ -15,9 +15,11 @@ import co.edu.uco.sigra.evaluaciones.exception.EvaluacionReglaNegocioException;
 import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
+import co.edu.uco.sigra.mejoras.dto.ActualizarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.entity.AccionMejora;
+import co.edu.uco.sigra.mejoras.exception.AccionMejoraNoEncontradaException;
 import co.edu.uco.sigra.mejoras.exception.AccionNoConvertibleException;
 import co.edu.uco.sigra.mejoras.exception.AccionYaConvertidaException;
 import co.edu.uco.sigra.mejoras.exception.ConclusionNoVigenteException;
@@ -186,6 +188,83 @@ class AccionMejoraServiceImplTest {
                     new RegistrarAccionMejoraRequestDTO("Capacitación", "Taller de refuerzo");
 
             assertThatThrownBy(() -> service.registrarAccionMejora(idConclusion, datos,
+                    new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR)))
+                    .isInstanceOf(PermisoInsuficienteException.class);
+            verify(accionMejoraRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("actualizar (RF-17)")
+    class Actualizar {
+
+        private AccionMejora accionNoConvertida(Conclusion conclusionOrigen) {
+            return new AccionMejora("Capacitación", "Taller de refuerzo", resultadoAprendizaje, conclusionOrigen);
+        }
+
+        @Test
+        @DisplayName("Sobre una acción no convertida actualiza nombre y descripción")
+        void actualizaUnaAccionNoConvertida() {
+            UUID idAccion = UUID.randomUUID();
+            AccionMejora accion = accionNoConvertida(conclusionVigente());
+            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
+            when(accionMejoraRepository.save(any(AccionMejora.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            ActualizarAccionMejoraRequestDTO datos =
+                    new ActualizarAccionMejoraRequestDTO("Capacitación editada", "Taller de refuerzo editado");
+
+            AccionMejoraResponseDTO respuesta = service.actualizar(idAccion, datos, ADMIN);
+
+            assertThat(respuesta.nombre()).isEqualTo("Capacitación editada");
+            assertThat(respuesta.descripcion()).isEqualTo("Taller de refuerzo editado");
+            assertThat(respuesta.convertida()).isFalse();
+            verify(accionMejoraRepository).save(accion);
+        }
+
+        @Test
+        @DisplayName("Sobre una acción ya convertida se rechaza con 409")
+        void accionYaConvertidaSeRechaza() {
+            UUID idAccion = UUID.randomUUID();
+            AccionMejora accion = accionNoConvertida(conclusionVigente());
+            accion.marcarConvertida(UUID.randomUUID());
+            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
+
+            ActualizarAccionMejoraRequestDTO datos =
+                    new ActualizarAccionMejoraRequestDTO("Capacitación editada", "Taller de refuerzo editado");
+
+            assertThatThrownBy(() -> service.actualizar(idAccion, datos, ADMIN))
+                    .isInstanceOf(AccionYaConvertidaException.class);
+            verify(accionMejoraRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Sobre una acción inexistente se rechaza con 404")
+        void accionInexistenteSeRechaza() {
+            UUID idAccion = UUID.randomUUID();
+            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.empty());
+
+            ActualizarAccionMejoraRequestDTO datos =
+                    new ActualizarAccionMejoraRequestDTO("Capacitación editada", "Taller de refuerzo editado");
+
+            assertThatThrownBy(() -> service.actualizar(idAccion, datos, ADMIN))
+                    .isInstanceOf(AccionMejoraNoEncontradaException.class);
+            verify(accionMejoraRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Un PROFESOR sin asignación docente a la asignatura del RA no puede actualizar")
+        void profesorSinAsignacionNoPuedeActualizar() {
+            UUID idAccion = UUID.randomUUID();
+            UUID profesorId = UUID.randomUUID();
+            AccionMejora accion = accionNoConvertida(conclusionVigente());
+            when(accionMejoraRepository.findById(idAccion)).thenReturn(Optional.of(accion));
+            when(asignacionDocenteRepository.findByProfesor_IdAndEstado(profesorId, EstadoRegistro.ACTIVO))
+                    .thenReturn(List.of());
+
+            ActualizarAccionMejoraRequestDTO datos =
+                    new ActualizarAccionMejoraRequestDTO("Capacitación editada", "Taller de refuerzo editado");
+
+            assertThatThrownBy(() -> service.actualizar(idAccion, datos,
                     new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR)))
                     .isInstanceOf(PermisoInsuficienteException.class);
             verify(accionMejoraRepository, never()).save(any());

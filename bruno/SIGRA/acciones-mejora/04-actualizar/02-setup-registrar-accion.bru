@@ -1,0 +1,27 @@
+meta {
+  name: 02 Setup - registrar la accion de mejora a editar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/conclusiones/{{conclusionVigente3Id}}/acciones-mejora
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Taller de refuerzo sin editar",
+    "descripcion": "Version original, antes de la edicion."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.convertida: eq false
+}
+
+script:post-response {
+  bru.setVar("accionMejoraActualizarId", res.body.id);
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 03 Editar una accion de mejora no convertida
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{accionMejoraActualizarId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Taller de refuerzo editado",
+    "descripcion": "Version editada, con sesiones adicionales de practica dirigida."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{accionMejoraActualizarId}}
+  res.body.nombre: eq Taller de refuerzo editado
+  res.body.descripcion: eq Version editada, con sesiones adicionales de practica dirigida.
+  res.body.convertida: eq false
+}
