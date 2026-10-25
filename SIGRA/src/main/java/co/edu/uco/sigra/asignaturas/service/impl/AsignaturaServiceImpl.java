@@ -9,6 +9,7 @@ import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.exception.CodigoAsignaturaDuplicadoException;
+import co.edu.uco.sigra.asignaturas.exception.ConfirmacionRequeridaException;
 import co.edu.uco.sigra.asignaturas.exception.FiltroInvalidoException;
 import co.edu.uco.sigra.asignaturas.exception.PermisoInsuficienteException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaInactivoException;
@@ -18,15 +19,19 @@ import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ConteoPorAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.ConteoRaPorAsignatura;
+import co.edu.uco.sigra.asignaturas.repository.EvaluacionAbiertaRepository;
 import co.edu.uco.sigra.asignaturas.repository.ProfesorDeAsignatura;
 import co.edu.uco.sigra.auth.security.CurrentUser;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.asignaturas.service.AsignaturaService;
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
+import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
+import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
+import co.edu.uco.sigra.semestres.entity.Semestre;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import jakarta.transaction.Transactional;
@@ -38,6 +43,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,6 +57,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
     private final AsignacionDocenteRepository asignacionDocenteRepository;
     private final AsignaturaMapper asignaturaMapper;
     private final ResultadoAprendizajeService resultadoAprendizajeService;
+    private final EvaluacionService evaluacionService;
+    private final EvaluacionAbiertaRepository evaluacionAbiertaRepository;
     private final CurrentUser currentUser;
 
     @Autowired
@@ -60,6 +68,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
                                  AsignacionDocenteRepository asignacionDocenteRepository,
                                  AsignaturaMapper asignaturaMapper,
                                  ResultadoAprendizajeService resultadoAprendizajeService,
+                                 EvaluacionService evaluacionService,
+                                 EvaluacionAbiertaRepository evaluacionAbiertaRepository,
                                  CurrentUser currentUser) {
         this.asignaturaRepository = asignaturaRepository;
         this.programaAcademicoRepository = programaAcademicoRepository;
@@ -67,6 +77,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         this.asignacionDocenteRepository = asignacionDocenteRepository;
         this.asignaturaMapper = asignaturaMapper;
         this.resultadoAprendizajeService = resultadoAprendizajeService;
+        this.evaluacionService = evaluacionService;
+        this.evaluacionAbiertaRepository = evaluacionAbiertaRepository;
         this.currentUser = currentUser;
     }
 
@@ -76,9 +88,12 @@ public class AsignaturaServiceImpl implements AsignaturaService {
                                  ResultadoAprendizajeRepository resultadoAprendizajeRepository,
                                  AsignacionDocenteRepository asignacionDocenteRepository,
                                  AsignaturaMapper asignaturaMapper,
-                                 ResultadoAprendizajeService resultadoAprendizajeService) {
+                                 ResultadoAprendizajeService resultadoAprendizajeService,
+                                 EvaluacionService evaluacionService,
+                                 EvaluacionAbiertaRepository evaluacionAbiertaRepository) {
         this(asignaturaRepository, programaAcademicoRepository, resultadoAprendizajeRepository,
-                asignacionDocenteRepository, asignaturaMapper, resultadoAprendizajeService, new CurrentUser());
+                asignacionDocenteRepository, asignaturaMapper, resultadoAprendizajeService,
+                evaluacionService, evaluacionAbiertaRepository, new CurrentUser());
     }
 
     @Override
@@ -176,8 +191,19 @@ public class AsignaturaServiceImpl implements AsignaturaService {
 
     @Override
     @Transactional
-    public AsignaturaResponseDTO inactivar(UUID id) {
+    public AsignaturaResponseDTO inactivar(UUID id, boolean confirmar) {
         Asignatura asignatura = buscar(id);
+        if (!confirmar) {
+            Optional<Semestre> semestreActivo = evaluacionService.consultarSemestreActivo();
+            if (semestreActivo.isPresent()) {
+                long cantidadEvaluacionesAbiertas = evaluacionAbiertaRepository
+                        .countByResultadoAprendizaje_Asignatura_IdAndSemestre_IdAndEstado(
+                                id, semestreActivo.get().getId(), EstadoEvaluacion.ACTIVA);
+                if (cantidadEvaluacionesAbiertas > 0) {
+                    throw ConfirmacionRequeridaException.porEvaluacionesAbiertas(id, cantidadEvaluacionesAbiertas);
+                }
+            }
+        }
         asignatura.inactivar();
         Asignatura guardada = asignaturaRepository.save(asignatura);
         // Cascada: el SRS (RF-06c) exime del mínimo de RA a la asignatura que se inactiva, así que sus RA

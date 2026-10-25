@@ -31,9 +31,15 @@ public interface AsignaturaService {
 
     /**
      * Inactiva una asignatura ACTIVA e inactiva en cascada sus resultados de aprendizaje activos.
-     * No afecta matrículas, evaluaciones ni calificaciones.
+     * No afecta matrículas ni calificaciones.
+     * <p>
+     * Si la asignatura tiene evaluaciones ACTIVAS en el semestre en curso y {@code confirmar} es
+     * {@code false}, se rechaza con
+     * {@link co.edu.uco.sigra.asignaturas.exception.ConfirmacionRequeridaException} y la
+     * asignatura queda intacta. Si no hay semestre en curso, o no tiene evaluaciones abiertas, o
+     * {@code confirmar} es {@code true}, procede igual que hoy.
      */
-    AsignaturaResponseDTO inactivar(UUID id);
+    AsignaturaResponseDTO inactivar(UUID id, boolean confirmar);
 
     /**
      * Asignaturas de quien pregunta, ordenadas por nombre: las del PROFESOR con asignación docente
