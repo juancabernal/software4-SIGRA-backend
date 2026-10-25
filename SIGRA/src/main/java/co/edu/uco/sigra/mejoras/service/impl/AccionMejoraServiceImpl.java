@@ -13,6 +13,7 @@ import co.edu.uco.sigra.evaluaciones.dto.EvaluacionResponseDTO;
 import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraFiltroDTO;
 import co.edu.uco.sigra.mejoras.dto.AccionMejoraResponseDTO;
+import co.edu.uco.sigra.mejoras.dto.ActualizarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.ConvertirEvaluacionRequestDTO;
 import co.edu.uco.sigra.mejoras.dto.RegistrarAccionMejoraRequestDTO;
 import co.edu.uco.sigra.mejoras.entity.AccionMejora;
@@ -108,6 +109,22 @@ public class AccionMejoraServiceImpl implements AccionMejoraService {
         AccionMejora accion = buscarAccionMejora(id);
         verificarAlcance(principal, accion.getResultadoAprendizaje().getAsignatura().getId());
         return accionMejoraMapper.toResponseDTO(accion);
+    }
+
+    @Override
+    @Transactional
+    public AccionMejoraResponseDTO actualizar(UUID id, ActualizarAccionMejoraRequestDTO datos,
+                                               UsuarioPrincipal principal) {
+        AccionMejora accionMejora = buscarAccionMejora(id);
+        verificarAlcance(principal, accionMejora.getResultadoAprendizaje().getAsignatura().getId());
+
+        if (accionMejora.estaConvertida()) {
+            throw new AccionYaConvertidaException(id);
+        }
+
+        accionMejora.actualizar(datos.nombre(), datos.descripcion());
+        AccionMejora actualizada = accionMejoraRepository.save(accionMejora);
+        return accionMejoraMapper.toResponseDTO(actualizada);
     }
 
     @Override

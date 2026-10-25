@@ -25,7 +25,7 @@ public record ConclusionResponseDTO(
         @Schema(description = "Código del semestre", example = "2026-1")
         String semestreCodigo,
 
-        @Schema(description = "Mensaje fijo de la conclusión", example = "Nivel de logro insuficiente, se recomienda acción de mejora")
+        @Schema(description = "Mensaje de la conclusión", example = "Nivel de logro insuficiente en RA-05: se recomienda registrar una acción de mejora")
         String mensaje,
 
         @Schema(description = "Si el resultado de aprendizaje tenía datos suficientes (mínimo 3 calificaciones) al generarse", example = "true")
