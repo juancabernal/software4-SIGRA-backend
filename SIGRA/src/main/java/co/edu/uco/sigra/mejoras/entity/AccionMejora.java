@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 /**
@@ -27,6 +28,8 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AccionMejora {
+
+    private static final ZoneId ZONA_COLOMBIA = ZoneId.of("America/Bogota");
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -59,7 +62,7 @@ public class AccionMejora {
         this.descripcion = descripcion;
         this.resultadoAprendizaje = resultadoAprendizaje;
         this.conclusionOrigen = conclusionOrigen;
-        this.fechaPropuesta = LocalDateTime.now();
+        this.fechaPropuesta = LocalDateTime.now(ZONA_COLOMBIA);
     }
 
     public boolean estaConvertida() {
