@@ -506,7 +506,29 @@ _Pendiente de completar._
 ##### Mapa de empatía
 **Responsable:** Andrés Felipe Vélez
 
-_Pendiente de completar._
+El mapa de empatía identifica a los tres actores del sistema (Administrador, Profesor y Estudiante) y pondera los atributos de calidad del SRS según la prioridad que cada uno le da, como insumo para las decisiones de arquitectura y de diseño de la interfaz.
+
+**1. Actores y ponderación de atributos de calidad**
+
+Cada actor calificó de 1 a 9 la importancia de los nueve atributos de calidad del SRS (confiabilidad, disponibilidad, rendimiento, seguridad, usabilidad, eficiencia, flexibilidad, cumplimiento y escalabilidad). La columna *Ponderación Global* normaliza la suma de las tres calificaciones de cada atributo sobre el total de 135 puntos posibles.
+
+![Actores y ponderación de atributos de calidad](docs/imagenes_documentacion/andres_velez/actores.png)
+
+**2. Diagrama de radar**
+
+El diagrama de radar compara visualmente el perfil de prioridades de los tres actores: el Administrador se concentra en seguridad y confiabilidad, el Profesor en disponibilidad y usabilidad, y el Estudiante en confiabilidad y seguridad.
+
+![Diagrama de radar de atributos de calidad por actor](docs/imagenes_documentacion/andres_velez/diagrama_radar.png)
+
+**3. Justificación**
+
+La justificación explica, actor por actor, por qué cada atributo de calidad ocupa esa prioridad según su rol en SIGRA:
+
+- **Administrador:** rol de gobierno y control del sistema; prioriza seguridad, confiabilidad y cumplimiento como custodio de la Matriz RBAC y del historial de auditoría.
+- **Profesor:** actor operativo principal; prioriza usabilidad, disponibilidad y rendimiento porque usa la plataforma con frecuencia para crear evaluaciones y registrar calificaciones.
+- **Estudiante:** rol de consulta sobre su propia información académica; prioriza confiabilidad, seguridad y usabilidad para confiar en los datos que consulta.
+
+![Justificación de la ponderación de atributos de calidad por actor](docs/imagenes_documentacion/andres_velez/justificacion_mapa_empatia.png)
 
 #### Historias de usuario
 
