@@ -2,10 +2,22 @@ package co.edu.uco.sigra.programas.integracion;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.auth.entity.Administrador;
+import co.edu.uco.sigra.auth.entity.Usuario;
+import co.edu.uco.sigra.auth.repository.UsuarioRepository;
+import co.edu.uco.sigra.auth.service.JwtService;
+import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.common.repository.TipoDocumentoRepository;
+import co.edu.uco.sigra.estudiantes.entity.Estudiante;
+import co.edu.uco.sigra.estudiantes.repository.EstudianteRepository;
+import co.edu.uco.sigra.profesores.entity.Profesor;
+import co.edu.uco.sigra.profesores.repository.ProfesorRepository;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import com.jayway.jsonpath.JsonPath;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -22,10 +33,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,40 +52,117 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 //
 // Sin @Transactional: el servicio confirma de verdad y cada caso verifica la respuesta HTTP y la fila real.
 //
-// Aislamiento de datos: todos los programas de estas pruebas usan el prefijo RESERVADO "ITG-" en el código
-// y "ITG Programa " en el nombre (el mismo que usa AsignaturaIntegracionIT para sus programas de prueba).
-// @BeforeEach y @AfterEach borran solo las filas con ese prefijo, en programas y en asignaturas.
+// Seguridad de punta a punta, igual que ProfesorIntegracionIT y AsignacionDocenteIntegracionIT: la
+// cadena de filtros real corre (sin addFilters = false ni @WithMockUser) y cada petición lleva un JWT
+// emitido por JwtService para un usuario real de la base. IT-01 a IT-05 usan el token de un
+// ADMINISTRADOR; IT-06 prueba el 401 sin token o con token alterado y el 403 con tokens reales de
+// PROFESOR y ESTUDIANTE.
+//
+// Aislamiento de datos: todos los programas de prueba usan el prefijo reservado "ITG-" en el código
+// y "ITG Programa " en el nombre (el mismo que usa AsignaturaIntegracionIT para sus programas de
+// apoyo); las asignaturas propias usan "ITG-PRG-" y el tipo de documento propio es "ITG Tipo Programa".
+// @BeforeEach y @AfterEach limpian en cascada: primero las asignaturas, luego los programas, luego los
+// usuarios propios (profesor, administrador y estudiante, cada uno por su subtipo concreto) y por
+// último el tipo de documento propio.
 @Tag("integration")
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
-@WithMockUser(roles = "ADMINISTRADOR")
+@AutoConfigureMockMvc
 class ProgramaIntegracionIT {
 
     private static final String URL = "/api/v1/programas";
     private static final String PREFIJO_CODIGO = "ITG-";
     private static final String PREFIJO_NOMBRE = "ITG Programa ";
+    private static final String PREFIJO_ASIGNATURA = "ITG-PRG-";
+    private static final String PREFIJO_CORREO = "itg-prog-";
+    private static final String DOMINIO_CORREO = "@uco.net.co";
+    private static final String TIPO_DOCUMENTO = "ITG Tipo Programa";
 
     @Autowired private MockMvc mockMvc;
+    @Autowired private JwtService jwtService;
+    @Autowired private PlatformTransactionManager transactionManager;
     @Autowired private ProgramaAcademicoRepository programaRepository;
     @Autowired private AsignaturaRepository asignaturaRepository;
+    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private TipoDocumentoRepository tipoDocumentoRepository;
+    @Autowired private ProfesorRepository profesorRepository;
+    @Autowired private EstudianteRepository estudianteRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    private TransactionTemplate tx;
+    private TipoDocumento tipoDocumento;
+
+    /** JWT real de un ADMINISTRADOR creado en cada caso; es el que usan IT-01 a IT-05. */
+    private String tokenAdmin;
 
     @BeforeEach
     void preparar() {
+        tx = new TransactionTemplate(transactionManager);
+
         limpiar();
+
+        tx.executeWithoutResult(status -> {
+            TipoDocumento tipo = new TipoDocumento();
+            tipo.setNombre(TIPO_DOCUMENTO);
+            tipoDocumento = tipoDocumentoRepository.save(tipo);
+        });
+
+        tokenAdmin = token(crearUsuario(new Administrador(), "admin"));
     }
 
     @AfterEach
     void limpiar() {
-        List<ProgramaAcademico> reservados = programaRepository.findAll().stream()
-                .filter(p -> p.getCodigo().startsWith(PREFIJO_CODIGO))
-                .toList();
-        List<UUID> ids = reservados.stream().map(ProgramaAcademico::getId).toList();
-        if (!ids.isEmpty()) {
-            asignaturaRepository.deleteAll(asignaturaRepository.findAll().stream()
-                    .filter(a -> ids.contains(a.getPrograma().getId()))
-                    .toList());
+        if (tx == null) {
+            tx = new TransactionTemplate(transactionManager);
         }
-        programaRepository.deleteAll(reservados);
+
+        tx.executeWithoutResult(status -> {
+            List<Asignatura> asignaturasPropias = asignaturaRepository.findAll().stream()
+                    .filter(a -> a.getCodigo() != null && a.getCodigo().startsWith(PREFIJO_ASIGNATURA))
+                    .toList();
+            asignaturaRepository.deleteAll(asignaturasPropias);
+            asignaturaRepository.flush();
+
+            List<ProgramaAcademico> reservados = programaRepository.findAll().stream()
+                    .filter(p -> p.getCodigo().startsWith(PREFIJO_CODIGO))
+                    .toList();
+            programaRepository.deleteAll(reservados);
+            programaRepository.flush();
+
+            // Cada subtipo concreto se consulta por su propio repositorio (y Administrador por JPQL,
+            // que no tiene uno): Usuario es abstracta (herencia JOINED) y una fila de usuario sin fila
+            // en profesor/administrador/estudiante impediría cargarla con usuarioRepository.findAll().
+            profesorRepository.deleteAll(profesorRepository.findAll().stream()
+                    .filter(this::esUsuarioPropio)
+                    .toList());
+            profesorRepository.flush();
+
+            estudianteRepository.deleteAll(estudianteRepository.findAll().stream()
+                    .filter(this::esUsuarioPropio)
+                    .toList());
+            estudianteRepository.flush();
+
+            entityManager.createQuery(
+                            "select a from Administrador a where a.correoInstitucional like :prefijo "
+                                    + "or a.tipoDocumento.nombre = :tipo",
+                            Administrador.class)
+                    .setParameter("prefijo", PREFIJO_CORREO + "%")
+                    .setParameter("tipo", TIPO_DOCUMENTO)
+                    .getResultList()
+                    .forEach(entityManager::remove);
+            entityManager.flush();
+
+            tipoDocumentoRepository.deleteAll(tipoDocumentoRepository.findAll().stream()
+                    .filter(t -> TIPO_DOCUMENTO.equals(t.getNombre()))
+                    .toList());
+            tipoDocumentoRepository.flush();
+        });
+    }
+
+    private boolean esUsuarioPropio(Usuario u) {
+        return (u.getCorreoInstitucional() != null && u.getCorreoInstitucional().startsWith(PREFIJO_CORREO))
+                || (u.getTipoDocumento() != null && TIPO_DOCUMENTO.equals(u.getTipoDocumento().getNombre()));
     }
 
     // ---------------------------------------------------------------- IT-01
@@ -235,8 +326,8 @@ class ProgramaIntegracionIT {
 
         // Con una asignatura ACTIVA vinculada: 409 y el programa sigue ACTIVO.
         ProgramaAcademico conAsignaturaActiva = guardar(nombre("Con Asignatura"), "ITG-S02");
-        Asignatura asignatura = new Asignatura("ITG-ASIG1", "Asignatura de prueba", conAsignaturaActiva);
-        asignatura.activar(5);
+        Asignatura asignatura = new Asignatura(PREFIJO_ASIGNATURA + "1", "Asignatura de prueba", conAsignaturaActiva);
+        asignatura.activar(Asignatura.MIN_RA_ACTIVOS);
         asignaturaRepository.save(asignatura);
 
         MvcResult conflicto = enviar(patch(URL + "/" + conAsignaturaActiva.getId() + "/inactivar"), null);
@@ -251,7 +342,115 @@ class ProgramaIntegracionIT {
         assertSinDetallesTecnicos(cuerpo(inexistente));
     }
 
+    // ---------------------------------------------------------------- IT-06
+
+    /** Una llamada a uno de los cinco endpoints; el builder se crea de nuevo en cada envío. */
+    private record Llamada(String nombre, Supplier<MockHttpServletRequestBuilder> peticion, String cuerpo) {
+    }
+
+    /** Los cinco endpoints del módulo, apuntando al programa de apoyo {@code objetivo}. */
+    private List<Llamada> cincoEndpoints(ProgramaAcademico objetivo) {
+        UUID id = objetivo.getId();
+        return List.of(
+                new Llamada("POST", () -> post(URL), json(nombre("Seguridad"), "ITG-SEC")),
+                new Llamada("GET lista", () -> get(URL), null),
+                new Llamada("GET por id", () -> get(URL + "/" + id), null),
+                new Llamada("PUT", () -> put(URL + "/" + id), jsonNombre(nombre("Cambiado"))),
+                new Llamada("PATCH inactivar", () -> patch(URL + "/" + id + "/inactivar"), null)
+        );
+    }
+
+    @Test
+    @DisplayName("IT-06a Sin token o con token alterado: 401 en los cinco endpoints y la base no cambia")
+    void it06aSinTokenOTokenInvalido() throws Exception {
+        ProgramaAcademico objetivo = guardar(nombre("Apoyo"), "ITG-060");
+        long programasAntes = programaRepository.count();
+
+        // Token del administrador con la firma alterada: el filtro debe rechazarlo aunque los
+        // claims (id, correo, rol) sean los de un usuario real y activo.
+        int inicioFirma = tokenAdmin.lastIndexOf('.') + 1;
+        char original = tokenAdmin.charAt(inicioFirma);
+        String tokenAlterado = tokenAdmin.substring(0, inicioFirma)
+                + (original == 'A' ? 'B' : 'A')
+                + tokenAdmin.substring(inicioFirma + 1);
+
+        for (Llamada llamada : cincoEndpoints(objetivo)) {
+            assertEstado(llamada.nombre() + " sin token", 401,
+                    enviar(llamada.peticion().get(), null, llamada.cuerpo()));
+            assertEstado(llamada.nombre() + " con token alterado", 401,
+                    enviar(llamada.peticion().get(), tokenAlterado, llamada.cuerpo()));
+        }
+
+        assertSinCambios(objetivo, programasAntes);
+    }
+
+    @Test
+    @DisplayName("IT-06b Un PROFESOR con token real no puede usar ningún endpoint de programas (403)")
+    void it06bProfesorConTokenReal() throws Exception {
+        verificarRolSinAcceso(token(crearProfesor()));
+    }
+
+    @Test
+    @DisplayName("IT-06c Un ESTUDIANTE con token real no puede usar ningún endpoint de programas (403)")
+    void it06cEstudianteConTokenReal() throws Exception {
+        Estudiante estudiante = new Estudiante();
+        estudiante.setNumeroDocumento("ES" + System.nanoTime() % 100000000L);
+        verificarRolSinAcceso(token(crearUsuario(estudiante, "est")));
+    }
+
+    /**
+     * Con el token recibido llama a los cinco endpoints: todos deben dar 403 sin detalles técnicos
+     * y ninguno debe modificar la base. El programa de apoyo se crea por repositorio porque la API
+     * le está vedada a estos roles.
+     */
+    private void verificarRolSinAcceso(String token) throws Exception {
+        ProgramaAcademico objetivo = guardar(nombre("Sin Acceso"), "ITG-050");
+        long programasAntes = programaRepository.count();
+
+        for (Llamada llamada : cincoEndpoints(objetivo)) {
+            assertEstado(llamada.nombre(), 403, enviar(llamada.peticion().get(), token, llamada.cuerpo()));
+        }
+
+        assertSinCambios(objetivo, programasAntes);
+    }
+
+    private void assertSinCambios(ProgramaAcademico objetivo, long programasAntes) {
+        assertThat(programaRepository.count()).isEqualTo(programasAntes);
+
+        ProgramaAcademico despues = programaRepository.findById(objetivo.getId()).orElseThrow();
+        assertThat(despues.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
+        assertThat(despues.getNombre()).isEqualTo(objetivo.getNombre());
+    }
+
+    private static void assertEstado(String caso, int esperado, MvcResult resultado) throws Exception {
+        assertThat(resultado.getResponse().getStatus()).as(caso).isEqualTo(esperado);
+        assertSinDetallesTecnicos(cuerpo(resultado));
+    }
+
     // ---------------------------------------------------------------- utilidades
+
+    private String token(Usuario usuario) {
+        return jwtService.generarToken(usuario);
+    }
+
+    /** Guarda un usuario de la prueba (correo itg-prog-...) con el tipo de documento propio. */
+    private <U extends Usuario> U crearUsuario(U usuario, String alias) {
+        usuario.setTipoDocumento(tipoDocumento);
+        usuario.setNombreCompleto("ITG Usuario " + alias);
+        usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-" + UUID.randomUUID() + DOMINIO_CORREO);
+        usuario.setEstado(EstadoRegistro.ACTIVO);
+        return usuarioRepository.save(usuario);
+    }
+
+    private Profesor crearProfesor() {
+        Profesor p = new Profesor();
+        p.setTipoDocumento(tipoDocumento);
+        p.setNumeroDocumento("PR" + System.nanoTime() % 100000000L);
+        p.setNombreCompleto("ITG Profesor Programa");
+        p.setCorreoInstitucional(PREFIJO_CORREO + UUID.randomUUID() + DOMINIO_CORREO);
+        p.setEstado(EstadoRegistro.ACTIVO);
+        return profesorRepository.save(p);
+    }
 
     private ProgramaAcademico guardar(String nombre, String codigo) {
         ProgramaAcademico programa = new ProgramaAcademico();
@@ -266,7 +465,16 @@ class ProgramaIntegracionIT {
         return programaRepository.save(programa);
     }
 
+    /** Envía como ADMINISTRADOR (con su JWT real): es el caso de IT-01 a IT-05. */
     private MvcResult enviar(MockHttpServletRequestBuilder peticion, String json) throws Exception {
+        return enviar(peticion, tokenAdmin, json);
+    }
+
+    /** Envía con el token indicado; con {@code token} nulo la petición va sin cabecera Authorization. */
+    private MvcResult enviar(MockHttpServletRequestBuilder peticion, String token, String json) throws Exception {
+        if (token != null) {
+            peticion.header("Authorization", "Bearer " + token);
+        }
         if (json != null) {
             peticion.contentType(MediaType.APPLICATION_JSON).characterEncoding(StandardCharsets.UTF_8).content(json);
         }
