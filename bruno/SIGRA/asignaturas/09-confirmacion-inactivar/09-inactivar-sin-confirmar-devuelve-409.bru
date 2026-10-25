@@ -1,0 +1,22 @@
+meta {
+  name: 09 Inactivar con evaluaciones abiertas sin confirmar devuelve 409
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{confAsigId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje indica cuantas evaluaciones abiertas tiene y que hay que confirmar", function () {
+    expect(res.body.mensaje).to.include("evaluación(es) abierta(s)");
+    expect(res.body.mensaje).to.include("Debe confirmar la inactivación");
+  });
+}

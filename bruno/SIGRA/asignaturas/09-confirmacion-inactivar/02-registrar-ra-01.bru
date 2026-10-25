@@ -1,0 +1,26 @@
+meta {
+  name: 02 Registrar RA-01
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{confAsigId}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "RA-01",
+    "descripcion": "RA de prueba 1 para la confirmacion de inactivar"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("confRa01Id", res.body.id);
+}
