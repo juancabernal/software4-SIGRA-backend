@@ -141,14 +141,14 @@ class ApiDocumentacionIT {
                 .contains("72 bytes UTF-8");
 
         Map<String, Object> respuestas = (Map<String, Object>) login.get("responses");
-        assertThat(respuestas.keySet()).containsExactlyInAnyOrder("200", "400", "401", "423", "413", "503", "500");
+        assertThat(respuestas.keySet()).containsExactlyInAnyOrder("200", "400", "401", "423", "413", "415", "500");
         assertThat(JsonPath.<String>read(docs,
                 "$.paths['/api/v1/auth/login'].post.responses['200'].content['application/json'].schema.$ref"))
                 .isEqualTo("#/components/schemas/LoginResponse");
         Map<String, Object> respuesta = JsonPath.read(docs, "$.components.schemas.LoginResponse");
         assertThat((List<String>) respuesta.get("required"))
                 .containsExactlyInAnyOrder("token", "tipo", "expiraEn", "usuario");
-        for (String codigo : List.of("400", "401", "423", "413", "503", "500")) {
+        for (String codigo : List.of("400", "401", "423", "413", "415", "500")) {
             assertThat(JsonPath.<String>read(docs,
                     "$.paths['/api/v1/auth/login'].post.responses['" + codigo
                             + "'].content['application/json'].schema.$ref"))

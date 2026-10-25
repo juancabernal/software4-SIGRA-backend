@@ -62,10 +62,10 @@ Los errores usan el esquema `RespuestaError`, con `timestamp`, `status`, `error`
 | 401 | Correo/contraseña incorrectos o usuario inactivo | `Correo o contraseña incorrectos` |
 | 423 | Cuenta bloqueada temporalmente | `El usuario está temporalmente bloqueado. Intente nuevamente más tarde.` |
 | 413 | El cuerpo real del login supera 16 KiB | `El cuerpo de la petición supera el tamaño permitido` |
-| 503 | La capa de autenticación no puede consultar temporalmente la persistencia | `El servicio no está disponible temporalmente` |
+| 415 | `Content-Type` no soportado; utilizar `application/json` | `El tipo de contenido de la petición no es soportado por este recurso` |
 | 500 | Fallo inesperado | `Ocurrió un error inesperado en el servidor` |
 
-> Nota de compatibilidad: el contrato actual conserva el `503` para la capa de autenticación. En la implementación revisada, el handler explícito de `503` está en `JwtAuthenticationFilter` cuando no puede consultar la identidad de un JWT; `AuthServiceImpl` no tiene un mapeo específico de una caída de repositorio durante el login y su fallback general es `500`. Esta diferencia queda reportada para una decisión funcional separada y no se modifica en esta tarea documental.
+> Precisión de contrato: el endpoint público de login no emite actualmente `503` por indisponibilidad del repositorio. `JwtAuthenticationFilter` sí puede emitir `503` al validar un Bearer en endpoints protegidos, pero excluye explícitamente `POST /api/v1/auth/login`. Si falla el repositorio durante este login, el manejador general responde `500`. El contrato documentado refleja ese comportamiento real; establecer `503` también en login requeriría un cambio funcional distinto y pruebas adicionales.
 
 Ejemplo `401`:
 
@@ -121,6 +121,7 @@ La especificación JSON está en [http://localhost:8080/v3/api-docs](http://loca
 - Cinco intentos incorrectos y un intento posterior → quinto `401`, siguientes `423`.
 - Contraseña correcta después de que expira el bloqueo → `200`.
 - Cuerpo de más de 16 KiB → `413` sin invocar el servicio.
+- `Content-Type` no soportado → `415`.
 - Respuesta exitosa → verificar `token`, `tipo`, `expiraEn`, `usuario` y ausencia de `passwordHash`.
 
 ## Clases implementadas

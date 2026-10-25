@@ -85,12 +85,12 @@ public class AuthController {
                                     value = EjemplosError.PAYLOAD_TOO_LARGE_413))
             ),
             @ApiResponse(
-                    responseCode = "503",
-                    description = "Indisponibilidad temporal del repositorio durante la autenticación",
+                    responseCode = "415",
+                    description = "Content-Type no soportado; el login requiere application/json",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
-                            examples = @ExampleObject(name = "servicioNoDisponible", summary = "Persistencia temporalmente no disponible",
-                                    value = EjemplosError.SERVICIO_NO_DISPONIBLE_503))
+                            examples = @ExampleObject(name = "contenidoNoSoportado", summary = "Usar application/json",
+                                    value = EjemplosError.CONTENIDO_NO_SOPORTADO_415))
             ),
             @ApiResponse(
                     responseCode = "500",

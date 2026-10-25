@@ -58,7 +58,14 @@ public final class EjemplosError {
             "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":423,\"error\":\"LOCKED\","
                     + "\"mensaje\":\"El usuario está temporalmente bloqueado. Intente nuevamente más tarde.\"}";
 
-    /** 503 cuando la capa de autenticación no puede consultar la persistencia. */
+    /** 415 cuando el cliente intenta enviar el login sin application/json. */
+    public static final String CONTENIDO_NO_SOPORTADO_415 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":415,\"error\":\"UNSUPPORTED_MEDIA_TYPE\","
+                    + "\"mensaje\":\"El tipo de contenido de la petición no es soportado por este recurso\","
+                    + "\"detalles\":[\"application/json\"]}";
+
+    /** 503 emitido por el filtro JWT en rutas protegidas si su repositorio no está disponible;
+     * el login público no pasa por ese filtro. */
     public static final String SERVICIO_NO_DISPONIBLE_503 =
             "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":503,\"error\":\"SERVICE_UNAVAILABLE\","
                     + "\"mensaje\":\"El servicio no está disponible temporalmente\"}";
