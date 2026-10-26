@@ -1,0 +1,22 @@
+meta {
+  name: 04 Registrar RA-03
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/asignaturas/{{confAsigId}}/resultados-aprendizaje
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "RA-03",
+    "descripcion": "RA de prueba 3 para la confirmacion de inactivar"
+  }
+}
+
+assert {
+  res.status: eq 201
+}

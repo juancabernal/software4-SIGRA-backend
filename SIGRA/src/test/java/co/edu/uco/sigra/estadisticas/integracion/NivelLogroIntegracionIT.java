@@ -262,7 +262,7 @@ class NivelLogroIntegracionIT {
         assertThat(vigentes).isEqualTo(1);
         Conclusion enBase = conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
                 ra.getId(), semestre.getId(), EstadoConclusion.VIGENTE).orElseThrow();
-        assertThat(enBase.getMensaje()).isEqualTo(Conclusion.MENSAJE_INSUFICIENTE);
+        assertThat(enBase.getMensaje()).isEqualTo(Conclusion.generarMensajeInsuficiente("RA1"));
     }
 
     // ---------------------------------------------------------------- IE-04

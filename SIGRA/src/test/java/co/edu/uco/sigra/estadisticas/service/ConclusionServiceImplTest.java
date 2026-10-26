@@ -176,7 +176,7 @@ class ConclusionServiceImplTest {
             assertThat(respuesta.motivo()).isEqualTo(ConclusionServiceImpl.MOTIVO_GENERADA);
             assertThat(respuesta.conclusion()).isNotNull();
             assertThat(respuesta.conclusion().estado()).isEqualTo(EstadoConclusion.VIGENTE.name());
-            assertThat(respuesta.conclusion().mensaje()).isEqualTo(Conclusion.MENSAJE_INSUFICIENTE);
+            assertThat(respuesta.conclusion().mensaje()).isEqualTo(Conclusion.generarMensajeInsuficiente("RA-01"));
             assertThat(respuesta.conclusion().porcentajeInsuficiente()).isEqualTo(50.0);
             assertThat(respuesta.conclusion().resultadoAprendizajeId()).isEqualTo(ID_RA);
             assertThat(respuesta.conclusion().asignaturaId()).isEqualTo(ID_ASIGNATURA);

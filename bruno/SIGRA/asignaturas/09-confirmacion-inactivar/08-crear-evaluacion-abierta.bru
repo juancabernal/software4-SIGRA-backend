@@ -1,0 +1,31 @@
+meta {
+  name: 08 Crear una evaluacion ACTIVA en el semestre en curso (RA-01)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/resultados-aprendizaje/{{confRa01Id}}/evaluaciones
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Parcial confirmacion",
+    "fechaTentativa": "{{fechaConfHoy}}",
+    "porcentaje": 50,
+    "descripcion": "Evaluacion abierta usada para probar la confirmacion al inactivar"
+  }
+}
+
+script:pre-request {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  bru.setVar("fechaConfHoy", d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()));
+}
+
+assert {
+  res.status: eq 201
+  res.body.estado: eq ACTIVA
+}

@@ -86,6 +86,11 @@ public class AsignaturaController {
                     + "\"mensaje\":\"No se puede inactivar una asignatura en estado BORRADOR. Solo se pueden "
                     + "inactivar asignaturas en estado ACTIVA.\"}";
 
+    private static final String EJ_CONFIRMACION_REQUERIDA_INACTIVAR =
+            "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
+                    + "\"mensaje\":\"La asignatura con id " + ID_EJEMPLO + " tiene 2 evaluación(es) abierta(s) en "
+                    + "el semestre en curso. Debe confirmar la inactivación para continuar.\"}";
+
     private static final String EJ_RANGO_RA_POCOS =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
                     + "\"mensaje\":\"Para activar la asignatura se requieren al menos 5 resultados de aprendizaje "
@@ -372,7 +377,8 @@ public class AsignaturaController {
             description = "Cambia el estado de la asignatura a INACTIVA. Solo puede inactivarse una asignatura en "
                     + "estado ACTIVA. En la misma operación, sus resultados de aprendizaje activos pasan a "
                     + "INACTIVO (y sus evaluaciones activas también), sin borrar nada ni afectar matrículas ni "
-                    + "calificaciones."
+                    + "calificaciones. Si la asignatura tiene evaluaciones ACTIVAS en el semestre en curso, se "
+                    + "exige confirmar con el parámetro 'confirmar'."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Asignatura inactivada",
@@ -394,16 +400,24 @@ public class AsignaturaController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = @ExampleObject(value = EJ_ASIGNATURA_NO_ENCONTRADA))),
-            @ApiResponse(responseCode = "409", description = "La asignatura no está en estado ACTIVA",
+            @ApiResponse(responseCode = "409", description = "La asignatura no está en estado ACTIVA, o tiene evaluaciones abiertas en el semestre en curso y no se confirmó la inactivación",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
-                            examples = @ExampleObject(value = EJ_TRANSICION_INVALIDA_INACTIVAR)))
+                            examples = {
+                                    @ExampleObject(name = "transicionInvalida", summary = "La asignatura no está ACTIVA",
+                                            value = EJ_TRANSICION_INVALIDA_INACTIVAR),
+                                    @ExampleObject(name = "confirmacionRequerida", summary = "Evaluaciones abiertas sin confirmar",
+                                            value = EJ_CONFIRMACION_REQUERIDA_INACTIVAR)
+                            }))
     })
     @PatchMapping("/{id}/inactivar")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<AsignaturaResponseDTO> inactivarAsignatura(
             @Parameter(description = "Identificador (UUID) de la asignatura", example = ID_EJEMPLO)
-            @PathVariable UUID id) {
-        return ResponseEntity.ok(asignaturaService.inactivar(id));
+            @PathVariable UUID id,
+            @Parameter(description = "Confirma la inactivación aunque la asignatura tenga evaluaciones abiertas "
+                    + "en el semestre en curso", example = "false")
+            @RequestParam(defaultValue = "false") boolean confirmar) {
+        return ResponseEntity.ok(asignaturaService.inactivar(id, confirmar));
     }
 }

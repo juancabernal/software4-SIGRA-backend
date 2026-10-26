@@ -69,6 +69,12 @@ public class AccionMejora {
         return evaluacionGeneradaId != null;
     }
 
+    /** Edita nombre y descripción (RF-17); no toca fechaPropuesta, que es la fecha de registro. */
+    public void actualizar(String nombre, String descripcion) {
+        this.nombre = nombre;
+        this.descripcion = descripcion;
+    }
+
     /** Marca la acción como convertida en evaluación (RF-18); falla si ya lo estaba. */
     public void marcarConvertida(UUID evaluacionGeneradaId) {
         if (estaConvertida()) {

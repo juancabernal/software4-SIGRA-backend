@@ -1,0 +1,33 @@
+meta {
+  name: 04 Editar una accion ya convertida responde 409
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/acciones-mejora/{{accionMejoraId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Intento de edicion",
+    "descripcion": "No deberia poder editarse porque ya fue convertida en evaluacion."
+  }
+}
+
+docs {
+  accionMejoraId quedo convertida en evaluacion en "01-convertir-con-un-porcentaje-valido"
+  (03-convertir), asi que editarla ahora debe rechazarse con 409.
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("mensaje esperado", function () {
+    expect(res.body.mensaje).to.include("ya fue convertida en evaluación");
+  });
+}

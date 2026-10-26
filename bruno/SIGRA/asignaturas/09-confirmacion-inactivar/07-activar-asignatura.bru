@@ -1,0 +1,17 @@
+meta {
+  name: 07 Activar la asignatura (5 RA activos)
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{confAsigId}}/activar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq ACTIVA
+  res.body.cantidadRa: eq 5
+}

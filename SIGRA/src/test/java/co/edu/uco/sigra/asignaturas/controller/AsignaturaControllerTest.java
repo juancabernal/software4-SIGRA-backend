@@ -8,6 +8,7 @@ import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaExceptionHandler;
 import co.edu.uco.sigra.asignaturas.exception.AsignaturaNoEncontradaException;
 import co.edu.uco.sigra.asignaturas.exception.CodigoAsignaturaDuplicadoException;
+import co.edu.uco.sigra.asignaturas.exception.ConfirmacionRequeridaException;
 import co.edu.uco.sigra.asignaturas.exception.FiltroInvalidoException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaInactivoException;
 import co.edu.uco.sigra.asignaturas.exception.ProgramaNoEncontradoException;
@@ -453,10 +454,14 @@ class AsignaturaControllerTest {
             return mockMvc.perform(patch(URL_ID + "/inactivar"));
         }
 
+        private ResultActions inactivar(boolean confirmar) throws Exception {
+            return mockMvc.perform(patch(URL_ID + "/inactivar").param("confirmar", String.valueOf(confirmar)));
+        }
+
         @Test
         @DisplayName("Desde ACTIVA devuelve 200 y la asignatura INACTIVA")
         void ok() throws Exception {
-            when(service.inactivar(ID)).thenReturn(respuesta(CODIGO, EstadoAsignatura.INACTIVA, 0));
+            when(service.inactivar(ID, false)).thenReturn(respuesta(CODIGO, EstadoAsignatura.INACTIVA, 0));
 
             inactivar()
                     .andExpect(status().isOk())
@@ -466,7 +471,7 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Inexistente devuelve 404")
         void inexistente() throws Exception {
-            when(service.inactivar(ID)).thenThrow(new AsignaturaNoEncontradaException(ID));
+            when(service.inactivar(ID, false)).thenThrow(new AsignaturaNoEncontradaException(ID));
 
             inactivar().andExpect(status().isNotFound());
         }
@@ -474,10 +479,29 @@ class AsignaturaControllerTest {
         @Test
         @DisplayName("Desde un estado inválido devuelve 409")
         void estadoInvalido() throws Exception {
-            when(service.inactivar(ID)).thenThrow(new TransicionEstadoInvalidaException(EstadoAsignatura.BORRADOR,
+            when(service.inactivar(ID, false)).thenThrow(new TransicionEstadoInvalidaException(EstadoAsignatura.BORRADOR,
                     "inactivar", "Solo se pueden inactivar asignaturas en estado ACTIVA."));
 
             inactivar().andExpect(status().isConflict());
+        }
+
+        @Test
+        @DisplayName("Con evaluaciones abiertas y sin confirmar devuelve 409")
+        void confirmacionRequerida() throws Exception {
+            when(service.inactivar(ID, false))
+                    .thenThrow(ConfirmacionRequeridaException.porEvaluacionesAbiertas(ID, 2));
+
+            inactivar().andExpect(status().isConflict());
+        }
+
+        @Test
+        @DisplayName("Con evaluaciones abiertas y confirmar=true devuelve 200")
+        void confirmando() throws Exception {
+            when(service.inactivar(ID, true)).thenReturn(respuesta(CODIGO, EstadoAsignatura.INACTIVA, 0));
+
+            inactivar(true)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(JSON_ESTADO).value("INACTIVA"));
         }
     }
 

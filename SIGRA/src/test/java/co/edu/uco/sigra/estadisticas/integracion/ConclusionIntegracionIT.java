@@ -184,13 +184,13 @@ class ConclusionIntegracionIT {
         assertThat(r.getResponse().getStatus()).isEqualTo(200);
         assertThat((Boolean) JsonPath.read(cuerpo, "$.generada")).isTrue();
         assertThat((String) JsonPath.read(cuerpo, "$.motivo")).isEqualTo(ConclusionServiceImpl.MOTIVO_GENERADA);
-        assertThat((String) JsonPath.read(cuerpo, "$.conclusion.mensaje")).isEqualTo(Conclusion.MENSAJE_INSUFICIENTE);
+        assertThat((String) JsonPath.read(cuerpo, "$.conclusion.mensaje")).isEqualTo(Conclusion.generarMensajeInsuficiente("RA1"));
         assertThat(((Number) JsonPath.read(cuerpo, "$.conclusion.porcentajeInsuficiente")).doubleValue()).isEqualTo(50.0);
         assertThat((String) JsonPath.read(cuerpo, "$.conclusion.estado")).isEqualTo("VIGENTE");
 
         Conclusion enBase = conclusionRepository.findByResultadoAprendizaje_IdAndSemestre_IdAndEstado(
                 ra.getId(), semestre.getId(), EstadoConclusion.VIGENTE).orElseThrow();
-        assertThat(enBase.getMensaje()).isEqualTo(Conclusion.MENSAJE_INSUFICIENTE);
+        assertThat(enBase.getMensaje()).isEqualTo(Conclusion.generarMensajeInsuficiente("RA1"));
         assertThat(enBase.getPorcentajeInsuficiente()).isEqualTo(50.0);
     }
 

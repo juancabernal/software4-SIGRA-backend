@@ -36,9 +36,6 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Conclusion {
 
-    public static final String MENSAJE_INSUFICIENTE =
-            "Nivel de logro insuficiente, se recomienda acción de mejora";
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -89,15 +86,21 @@ public class Conclusion {
     @Column(name = "semestre_anterior_codigo", length = 30, updatable = false)
     private String semestreAnteriorCodigo;
 
-    /** Solo nace así: VIGENTE, con el mensaje fijo de RF-16, la fecha y el porcentaje que la originaron. */
+    /** Solo nace así: VIGENTE, con el mensaje de RF-16 para el RA evaluado, la fecha y el porcentaje que la originaron. */
     public Conclusion(ResultadoAprendizaje resultadoAprendizaje, Semestre semestre, double porcentajeInsuficiente) {
         this.resultadoAprendizaje = resultadoAprendizaje;
         this.semestre = semestre;
-        this.mensaje = MENSAJE_INSUFICIENTE;
+        this.mensaje = generarMensajeInsuficiente(resultadoAprendizaje.getCodigo());
         this.tieneDatosSuficientes = true;
         this.fechaGeneracion = LocalDateTime.now();
         this.porcentajeInsuficiente = porcentajeInsuficiente;
         this.estado = EstadoConclusion.VIGENTE;
+    }
+
+    /** Mensaje de RF-16 para el RA evaluado, usado al generar la conclusión y expuesto para pruebas y documentación. */
+    public static String generarMensajeInsuficiente(String codigoResultadoAprendizaje) {
+        return "Nivel de logro insuficiente en " + codigoResultadoAprendizaje
+                + ": se recomienda registrar una acción de mejora";
     }
 
     /** Completa la foto del diagnóstico (RF-16, avance de información). No cambia la regla de generación. */

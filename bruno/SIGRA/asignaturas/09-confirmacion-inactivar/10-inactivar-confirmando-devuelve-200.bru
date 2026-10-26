@@ -1,0 +1,16 @@
+meta {
+  name: 10 La misma peticion con confirmar=true devuelve 200
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaturas/{{confAsigId}}/inactivar?confirmar=true
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq INACTIVA
+}
