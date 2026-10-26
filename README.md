@@ -568,7 +568,7 @@ Cada apartado corresponde a una hoja del archivo compartido `documentosAndres/Do
 #### Visión y estrategia
 
 ##### Visión
-**Responsable:** Juan Camilo Bernal
+**Responsable:** Por definir
 
 _Pendiente de completar._
 
@@ -632,7 +632,7 @@ _Pendiente de completar._
 [← Historias de usuario](#historias-de-usuario-1) · [Índice](#índice) · [Siguiente →](#mapa-de-historias-de-usuario)
 
 ##### Mapa de historias de usuario
-**Responsable:** Juan Camilo Bernal
+**Responsable:** Por definir
 
 _Pendiente de completar._
 
@@ -922,7 +922,7 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 [← Objetos de dominio](#objetos-de-dominio) · [Índice](#índice) · [Siguiente →](#mockups)
 
 ##### Mockups
-**Responsable:** Juan Camilo Bernal
+**Responsable:** Por definir
 
 _Pendiente de completar._
 
@@ -994,7 +994,7 @@ columna, en [`docs/db/SIGRA_DATABASE_CURRENT.md`](docs/db/SIGRA_DATABASE_CURRENT
 [← MER](#mer) · [Índice](#índice) · [Siguiente →](#mr)
 
 ##### MR
-**Responsable:** Juan Camilo Bernal
+**Responsable:** Por definir
 
 _Pendiente de completar._
 
@@ -1012,7 +1012,7 @@ _Pendiente de completar._
 [← MR](#mr) · [Índice](#índice) · [Siguiente →](#arquetipo-de-referencia)
 
 ##### Arquetipo de referencia
-**Responsable:** Juan Camilo Bernal
+**Responsable:** Por definir
 
 _Pendiente de completar._
 
@@ -1020,7 +1020,7 @@ _Pendiente de completar._
 [← Arquitectura de referencia](#arquitectura-de-referencia) · [Índice](#índice) · [Siguiente →](#alternativa-de-solución)
 
 ##### Alternativa de solución
-**Responsable:** Juan Camilo Bernal
+**Responsable:** Por definir
 
 _Pendiente de completar._
 
