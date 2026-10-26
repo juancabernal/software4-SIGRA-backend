@@ -7,19 +7,30 @@ import java.util.UUID;
 
 @Schema(name = "RegistroAuditoria", description = "Un evento del historial de auditoría")
 public record RegistroAuditoriaDTO(
+        @Schema(description = "Identificador único del registro de auditoría.", example = "4b64b64b-4b64-4b64-8b64-4b64b64b64b6",
+                requiredMode = Schema.RequiredMode.REQUIRED)
         UUID id,
-        @Schema(description = "Fecha y hora exacta del evento (hora de Colombia)", example = "2026-10-20T14:35:12.123")
+        @Schema(description = "Fecha y hora exacta del evento (hora de Colombia)", example = "2026-10-20T14:35:12.123",
+                requiredMode = Schema.RequiredMode.REQUIRED)
         LocalDateTime fechaHora,
-        @Schema(description = "Acción registrada", example = "CAMBIO_ESTADO")
+        @Schema(description = "Acción registrada. Valores actuales: LOGIN_EXITOSO, LOGIN_FALLIDO, CAMBIO_ESTADO, "
+                + "CALIFICACION_FUERA_DE_FECHA y CALIFICACION_MODIFICADA.", example = "LOGIN_EXITOSO",
+                allowableValues = {"LOGIN_EXITOSO", "LOGIN_FALLIDO", "CAMBIO_ESTADO", "CALIFICACION_FUERA_DE_FECHA", "CALIFICACION_MODIFICADA"},
+                requiredMode = Schema.RequiredMode.REQUIRED)
         String accion,
-        @Schema(description = "Tipo de entidad afectada", example = "ASIGNATURA")
+        @Schema(description = "Tipo de entidad afectada. En un filtro USUARIO se incluyen todos los eventos de usuario, no solo los logins.",
+                example = "USUARIO", requiredMode = Schema.RequiredMode.REQUIRED)
         String tipoEntidad,
-        @Schema(description = "Id de la entidad afectada; nulo en un login rechazado")
+        @Schema(description = "Identificador de la entidad afectada. Puede ser nulo en un LOGIN_FALLIDO.",
+                example = "4b64b64b-4b64-4b64-8b64-4b64b64b64b6", nullable = true)
         UUID idEntidad,
-        @Schema(description = "Usuario que hizo la acción; nulo si no había sesión")
+        @Schema(description = "Identificador del usuario que hizo la acción. Puede ser nulo en un intento de login rechazado.",
+                example = "4b64b64b-4b64-4b64-8b64-4b64b64b64b6", nullable = true)
         UUID usuarioId,
-        @Schema(description = "Rol del usuario que hizo la acción", example = "ADMINISTRADOR")
+        @Schema(description = "Rol del usuario que hizo la acción. Puede ser nulo cuando no había una sesión autenticada.",
+                example = "ADMINISTRADOR", allowableValues = {"ADMINISTRADOR", "PROFESOR", "ESTUDIANTE"}, nullable = true)
         String rolUsuario,
-        @Schema(description = "Detalle del evento", example = "Cambio de estado: inactivar (nuevo estado: INACTIVA)")
+        @Schema(description = "Descripción del evento sin correo, dirección IP, dispositivo ni geolocalización.",
+                example = "Inicio de sesión rechazado: credenciales inválidas", requiredMode = Schema.RequiredMode.REQUIRED)
         String detalle
 ) {}

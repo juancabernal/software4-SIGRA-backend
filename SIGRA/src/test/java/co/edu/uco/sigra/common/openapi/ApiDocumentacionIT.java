@@ -111,6 +111,120 @@ class ApiDocumentacionIT {
                 .isEmpty();
     }
 
+    @Test
+    @DisplayName("El login público documenta su contrato, errores y ausencia de Bearer")
+    @SuppressWarnings("unchecked")
+    void documentaAutenticacion() throws Exception {
+        String docs = leerDocs();
+        Map<String, Object> login = JsonPath.read(docs, "$.paths['/api/v1/auth/login'].post");
+
+        assertThat((List<String>) login.get("tags")).containsExactly("Autenticación");
+        Object seguridad = login.get("security");
+        assertThat(seguridad == null || (seguridad instanceof List<?> lista && lista.isEmpty()))
+                .as("El login es público y no debe heredar bearerAuth")
+                .isTrue();
+
+        Map<String, Object> cuerpo = (Map<String, Object>) login.get("requestBody");
+        assertThat(cuerpo).containsEntry("required", true);
+        assertThat(JsonPath.<String>read(docs,
+                "$.paths['/api/v1/auth/login'].post.requestBody.content['application/json'].schema.$ref"))
+                .isEqualTo("#/components/schemas/LoginRequest");
+
+        Map<String, Object> solicitud = JsonPath.read(docs, "$.components.schemas.LoginRequest");
+        assertThat((List<String>) solicitud.get("required"))
+                .containsExactlyInAnyOrder("correoInstitucional", "contrasena");
+        Map<String, Object> propiedadesSolicitud = (Map<String, Object>) solicitud.get("properties");
+        assertThat(propiedadesSolicitud).containsKeys("correoInstitucional", "contrasena");
+        assertThat((Number) ((Map<String, Object>) propiedadesSolicitud.get("correoInstitucional")).get("maxLength"))
+                .isEqualTo(254);
+        assertThat(((Map<String, Object>) propiedadesSolicitud.get("contrasena")).get("description").toString())
+                .contains("72 bytes UTF-8");
+
+        Map<String, Object> respuestas = (Map<String, Object>) login.get("responses");
+        assertThat(respuestas.keySet()).containsExactlyInAnyOrder("200", "400", "401", "423", "413", "415", "500");
+        assertThat(JsonPath.<String>read(docs,
+                "$.paths['/api/v1/auth/login'].post.responses['200'].content['application/json'].schema.$ref"))
+                .isEqualTo("#/components/schemas/LoginResponse");
+        Map<String, Object> respuesta = JsonPath.read(docs, "$.components.schemas.LoginResponse");
+        assertThat((List<String>) respuesta.get("required"))
+                .containsExactlyInAnyOrder("token", "tipo", "expiraEn", "usuario");
+        for (String codigo : List.of("400", "401", "423", "413", "415", "500")) {
+            assertThat(JsonPath.<String>read(docs,
+                    "$.paths['/api/v1/auth/login'].post.responses['" + codigo
+                            + "'].content['application/json'].schema.$ref"))
+                    .as("respuesta %s", codigo)
+                    .isEqualTo("#/components/schemas/RespuestaError");
+        }
+        assertThat(((Map<String, Object>) respuestas.get("423")).get("description").toString())
+                .contains("15 minutos", "cinco intentos");
+
+        Map<String, Object> usuario = JsonPath.read(docs, "$.components.schemas.UsuarioSesion");
+        Map<String, Object> propiedadesUsuario = (Map<String, Object>) usuario.get("properties");
+        assertThat(propiedadesUsuario).containsKeys("id", "nombreCompleto", "correoInstitucional", "rol")
+                .doesNotContainKey("passwordHash");
+        assertThat((Map<String, Object>) JsonPath.read(docs, "$.components.schemas.LoginResponse.properties"))
+                .doesNotContainKey("passwordHash");
+    }
+
+    @Test
+    @DisplayName("Auditoría documenta parámetros, paginación, esquemas y autorización de administrador")
+    @SuppressWarnings("unchecked")
+    void documentaAuditoria() throws Exception {
+        String docs = leerDocs();
+        Map<String, Object> auditoria = JsonPath.read(docs, "$.paths['/api/v1/auditoria'].get");
+
+        assertThat((List<String>) auditoria.get("tags")).containsExactly("Auditoría");
+        Map<String, Object> requisito = JsonPath.read(docs, "$.paths['/api/v1/auditoria'].get.security[0]");
+        assertThat(requisito).containsKey(ESQUEMA_BEARER);
+
+        List<Map<String, Object>> parametros = JsonPath.read(docs,
+                "$.paths['/api/v1/auditoria'].get.parameters");
+        assertThat(parametros.stream().map(p -> p.get("name")).toList())
+                .containsExactlyInAnyOrder("desde", "hasta", "tipoEntidad", "pagina", "tamano");
+        Map<String, Object> pagina = parametros.stream()
+                .filter(p -> p.get("name").equals("pagina"))
+                .findFirst().orElseThrow();
+        Map<String, Object> paginaSchema = (Map<String, Object>) pagina.get("schema");
+        assertThat(paginaSchema).containsEntry("default", 0).containsEntry("minimum", 0);
+        Map<String, Object> tamano = parametros.stream()
+                .filter(p -> p.get("name").equals("tamano"))
+                .findFirst().orElseThrow();
+        Map<String, Object> tamanoSchema = (Map<String, Object>) tamano.get("schema");
+        assertThat(tamanoSchema).containsEntry("default", 20).containsEntry("minimum", 1).containsEntry("maximum", 100);
+
+        Map<String, Object> respuestas = (Map<String, Object>) auditoria.get("responses");
+        assertThat(respuestas.keySet()).containsExactlyInAnyOrder("200", "400", "401", "403");
+        assertThat(JsonPath.<String>read(docs,
+                "$.paths['/api/v1/auditoria'].get.responses['200'].content['application/json'].schema.$ref"))
+                .isEqualTo("#/components/schemas/PaginaAuditoria");
+        for (String codigo : List.of("400", "401", "403")) {
+            assertThat(JsonPath.<String>read(docs,
+                    "$.paths['/api/v1/auditoria'].get.responses['" + codigo
+                            + "'].content['application/json'].schema.$ref"))
+                    .as("respuesta %s", codigo)
+                    .isEqualTo("#/components/schemas/RespuestaError");
+        }
+
+        Map<String, Object> registro = JsonPath.read(docs, "$.components.schemas.RegistroAuditoria");
+        Map<String, Object> propiedadesRegistro = (Map<String, Object>) registro.get("properties");
+        assertThat(propiedadesRegistro).containsKeys("id", "fechaHora", "accion", "tipoEntidad", "idEntidad",
+                "usuarioId", "rolUsuario", "detalle");
+        assertThat(((Map<String, Object>) propiedadesRegistro.get("fechaHora")).get("example").toString())
+                .doesNotContain("-05:00");
+        assertThat(((List<String>) ((Map<String, Object>) propiedadesRegistro.get("idEntidad")).get("type")))
+                .contains("null");
+        assertThat(((List<String>) ((Map<String, Object>) propiedadesRegistro.get("usuarioId")).get("type")))
+                .contains("null");
+        assertThat(((List<String>) ((Map<String, Object>) propiedadesRegistro.get("rolUsuario")).get("type")))
+                .contains("null");
+
+        Map<String, Object> paginaSchemaCompleta = JsonPath.read(docs, "$.components.schemas.PaginaAuditoria");
+        assertThat((Map<String, Object>) paginaSchemaCompleta.get("properties"))
+                .containsKeys("contenido", "pagina", "tamano", "totalElementos", "totalPaginas");
+        assertThat((List<String>) paginaSchemaCompleta.get("required"))
+                .containsExactlyInAnyOrder("contenido", "pagina", "tamano", "totalElementos", "totalPaginas");
+    }
+
     private String leerDocs() throws Exception {
         return new String(mockMvc.perform(get("/v3/api-docs")).andReturn().getResponse().getContentAsByteArray(),
                 StandardCharsets.UTF_8);
