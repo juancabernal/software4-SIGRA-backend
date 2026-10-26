@@ -1,9 +1,83 @@
-# SIGRA — Backend
+<div align="center">
 
-**Software Integral de Gestión de Resultados de Aprendizaje**
-Universidad Católica de Oriente · Ingeniería de Software 4 · Equipo B · 2026
+# SIGRA
 
-API REST en Spring Boot que soporta la aplicación web [SIGRA Frontend](https://github.com/juancabernal/software4-SIGRA-frontend).
+### Software Integral de Gestión de Resultados de Aprendizaje
+
+**Backend**
+
+Ingeniería de Software IV · Universidad Católica de Oriente
+Equipo B · 2026
+
+</div>
+
+---
+
+SIGRA es una plataforma web que permite a una institución educativa definir los Resultados
+de Aprendizaje de sus asignaturas, evaluarlos, medir el nivel de logro alcanzado por los
+estudiantes y cerrar el ciclo de mejora mediante conclusiones automáticas y acciones
+correctivas.
+
+Este repositorio contiene el **backend**: una API REST construida con Spring Boot 4 y
+PostgreSQL. El frontend vive en un repositorio aparte.
+
+| | |
+| --- | --- |
+| **Tecnologías** | Java 21 · Spring Boot 4.1.1 · PostgreSQL · Gradle |
+| **Repositorio del frontend** | [software4-SIGRA-frontend](https://github.com/juancabernal/software4-SIGRA-frontend) |
+| **Especificación de requisitos** | SRS del equipo, versión vigente |
+| **Documentación de análisis y diseño** | [Ver índice](#documentación-del-proyecto) |
+
+> **Cómo navegar este documento.** El índice enlaza a cada apartado. Al final de cada
+> apartado de la documentación de análisis y diseño encontrarás una línea de navegación
+> para ir al anterior, volver al índice o pasar al siguiente.
+
+---
+
+## Índice
+
+- [1. Integrantes](#1-integrantes)
+- [2. Propósito](#2-propósito)
+- [3. Funcionalidad por integrante](#3-funcionalidad-por-integrante)
+  - [Sprint 1 — Catálogo y seguridad (30/09/2026 – 05/10/2026)](#sprint-1--catálogo-y-seguridad-30092026--05102026)
+  - [Sprint 2 — Operación académica (06/10/2026 – 12/10/2026)](#sprint-2--operación-académica-06102026--12102026)
+  - [Sprint 3 — Cierre del ciclo y reportes (13/10/2026 – 19/10/2026)](#sprint-3--cierre-del-ciclo-y-reportes-13102026--19102026)
+  - [Responsabilidades transversales](#responsabilidades-transversales)
+- [4. Empaquetado](#4-empaquetado)
+  - [Artefacto](#artefacto)
+  - [Estructura de paquetes](#estructura-de-paquetes)
+  - [Convención](#convención)
+- [5. Arquitectura](#5-arquitectura)
+  - [Vista general](#vista-general)
+  - [Estilo arquitectónico](#estilo-arquitectónico)
+  - [Capas](#capas)
+  - [Decisiones transversales](#decisiones-transversales)
+  - [Stack](#stack)
+- [6. Cómo ejecutar el proyecto](#6-cómo-ejecutar-el-proyecto)
+  - [Requisitos previos](#requisitos-previos)
+  - [1. Clonar el repositorio](#1-clonar-el-repositorio)
+  - [2. Crear el esquema de la base de datos](#2-crear-el-esquema-de-la-base-de-datos)
+  - [3. Configurar las variables de entorno](#3-configurar-las-variables-de-entorno)
+  - [4. Ejecutar en modo desarrollo](#4-ejecutar-en-modo-desarrollo)
+    - [Autenticación (RF-04)](#autenticación-rf-04)
+  - [5. Ejecutar las pruebas](#5-ejecutar-las-pruebas)
+    - [Pruebas de la API con Bruno](#pruebas-de-la-api-con-bruno)
+  - [6. Compilar y ejecutar el JAR](#6-compilar-y-ejecutar-el-jar)
+  - [7. Conectar con el frontend](#7-conectar-con-el-frontend)
+  - [Problemas frecuentes](#problemas-frecuentes)
+- [RF-02 / RF-03 — Autenticación y autorización](#rf-02--rf-03--autenticación-y-autorización)
+- [Pendientes conocidos del repositorio](#pendientes-conocidos-del-repositorio)
+- [Documentación del proyecto](#documentación-del-proyecto)
+  - [Documentos generales](#documentos-generales)
+  - [Documentos de análisis y diseño](#documentos-de-análisis-y-diseño)
+    - [Visión y estrategia](#visión-y-estrategia)
+    - [Historias de usuario](#historias-de-usuario)
+    - [Modelo de dominio](#modelo-de-dominio)
+    - [Modelado de datos](#modelado-de-datos)
+    - [Arquitectura y solución](#arquitectura-y-solución)
+    - [Diagramas de clases y componentes](#diagramas-de-clases-y-componentes)
+- [Flujo de trabajo con Git](#flujo-de-trabajo-con-git)
+  - [Convención de commits](#convención-de-commits)
 
 ---
 
@@ -498,10 +572,16 @@ Cada apartado corresponde a una hoja del archivo compartido `documentosAndres/Do
 
 _Pendiente de completar._
 
+---
+[Índice](#índice) · [Siguiente →](#trade-off)
+
 ##### Trade-Off
 **Responsable:** Santiago Torres
 
 _Pendiente de completar._
+
+---
+[← Visión](#visión) · [Índice](#índice) · [Siguiente →](#mapa-de-empatía)
 
 ##### Mapa de empatía
 **Responsable:** Andrés Felipe Vélez
@@ -530,6 +610,9 @@ La justificación explica, actor por actor, por qué cada atributo de calidad oc
 
 ![Justificación de la ponderación de atributos de calidad por actor](docs/imagenes_documentacion/andres_velez/justificacion_mapa_empatia.png)
 
+---
+[← Trade-Off](#trade-off) · [Índice](#índice) · [Siguiente →](#historias-de-usuario-1)
+
 #### Historias de usuario
 
 ##### Historias de usuario
@@ -537,54 +620,386 @@ La justificación explica, actor por actor, por qué cada atributo de calidad oc
 
 _Pendiente de completar._
 
+---
+[← Mapa de empatía](#mapa-de-empatía) · [Índice](#índice) · [Siguiente →](#criterios-de-aceptación)
+
 ##### Criterios de aceptación
 **Responsable:** Juan José Narváez
 
 _Pendiente de completar._
+
+---
+[← Historias de usuario](#historias-de-usuario-1) · [Índice](#índice) · [Siguiente →](#mapa-de-historias-de-usuario)
 
 ##### Mapa de historias de usuario
 **Responsable:** Juan Camilo Bernal
 
 _Pendiente de completar._
 
+---
+[← Criterios de aceptación](#criterios-de-aceptación) · [Índice](#índice) · [Siguiente →](#modelo-de-dominio-1)
+
 #### Modelo de dominio
 
 ##### Modelo de dominio
 **Responsable:** Juan Camilo Bernal
 
-_Pendiente de completar._
+El modelo de dominio describe los conceptos del negocio y las relaciones entre ellos, con
+independencia de cómo se almacenen. Es el vocabulario común del equipo: los nombres que
+aparecen aquí son los que se usan en el código, en la base de datos y en el SRS.
+
+![Modelo de dominio de SIGRA](docs/imagenes_documentacion/juan_bernal/modelo_dominio.png)
+
+**Cómo leerlo.** El ciclo central de SIGRA se recorre de izquierda a derecha: una
+**Asignatura** agrupa entre 5 y 7 **Resultados de Aprendizaje**; sobre cada RA el profesor
+define **Evaluaciones** enmarcadas en un **Semestre**; cada evaluación recibe
+**Calificaciones** de los estudiantes matriculados; de esas calificaciones se deriva un
+**NivelLogro**; cuando el desempeño agregado resulta insuficiente se genera una
+**Conclusión**, que habilita el registro de una **AcciónMejora**, la cual a su vez puede
+convertirse en una nueva Evaluación y cerrar el ciclo.
+
+Alrededor de ese núcleo están los actores (**Administrador**, **Profesor**, **Estudiante**,
+todos con un **TipoDocumento**), las asociaciones que los vinculan con las asignaturas
+(**ProfesorAsignatura** y **Matrícula**) y el **HistorialAuditoría**, que registra los
+eventos relevantes sobre todas las entidades.
+
+**Diferencia conocida entre el modelo y la implementación.** El diagrama representa la
+relación entre asignatura y programa académico como una asociación propia,
+**AsignaturaPrograma**, que permitiría que una asignatura perteneciera a varios programas.
+La implementación resolvió esa relación como una clave foránea directa en la asignatura:
+cada asignatura pertenece a exactamente un programa académico, conforme a RF-03a, que pide
+registrar "el programa académico al que pertenece". La tabla intermedia no existe en el
+esquema. El MER refleja la decisión implementada.
+
+---
+[← Mapa de historias de usuario](#mapa-de-historias-de-usuario) · [Índice](#índice) · [Siguiente →](#objetos-de-dominio)
 
 ##### Objetos de dominio
 **Responsable:** Juan Camilo Bernal
 
-_Pendiente de completar._
+Catálogo de los objetos que componen el modelo de dominio, con la definición acordada por
+el equipo para cada uno.
+
+| Objeto | Descripción |
+| --- | --- |
+| **AcciónMejora** | Medida correctiva que el profesor registra sobre un Resultado de Aprendizaje cuando existe una Conclusión insuficiente vigente, y que puede dar origen a una nueva evaluación. |
+| **Administrador** | Persona encargada de gestionar el catálogo académico (profesores, programas, asignaturas y RA) y de consultar los reportes de supervisión del sistema. |
+| **Asignatura** | Materia dictada dentro de un programa académico, que agrupa entre 5 y 7 Resultados de Aprendizaje y pasa por los estados Borrador, Activa e Inactiva. |
+| **Calificación** | Nota (0.0 a 5.0) y observación obligatoria que el profesor registra para un estudiante en una evaluación específica. |
+| **Conclusión** | Alerta automática que se genera cuando más del 40 % de los estudiantes obtiene un Nivel de Logro Bajo o Medio en un mismo Resultado de Aprendizaje. |
+| **Estudiante** | Persona matriculada en una o varias asignaturas, cuyo aprendizaje es evaluado por RA y que solo tiene acceso de lectura a sus propios resultados. |
+| **Evaluación** | Actividad definida por el profesor (nombre, fecha tentativa, porcentaje y descripción) mediante la cual se mide el desempeño de los estudiantes en un Resultado de Aprendizaje. |
+| **HistorialAuditoría** | Registro histórico, de solo escritura (*append-only*), de los cambios y eventos relevantes ocurridos sobre las entidades académicas. |
+| **Matrícula** | Relación entre un estudiante y una asignatura en un periodo determinado, indicando si la vinculación está Activa o Desvinculada. |
+| **NivelLogro** | Categoría (Bajo, Medio, Alto o Sobresaliente) que resulta de calcular el desempeño de un estudiante en un Resultado de Aprendizaje a partir de sus calificaciones. |
+| **Profesor** | Persona encargada de evaluar el aprendizaje de los estudiantes en las asignaturas que tiene asignadas, mediante la creación de evaluaciones y el registro de calificaciones. |
+| **ProfesorAsignatura** | Asignación docente de uno o varios profesores a una o varias asignaturas para su evaluación. |
+| **ProgramaAcadémico** | Programa de formación (por ejemplo, Ingeniería de Sistemas) al cual pertenecen una o varias asignaturas. |
+| **ResultadoAprendizaje** | Unidad de medida sobre la cual se evalúa el aprendizaje del estudiante dentro de una asignatura; es fijo por asignatura y solo editable por el Administrador. |
+| **Semestre** | Periodo académico (con fecha de inicio y fin) respecto al cual se generan y enmarcan las matrículas, evaluaciones y conclusiones. Los RA no varían de un semestre a otro. |
+| **TipoDocumento** | Tipos de identificación válidos para un usuario del sistema. |
+
+> **AsignaturaPrograma** aparecía en el modelo original como objeto propio. La
+> implementación la resolvió como una clave foránea directa en la asignatura, por lo que
+> dejó de ser un objeto del dominio. Ver la nota del [Modelo de dominio](#modelo-de-dominio).
+
+---
+[← Modelo de dominio](#modelo-de-dominio-1) · [Índice](#índice) · [Siguiente →](#muestreo-de-datos-de-objetos)
 
 ##### Muestreo de datos de objetos
 **Responsable:** Juan Camilo Bernal
 
-_Pendiente de completar._
+Para cada objeto del dominio se listan sus atributos, el significado de cada uno y un dato
+de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad.
+
+> Los objetos **Asignatura**, **Conclusión** y **AcciónMejora** corresponden a RF-03, RF-16,
+> RF-17 y RF-18, y se documentan aquí tal como quedaron implementados. El resto refleja el
+> modelo acordado por el equipo.
+
+#### AcciónMejora
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la acción de mejora. | `9f1c…4a7b` |
+| ConclusiónOrigen | Conclusión vigente que habilitó el registro de la acción. | `3b22…c019` |
+| ResultadoAprendizaje | RA sobre el cual se propone la acción. | `7c44…e501` |
+| EvaluaciónGenerada | Evaluación creada al convertir la acción. Vacío mientras no se haya convertido. | `No aplica` |
+| Nombre | Nombre corto de la acción (hasta 30 caracteres). | `Taller de refuerzo` |
+| Descripción | Detalle de la acción propuesta (hasta 100 caracteres). | `Taller práctico adicional sobre límites al infinito y continuidad` |
+| FechaPropuesta | Fecha y hora en que se registró la acción. | `2026-03-02 09:14` |
+
+> La acción no tiene un atributo de estado. Que esté convertida o no se deduce de
+> **EvaluaciónGenerada**: mientras esté vacío, la acción puede editarse; una vez tiene
+> valor, el sistema rechaza tanto una segunda conversión como la edición (RF-17, RF-18).
+
+#### Administrador
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del administrador. | `1a2b…4c5d` |
+| TipoDocumento | Tipo de documento de identidad. | `Cédula de Ciudadanía` |
+| NúmeroDocumento | Número de identificación. | `43215678` |
+| NombreCompleto | Nombre y apellidos. | `Luz Mery Ríos Alzate` |
+| CorreoInstitucional | Correo con el que accede a la plataforma. Único. | `luzmery.rios@uco.net.co` |
+| Estado | Condición actual dentro de la plataforma. | `Activo` |
+| PasswordHash | Clave cifrada con bcrypt factor 12. | `$2a$12$xR3p…` |
+| IntentosFallidos | Intentos de inicio de sesión fallidos consecutivos. | `0` |
+| FechaBloqueo | Fecha hasta la cual la cuenta permanece bloqueada. | `No aplica` |
+
+#### Asignatura
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la asignatura. | `b0d0…0001` |
+| Código | Código único de la asignatura, de 3 a 20 caracteres, en mayúsculas. | `MAT-301` |
+| Nombre | Nombre de la asignatura, de 3 a 100 caracteres. | `Cálculo Diferencial` |
+| ProgramaAcadémico | Programa al que pertenece la asignatura. | `Ingeniería de Sistemas` |
+| Estado | Condición actual: Borrador, Activa o Inactiva. | `ACTIVA` |
+
+> El código y el programa académico no son modificables una vez creada la asignatura
+> (RF-03c). Solo el nombre puede actualizarse.
+
+#### Calificación
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la calificación. | `5e60…b112` |
+| Evaluación | Evaluación a la que pertenece la calificación. | `2f81…9ac3` |
+| Matrícula | Matrícula del estudiante en la asignatura. | `c0a0…00b1` |
+| Valor | Nota obtenida, entre 0.0 y 5.0. | `4.2` |
+| Observación | Comentario obligatorio del profesor (mínimo 10 caracteres). | `Buen manejo de propiedades algebraicas, revisar límites al infinito` |
+| FechaRegistro | Fecha en que se registró la calificación. | `2026-02-16` |
+| FueraDeFecha | Indica si se registró después de la fecha tentativa de la evaluación. | `No` |
+
+#### Conclusión
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la conclusión. | `e400…0001` |
+| ResultadoAprendizaje | RA sobre el cual se generó la conclusión. | `7c44…e501` |
+| Semestre | Semestre en el que se generó. | `e300…0001` |
+| Mensaje | Texto generado automáticamente según la regla de RF-16. | `Nivel de logro insuficiente en RA-01: se recomienda registrar una acción de mejora` |
+| TieneDatosSuficientes | Indica si había datos suficientes para concluir. | `Sí` |
+| PorcentajeInsuficiente | Porcentaje de estudiantes en nivel Bajo o Medio que originó la conclusión. | `60.0` |
+| FechaGeneración | Fecha y hora en que se generó la conclusión. | `2026-03-01 08:00` |
+| Estado | Vigente mientras no se registre una acción de mejora; atendida después. | `VIGENTE` |
+| TotalEvaluados | Estudiantes con nivel de logro calculado al momento de generarla. | `5` |
+| EnNivelBajo | Cuántos de ellos quedaron en nivel Bajo. | `2` |
+| EnNivelMedio | Cuántos quedaron en nivel Medio. | `1` |
+| UmbralPorcentaje | Umbral aplicado, según RF-16. | `40.0` |
+| PorcentajeSemestreAnterior | Mismo porcentaje para el RA en el semestre anterior, si existe. | `35.0` |
+| SemestreAnteriorCódigo | Código de ese semestre anterior. | `2026-1` |
+
+> Los seis últimos atributos forman el diagnóstico: se registran al generar la conclusión y
+> no se recalculan, de modo que la conclusión conserve la situación del momento en que se
+> produjo.
+
+#### Estudiante
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del estudiante. | `e000…0011` |
+| TipoDocumento | Tipo de documento de identidad. | `Cédula de Ciudadanía` |
+| NúmeroDocumento | Número de identificación. | `1000000001` |
+| NombreCompleto | Nombre y apellidos. | `Juan Camilo Bernal Carmona` |
+| CorreoInstitucional | Correo con el que accede a la plataforma. Único. | `juan.bernal@uco.net.co` |
+| Estado | Condición actual dentro de la plataforma. | `Activo` |
+| PasswordHash | Clave cifrada con bcrypt factor 12. | `$2a$12$xR3p…` |
+| IntentosFallidos | Intentos de inicio de sesión fallidos consecutivos. | `0` |
+| FechaBloqueo | Fecha hasta la cual la cuenta permanece bloqueada. | `No aplica` |
+
+#### Evaluación
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la evaluación. | `2f81…9ac3` |
+| ResultadoAprendizaje | RA que la evaluación mide. | `7c44…e501` |
+| Semestre | Semestre en el que se aplica. | `e300…0001` |
+| Nombre | Nombre de la evaluación. | `Parcial 1 — Límites` |
+| FechaTentativa | Fecha estimada de aplicación. | `2026-02-15` |
+| Porcentaje | Peso dentro del RA. La suma de las activas no puede superar 100 %. | `30.00` |
+| Descripción | Contenido o alcance de la evaluación. | `Evaluación escrita sobre límites y continuidad` |
+| Estado | Condición actual de la evaluación. | `ACTIVA` |
+
+#### HistorialAuditoría
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del registro de auditoría. | `aa10…77f2` |
+| TipoUsuario | Rol que ejecutó la acción. | `Profesor` |
+| IdUsuario | Identificador del usuario que la ejecutó. | `e000…0001` |
+| TipoEntidad | Entidad sobre la que se ejecutó la acción. | `Calificación` |
+| IdEntidad | Identificador de la entidad afectada. | `5e60…b112` |
+| Acción | Operación realizada. | `Registro fuera de fecha` |
+| FechaHora | Momento exacto del evento. | `2026-02-18 09:34:12` |
+| Resultado | Desenlace de la operación. | `Éxito` |
+| Detalle | Descripción específica de lo ocurrido. | `Calificación registrada 3 días después de la fecha tentativa` |
+
+#### Matrícula
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la matrícula. | `c0a0…00b1` |
+| Estudiante | Estudiante matriculado. | `e000…0011` |
+| Asignatura | Asignatura en la que se matricula. | `b0d0…0001` |
+| Semestre | Periodo académico de la matrícula. | `e300…0001` |
+| FechaMatrícula | Fecha en que se realizó la matrícula. | `2026-01-21` |
+| Estado | Condición actual: Activa o Desvinculada. | `ACTIVA` |
+
+#### NivelLogro
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del nivel de logro. | `d100…0003` |
+| Categoría | Nombre de la categoría de desempeño. | `Alto` |
+| NotaMínima | Valor mínimo del rango. | `4.0` |
+| NotaMáxima | Valor máximo del rango. | `4.5` |
+
+> Los cuatro rangos adoptados en RF-14 son: Bajo 0.0–2.9, Medio 3.0–3.9, Alto 4.0–4.5 y
+> Sobresaliente 4.6–5.0.
+
+#### Profesor
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del profesor. | `e000…0001` |
+| TipoDocumento | Tipo de documento de identidad. | `Cédula de Ciudadanía` |
+| NúmeroDocumento | Número de identificación, de 6 a 10 dígitos. | `1098765432` |
+| NombreCompleto | Nombre y apellidos. | `Ana Gómez` |
+| CorreoInstitucional | Correo del dominio `@uco.net.co`. Único. | `ana.gomez@uco.net.co` |
+| Estado | Condición actual dentro de la plataforma. | `Activo` |
+| PasswordHash | Clave cifrada con bcrypt factor 12. | `$2a$12$xR3p…` |
+| IntentosFallidos | Intentos de inicio de sesión fallidos consecutivos. | `0` |
+| FechaBloqueo | Fecha hasta la cual la cuenta permanece bloqueada. | `No aplica` |
+
+#### ProfesorAsignatura
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la asignación docente. | `c0a0…00a1` |
+| Profesor | Profesor asignado. | `e000…0001` |
+| Asignatura | Asignatura a la que se asigna. | `b0d0…0001` |
+| FechaAsignación | Fecha en que se realizó la asignación. | `2026-02-13` |
+| Estado | Condición actual de la asignación. | `ACTIVO` |
+
+#### ProgramaAcadémico
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del programa académico. | `a0d0…0001` |
+| Nombre | Nombre del programa. Único, hasta 100 caracteres. | `Ingeniería de Sistemas` |
+| Código | Código único, alfanumérico, de 4 a 10 caracteres. | `ING-SIS` |
+| Estado | Condición actual del programa. | `ACTIVO` |
+
+#### ResultadoAprendizaje
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del RA. | `7c44…e501` |
+| Asignatura | Asignatura a la que pertenece. | `b0d0…0001` |
+| Código | Código corto, único dentro de la asignatura. | `RA-01` |
+| Descripción | Lo que el estudiante debe lograr. | `Resuelve problemas de límites y continuidad aplicando propiedades algebraicas` |
+| Estado | Condición actual del RA. | `ACTIVO` |
+
+#### Semestre
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del semestre. | `e300…0001` |
+| Código | Código único del periodo. | `2026-2` |
+| FechaInicio | Fecha de inicio del periodo. | `2026-07-01` |
+| FechaFin | Fecha de finalización del periodo. | `2026-11-30` |
+| Estado | Condición actual del semestre. | `ACTIVO` |
+
+#### TipoDocumento
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único del tipo de documento. | `d000…0001` |
+| Nombre | Nombre del tipo de documento. Único. | `Cédula de Ciudadanía` |
+
+---
+[← Objetos de dominio](#objetos-de-dominio) · [Índice](#índice) · [Siguiente →](#mockups)
 
 ##### Mockups
 **Responsable:** Juan Camilo Bernal
 
 _Pendiente de completar._
 
+---
+[← Muestreo de datos de objetos](#muestreo-de-datos-de-objetos) · [Índice](#índice) · [Siguiente →](#mer)
+
 #### Modelado de datos
 
 ##### MER
 **Responsable:** Juan Camilo Bernal
 
-_Pendiente de completar._
+El Modelo Entidad-Relación traduce el modelo de dominio a la estructura de la base de datos:
+tablas, claves primarias, claves foráneas, restricciones de unicidad y reglas que no pueden
+expresarse solo con relaciones.
+
+![Modelo entidad-relación de SIGRA](docs/imagenes_documentacion/juan_bernal/mer.png)
+
+**Decisiones de modelado que conviene destacar:**
+
+- **Herencia de usuarios.** `Administrador`, `Profesor` y `Estudiante` comparten los
+  atributos de autenticación. En la base se resolvió con herencia por tablas unidas: una
+  tabla `usuario` con los datos comunes y una tabla por subtipo. El rol de un usuario se
+  deduce de la tabla de subtipo en la que está, sin una columna de rol.
+- **Asignatura y programa.** La asignatura referencia directamente a un programa académico.
+  Ni el código ni el programa son modificables después de creada (RF-03c).
+- **Evaluación generada.** `AcciónMejora` referencia opcionalmente a la evaluación que se
+  creó al convertirla. Esa referencia vacía es lo que distingue una acción convertible de
+  una ya convertida.
+- **Coherencia de semestre en las calificaciones.** Una calificación relaciona una matrícula
+  con una evaluación, y ambas están enmarcadas en un semestre. El modelo exige que sea el
+  mismo semestre en los dos lados, para que no pueda registrarse una nota de un periodo
+  sobre la matrícula de otro.
+- **Auditoría sin claves foráneas.** `HistorialAuditoría` guarda el identificador del
+  usuario y el de la entidad afectada como valores sueltos, sin clave foránea real, para que
+  el historial sobreviva a la inactivación de los registros que describe (RF-19).
+
+---
+[← Mockups](#mockups) · [Índice](#índice) · [Siguiente →](#entidades)
 
 ##### Entidades
 **Responsable:** Juan Camilo Bernal
 
-_Pendiente de completar._
+Tablas que componen el Modelo Entidad-Relación. El esquema completo y ejecutable está en
+[`docs/db/SIGRA_SCHEMA_CURRENT.sql`](docs/db/SIGRA_SCHEMA_CURRENT.sql); el detalle por
+columna, en [`docs/db/SIGRA_DATABASE_CURRENT.md`](docs/db/SIGRA_DATABASE_CURRENT.md).
+
+| Entidad | Descripción |
+| --- | --- |
+| **acción_mejora** | Medidas correctivas registradas sobre un Resultado de Aprendizaje a partir de una conclusión insuficiente vigente. |
+| **administrador** | Subtipo de usuario encargado de gestionar el catálogo académico y supervisar la plataforma. |
+| **asignatura** | Materias dictadas dentro de un programa académico, con su código, nombre y estado. |
+| **calificación** | Notas y observaciones registradas por un profesor para un estudiante en una evaluación específica. |
+| **conclusión** | Alertas automáticas generadas cuando el desempeño en un Resultado de Aprendizaje resulta insuficiente, con el diagnóstico que las originó. |
+| **estudiante** | Subtipo de usuario matriculado en asignaturas, cuyo aprendizaje se evalúa por Resultados de Aprendizaje. |
+| **evaluación** | Actividades definidas por un profesor para medir el desempeño de los estudiantes en un Resultado de Aprendizaje. |
+| **historial_auditoría** | Eventos y cambios registrados sobre las entidades académicas, con fines de trazabilidad. |
+| **historial_calificación** | Versiones anteriores de una calificación, conservadas cada vez que se modifica. |
+| **matrícula** | Vinculación entre un estudiante y una asignatura en un semestre, con su fecha y estado. |
+| **nivel_logro_estudiante** | Nivel de logro calculado para cada estudiante en un RA y semestre, con su promedio ponderado. |
+| **profesor** | Subtipo de usuario encargado de crear evaluaciones y registrar calificaciones en sus asignaturas. |
+| **asignación_docente** | Asignación de un profesor a una asignatura, con su fecha y estado. |
+| **programa_académico** | Programas de formación a los cuales pertenecen las asignaturas. |
+| **resultado_aprendizaje** | Unidades de medida sobre las cuales se evalúa el aprendizaje dentro de una asignatura. |
+| **semestre** | Periodos académicos, con su código y fechas de inicio y fin. |
+| **tipo_documento** | Tipos de documento de identidad disponibles para el registro de usuarios. |
+| **usuario** | Datos comunes de autenticación de los tres subtipos de usuario. |
+
+---
+[← MER](#mer) · [Índice](#índice) · [Siguiente →](#mr)
 
 ##### MR
 **Responsable:** Juan Camilo Bernal
 
 _Pendiente de completar._
+
+---
+[← Entidades](#entidades) · [Índice](#índice) · [Siguiente →](#arquitectura-de-referencia)
 
 #### Arquitectura y solución
 
@@ -593,15 +1008,24 @@ _Pendiente de completar._
 
 _Pendiente de completar._
 
+---
+[← MR](#mr) · [Índice](#índice) · [Siguiente →](#arquetipo-de-referencia)
+
 ##### Arquetipo de referencia
 **Responsable:** Juan Camilo Bernal
 
 _Pendiente de completar._
 
+---
+[← Arquitectura de referencia](#arquitectura-de-referencia) · [Índice](#índice) · [Siguiente →](#alternativa-de-solución)
+
 ##### Alternativa de solución
 **Responsable:** Juan Camilo Bernal
 
 _Pendiente de completar._
+
+---
+[← Arquetipo de referencia](#arquetipo-de-referencia) · [Índice](#índice) · [Siguiente →](#diagrama-de-clases)
 
 #### Diagramas de clases y componentes
 
@@ -610,25 +1034,40 @@ _Pendiente de completar._
 
 _Pendiente de completar._
 
+---
+[← Alternativa de solución](#alternativa-de-solución) · [Índice](#índice) · [Siguiente →](#diagrama-de-componentes--back-end)
+
 ##### Diagrama de componentes — back end
 **Responsable:** Jean Paul Ortiz
 
 _Pendiente de completar._
+
+---
+[← Diagrama de clases](#diagrama-de-clases) · [Índice](#índice) · [Siguiente →](#componentes--back-end)
 
 ##### Componentes — back end
 **Responsable:** Jean Paul Ortiz
 
 _Pendiente de completar._
 
+---
+[← Diagrama de componentes — back end](#diagrama-de-componentes--back-end) · [Índice](#índice) · [Siguiente →](#diagrama-de-componentes--front-end)
+
 ##### Diagrama de componentes — front end
 **Responsable:** Por definir
 
 _Pendiente de completar._
 
+---
+[← Componentes — back end](#componentes--back-end) · [Índice](#índice) · [Siguiente →](#componentes--front-end)
+
 ##### Componentes — front end
 **Responsable:** Por definir
 
 _Pendiente de completar._
+
+---
+[← Diagrama de componentes — front end](#diagrama-de-componentes--front-end) · [Índice](#índice)
 
 ---
 
