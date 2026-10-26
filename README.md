@@ -405,6 +405,12 @@ La API queda disponible en **http://localhost:8080**.
 | Documentación Swagger (UI) | http://localhost:8080/swagger-ui.html |
 | Contrato OpenAPI (JSON) | http://localhost:8080/v3/api-docs |
 
+Guías de documentación OpenAPI por módulo:
+
+- [Autenticación JWT](docs/documentacion_openapi/swagger-autenticacion.md)
+- [Historial de auditoría](docs/documentacion_openapi/swagger-auditoria.md)
+- [Profesores](docs/documentacion_openapi/swagger-profesores.md), [Estudiantes](docs/documentacion_openapi/swagger-estudiantes.md) y [Matrículas](docs/documentacion_openapi/swagger-matriculas.md)
+
 #### Autenticación (RF-04)
 
 `POST /api/v1/auth/login` es público: no requiere token ni cabecera CSRF.

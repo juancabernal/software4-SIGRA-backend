@@ -36,4 +36,47 @@ public final class EjemplosError {
     public static final String PROHIBIDO_403 =
             "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":403,\"error\":\"FORBIDDEN\","
                     + "\"mensaje\":\"No tiene permisos suficientes para realizar esta acción\"}";
+
+    /** 400 por las validaciones del cuerpo de login. */
+    public static final String VALIDACION_LOGIN_400 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
+                    + "\"mensaje\":\"Los datos de entrada no cumplen con las validaciones requeridas\","
+                    + "\"detalles\":[\"correoInstitucional: El correo debe tener formato usuario@uco.net.co\"]}";
+
+    /** 401 por credenciales inválidas o usuario inactivo en el login. */
+    public static final String CREDENCIALES_INVALIDAS_401 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":401,\"error\":\"UNAUTHORIZED\","
+                    + "\"mensaje\":\"Correo o contraseña incorrectos\"}";
+
+    /** 413 cuando el filtro de tamaño rechaza el cuerpo real del login. */
+    public static final String PAYLOAD_TOO_LARGE_413 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":413,\"error\":\"PAYLOAD_TOO_LARGE\","
+                    + "\"mensaje\":\"El cuerpo de la petición supera el tamaño permitido\"}";
+
+    /** 423 durante el bloqueo temporal de una cuenta. */
+    public static final String USUARIO_BLOQUEADO_423 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":423,\"error\":\"LOCKED\","
+                    + "\"mensaje\":\"El usuario está temporalmente bloqueado. Intente nuevamente más tarde.\"}";
+
+    /** 415 cuando el cliente intenta enviar el login sin application/json. */
+    public static final String CONTENIDO_NO_SOPORTADO_415 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":415,\"error\":\"UNSUPPORTED_MEDIA_TYPE\","
+                    + "\"mensaje\":\"El tipo de contenido de la petición no es soportado por este recurso\","
+                    + "\"detalles\":[\"application/json\"]}";
+
+    /** 503 emitido por el filtro JWT en rutas protegidas si su repositorio no está disponible;
+     * el login público no pasa por ese filtro. */
+    public static final String SERVICIO_NO_DISPONIBLE_503 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":503,\"error\":\"SERVICE_UNAVAILABLE\","
+                    + "\"mensaje\":\"El servicio no está disponible temporalmente\"}";
+
+    /** 500 para fallos inesperados sin detalles técnicos. */
+    public static final String ERROR_INTERNO_500 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":500,\"error\":\"INTERNAL_SERVER_ERROR\","
+                    + "\"mensaje\":\"Ocurrió un error inesperado en el servidor\"}";
+
+    /** 400 por un tipo de entidad de auditoría que no pertenece al enum del contrato. */
+    public static final String TIPO_ENTIDAD_INVALIDO_400 =
+            "{\"timestamp\":\"" + TIMESTAMP_EJEMPLO + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
+                    + "\"mensaje\":\"El valor del parámetro 'tipoEntidad' no es válido\"}";
 }

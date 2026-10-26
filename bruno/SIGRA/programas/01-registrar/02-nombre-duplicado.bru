@@ -1,0 +1,39 @@
+meta {
+  name: 02 Nombre duplicado
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/programas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "{{programaCreadoNombre}}",
+    "codigo": "{{codigoOtro}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("codigoOtro", "BRD" + String(Date.now()).slice(-7));
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body.mensaje).to.include(bru.getVar("programaCreadoNombre"));
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

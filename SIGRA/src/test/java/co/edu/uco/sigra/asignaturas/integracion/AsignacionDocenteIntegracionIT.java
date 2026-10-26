@@ -435,7 +435,9 @@ class AsignacionDocenteIntegracionIT {
     @DisplayName("IT-08c Un ESTUDIANTE con token real no puede usar los endpoints de asignación docente (403)")
     void it08cEstudianteConTokenReal() throws Exception {
         Estudiante estudiante = new Estudiante();
-        estudiante.setNumeroDocumento("ITGEST" + System.nanoTime() % 1000000L);
+        // "ITGES" (5) + hasta 5 dígitos = máximo 10: numero_documento es varchar(10) y un
+        // nanoTime() % 1_000_000 ocasional de 6 dígitos lo desbordaba de forma intermitente.
+        estudiante.setNumeroDocumento("ITGES" + System.nanoTime() % 100000L);
         verificarRolSinAcceso(token(crearUsuario(estudiante, "est")));
     }
 

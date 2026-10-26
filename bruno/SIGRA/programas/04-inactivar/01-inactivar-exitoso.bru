@@ -1,0 +1,22 @@
+meta {
+  name: 01 Inactivar exitoso
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/programas/{{programaCreadoId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("queda INACTIVO", function () {
+    expect(res.body.id).to.equal(bru.getVar("programaCreadoId"));
+    expect(res.body.estado).to.equal("INACTIVO");
+  });
+}

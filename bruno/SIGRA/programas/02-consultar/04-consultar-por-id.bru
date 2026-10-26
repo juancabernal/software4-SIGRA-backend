@@ -1,0 +1,23 @@
+meta {
+  name: 04 Consultar por id
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/programas/{{programaActivoId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve el programa esperado", function () {
+    expect(res.body.id).to.equal(bru.getEnvVar("programaActivoId"));
+    expect(res.body.codigo).to.equal("BRU-ACT");
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+}

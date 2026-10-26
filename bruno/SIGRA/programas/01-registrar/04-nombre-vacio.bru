@@ -1,0 +1,39 @@
+meta {
+  name: 04 Nombre vacio
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/programas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "",
+    "codigo": "{{codigoInvalido}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("codigoInvalido", "BRF" + String(Date.now()).slice(-7));
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("detalles");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

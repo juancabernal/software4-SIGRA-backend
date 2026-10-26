@@ -1,0 +1,34 @@
+meta {
+  name: 02 Error nombre duplicado
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/programas/{{programaCreadoId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Programa Bruno Activo"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body.mensaje).to.include("Programa Bruno Activo");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}
