@@ -138,10 +138,10 @@ Queda fuera del alcance del MVP: uso de IA para el análisis, carga de rúbricas
 
 | Integrante | Funcionalidad | Requisitos | Módulo |
 | --- | --- | --- | --- |
-| Jean Paul Ortiz | Asignación docente de asignaturas: asignación masiva, omisión informada de duplicados, servicio «asignaturas del profesor» | RF-07 | `profesores` |
+| Simón Tabares | Asignación docente de asignaturas: asignación masiva, omisión informada de duplicados, servicio «asignaturas del profesor» | RF-07 | `profesores` |
 | Andrés Vélez | Matrícula y desvinculación: unicidad (estudiante, asignatura, semestre), repitencia, conservación de calificaciones al desvincular | RF-08, RF-09 | `estudiantes` |
 | Juan José Narváez | Gestión de evaluaciones: suma de porcentajes ≤ 100 por (RA, semestre), bloqueo de fecha y % si ya hay notas | RF-10, RF-11 | `evaluaciones` |
-| Simón Tabares | Calificaciones y trazabilidad: nota 0.0–5.0, observación mínima de 10 caracteres, marca `fueraDeFecha` | RF-12, RF-13 | `calificaciones` |
+| Jean Paul Ortiz | Calificaciones y trazabilidad: nota 0.0–5.0, observación mínima de 10 caracteres, marca `fueraDeFecha` | RF-12, RF-13 | `calificaciones` |
 | Santiago Torres | Nivel de logro y estadísticas: catálogo de 4 rangos, recálculo automático, umbral de 3 calificaciones | RF-14, RF-15 | `estadisticas` |
 | Juan Camilo Bernal | Conclusiones automáticas: alerta cuando más del 40 % queda en Bajo o Medio, sin duplicar conclusiones vigentes | RF-16 | `estadisticas` |
 | José Alejandro Valencia | Historial de auditoría: servicio `registrarEvento`, tabla sin UPDATE ni DELETE, reporte paginado para ADMINISTRADOR | RF-19, RF-21c | `auditoria` |
@@ -1012,15 +1012,72 @@ _Pendiente de completar._
 ##### Arquitectura de referencia
 **Responsable:** José Alejandro Valencia
 
-_Pendiente de completar._
+La arquitectura de referencia de **SIGRA (Software Integral de Gestión de Resultados de Aprendizaje)** identifica los bloques de construcción, su responsabilidad, la diferencia entre componentes **adoptados** y **a construir**, y las relaciones necesarias para soportar la aplicación académica. Se plantea una **SPA web** conectada por **HTTPS/REST** con un **backend monolítico modular**, que mantiene la información institucional en **PostgreSQL**. El diseño incorpora capacidades complementarias de parametrización, mensajes, caché, monitoreo e integración continua sin exigir microservicios independientes.
+
+![Arquitectura de referencia de SIGRA: bloques de construcción y conexiones](docs/imagenes_documentacion/alejandro_valencia/arquitectura_referencia.png)
+
+**Convenciones del diagrama:** los bloques de color **ocre** representan componentes **adoptados** (herramientas o plataformas existentes); los de color **vinotinto**, componentes **a construir** específicamente para SIGRA. Las conexiones identifican el tipo de comunicación o integración. Los catálogos se representan como capacidades lógicas: **no implican por sí mismos despliegues separados del backend**.
+
+**Catálogo de bloques de construcción y justificación**
+
+| Componente | Clasificación | Tipo de bloque | Responsabilidad y justificación |
+| --- | --- | --- | --- |
+| **SIGRA Frontend (Angular)** | A construir | Específico | Interfaz SPA para **Administrador, Profesor y Estudiante**. La propuesta utiliza **Angular 22.0.1**, Angular Router y *guards* por rol para navegación, `HttpClient` para consumir la API REST y Angular Material para interfaz y accesibilidad. Un único frontend reduce la complejidad operativa frente a microfrontends. |
+| **SIGRA Backend (Spring Boot)** | A construir | Específico | Concentra la lógica académica y publica una API REST. El arquetipo propone **Java 25 y Spring Boot 4.1.1**, con Spring Security + JWT para autenticación/autorización, Spring Data JPA para persistencia, Bean Validation para entradas y Actuator para observabilidad. Un **monolito modular** resulta suficiente para el volumen y alcance previstos. |
+| **SIGRA Database (PostgreSQL)** | Adoptado | Genérico | Fuente de verdad relacional para programas, asignaturas, RA, estudiantes, matrículas, evaluaciones, calificaciones y auditoría. La referencia propone **PostgreSQL 18.6**. Sus transacciones ACID y restricciones mantienen integridad y consistencia sin introducir una base distribuida. |
+| **Parameter Catalog** | A construir | Específico | Módulo lógico para centralizar parámetros configurables (por ejemplo, rangos de logro y umbrales). **Spring Data JPA** mantiene los valores en PostgreSQL y **Spring Data Redis** permitiría acelerar lecturas frecuentes cuando la caché esté habilitada. Evita constantes dispersas y admite trazabilidad de cambios. |
+| **Message Catalog** | A construir | Específico | Módulo lógico que centraliza mensajes funcionales, de validación y error. La propuesta contempla Spring Boot, **Spring Data JPA** y, de manera opcional, **Spring Data Redis**. Reduce duplicación y facilita el mantenimiento; los textos visuales propios de Angular pueden permanecer en el frontend. |
+| **Caché de datos (Redis)** | Adoptado | Genérico | **Redis Community Edition** como caché auxiliar de consultas frecuentes de los catálogos, con TTL e invalidación controlada. **No** reemplaza PostgreSQL y su indisponibilidad no debe impedir consultar la fuente de verdad. No se introduce para resolver una supuesta carga alta. |
+| **Monitoring Platform** | Adoptado | Genérico | **Prometheus** recopilaría métricas publicadas mediante Actuator/Micrometer y **Grafana** las mostraría en paneles de disponibilidad, errores y latencia. La arquitectura limita su alcance a métricas y no presupone un sistema adicional de logs o trazas. |
+| **CI/CD Pipeline** | Adoptado | Genérico | **GitHub Actions** para automatizar compilación, pruebas y controles de integración del frontend y backend, con trazabilidad de ejecuciones. Aprovecha el repositorio del equipo sin requerir un servidor propio de integración continua. |
+
+Todos los anteriores se consideran **bloques de construcción** del diseño; *específico* significa desarrollado para el dominio SIGRA y *genérico*, tecnología reutilizable. **Adoptado** no significa necesariamente **desplegado o habilitado** en el entorno actual.
+
+**Principios que orientan la selección**
+
+- **Simplicidad:** frontend único y backend monolítico modular, adecuados a un proyecto académico de alcance acotado; se evita la sobrecarga de microservicios.
+- **Seguridad por capas:** HTTPS hacia la API, tokens JWT y autorización por rol aplicada en el backend; los *guards* de Angular solo complementan la experiencia de usuario.
+- **Consistencia de datos:** PostgreSQL es la fuente de verdad incluso cuando se implemente la caché; las operaciones sensibles utilizan las garantías del motor relacional.
+- **Desacoplamiento lógico:** los catálogos son módulos dentro del backend y pueden evolucionar sin introducir servicios ni despliegues adicionales.
+- **Operabilidad proporcional:** métricas con Actuator/Prometheus/Grafana y automatización mediante GitHub Actions, sin agregar infraestructura que no justifique el proyecto.
+
+**Documentación de las tecnologías:** [Angular](https://angular.dev/overview) · [Spring Boot](https://spring.io/projects/spring-boot/) · [PostgreSQL](https://www.postgresql.org/about/) · [Spring Data JPA](https://spring.io/projects/spring-data-jpa) · [Spring Data Redis](https://spring.io/projects/spring-data-redis) · [Spring MessageSource](https://docs.spring.io/spring-framework/reference/core/beans/context-introduction.html#context-functionality-messagesource) · [Redis](https://redis.io/) · [Prometheus](https://prometheus.io/docs/introduction/overview/) · [Grafana](https://grafana.com/oss/) · [GitHub Actions](https://docs.github.com/en/actions).
 
 ---
 [← MR](#mr) · [Índice](#índice) · [Siguiente →](#arquetipo-de-referencia)
 
 ##### Arquetipo de referencia
-**Responsable:** Por definir
+**Responsable:** José Alejandro Valencia
 
-_Pendiente de completar._
+El arquetipo concreta la arquitectura anterior en **tecnologías, interfaces y ubicaciones lógicas**. Representa cómo se comunicarían la aplicación Angular, el servicio Spring Boot, la base de datos y las capacidades complementarias. Es una **propuesta de diseño**, no una certificación de que todos los módulos o servicios estén hoy operativos.
+
+![Arquetipo de referencia de SIGRA con tecnologías e interfaces](docs/imagenes_documentacion/alejandro_valencia/arquetipo_referencia.png)
+
+**Tecnologías identificadas en el arquetipo**
+
+| Elemento | Tecnología indicada | Responsabilidad técnica |
+| --- | --- | --- |
+| Cliente web | **Angular 22.0.1**, Angular Material, Router, `HttpClient` | SPA para los tres roles; consume la API y gestiona navegación y presentación. |
+| Servidor de aplicación | **Java 25 / Spring Boot 4.1.1** (versión de Java propuesta en el diagrama) | Ejecuta el backend de SIGRA como un único despliegue modular. |
+| Seguridad y datos del backend | **Spring Security, JWT, Spring Data JPA, Actuator** | Autenticación, autorización, mapeo relacional y exposición de indicadores de salud/métricas. |
+| Servidor de base de datos | **PostgreSQL 18.6** (versión propuesta en el diagrama) | Persistencia transaccional y fuente de verdad. |
+| Caché | **Redis Community Edition / Spring Data Redis** | Caché opcional para las lecturas de los catálogos; comunicación de red TCP/IP. |
+| Catálogo de parámetros | **Módulo Spring Boot / Spring Data JPA / Spring Data Redis** | Gestión lógica de parámetros persistidos en PostgreSQL y, cuando se habilite, acelerados con Redis. |
+| Catálogo de mensajes | **Módulo Spring Boot / Spring Data JPA / Spring Data Redis** | Mensajes centralizados sin duplicar un despliegue independiente. |
+| Monitoreo | **Spring Boot Actuator/Micrometer, Prometheus y Grafana** | Publicación, recopilación y visualización de métricas del servicio. |
+| Automatización | **GitHub Actions** | Pipeline de validación y eventual entrega continua desde el repositorio. |
+
+**Flujos e interfaces representados**
+
+1. **Usuario → SIGRA Frontend:** Administrador, Profesor y Estudiante utilizan un navegador y acceden a la aplicación por **HTTPS** a través de Internet.
+2. **SIGRA Frontend → SIGRA Backend:** la SPA consume los endpoints por **HTTPS/REST**. El backend autentica los JWT y verifica la autorización en cada operación protegida.
+3. **SIGRA Backend → SIGRA Database:** la capa de persistencia utiliza **Spring Data JPA** y el protocolo de red **TCP/IP** para acceder a PostgreSQL.
+4. **SIGRA Backend ↔ caché Redis:** integración opcional mediante **Spring Data Redis**; los valores persistentes deben seguir consultándose en PostgreSQL si la caché no está disponible.
+5. **Catálogos de parámetros y mensajes:** se muestran interfaces lógicas en el diagrama, pero el diseño los define **dentro del backend**; los enlaces `API`/`HTTPS` no obligan a implementar microservicios.
+6. **Backend → plataforma de monitoreo:** la superficie de métricas de **Actuator/Micrometer** puede ser recolectada por Prometheus y visualizada desde Grafana, con acceso protegido según el entorno.
+7. **Repositorio → GitHub Actions:** el pipeline aplica compilación, pruebas y validaciones repetibles antes de integrar o desplegar cambios.
+
+**Alcance y diferencia entre la propuesta y el estado del repositorio.** Este arquetipo conserva las versiones que figuran en el material de arquitectura (**Java 25** y **PostgreSQL 18.6**), mientras que el [apartado Stack](#stack) del README documenta actualmente **Java 21 como toolchain** y **PostgreSQL 15 o superior**. Asimismo, la [sección de pendientes](#pendientes-conocidos-del-repositorio) indica que **Redis está deshabilitado temporalmente**. Por tanto, caché, catálogos configurables y plataforma completa de monitoreo deben entenderse como **componentes previstos** cuando no exista verificación explícita de su puesta en marcha. Esta documentación **no modifica** las versiones de compilación, dependencias ni infraestructura existentes.
 
 ---
 [← Arquitectura de referencia](#arquitectura-de-referencia) · [Índice](#índice) · [Siguiente →](#alternativa-de-solución)
