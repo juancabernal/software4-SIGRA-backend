@@ -1,0 +1,46 @@
+meta {
+  name: 01 Rendimiento de la asignatura
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/{{raAsigBor7Id}}/resultados-aprendizaje/rendimiento
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("estructura de la respuesta", function () {
+    expect(res.body).to.have.property("asignaturaId", bru.getEnvVar("raAsigBor7Id"));
+    expect(res.body).to.have.property("semestreId");
+    expect(res.body).to.have.property("semestreCodigo");
+    expect(res.body.resultados).to.be.an("array");
+  });
+
+  test("cada RA trae estado, porcentajes y bandera completo", function () {
+    const estados = ["SIN_EVALUAR", "DATOS_INSUFICIENTES", "CON_NIVEL"];
+    res.body.resultados.forEach(function (r) {
+      expect(estados).to.include(r.estado);
+      expect(r).to.have.property("codigo");
+      expect(r).to.have.property("porcentajeAsignado");
+      expect(r).to.have.property("porcentajeEvaluado");
+      expect(r.completo).to.be.a("boolean");
+      if (r.estado === "CON_NIVEL") {
+        expect(r.nivelLogro).to.be.a("string");
+        expect(r.promedioNota).to.be.a("number");
+      } else {
+        expect(r.nivelLogro).to.equal(null);
+      }
+    });
+  });
+
+  test("solo RA activos, ordenados por codigo", function () {
+    const codigos = res.body.resultados.map(function (r) { return r.codigo; });
+    expect(codigos).to.deep.equal(codigos.slice().sort());
+  });
+}

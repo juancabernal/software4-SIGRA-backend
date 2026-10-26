@@ -187,7 +187,8 @@ CREATE TABLE IF NOT EXISTS sigra.asignacion_docente (
         REFERENCES sigra.profesor (id),
     CONSTRAINT fk_asignacion_docente_asignatura FOREIGN KEY (asignatura_id)
         REFERENCES sigra.asignatura (id),
-    CONSTRAINT chk_asignacion_docente_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
+    CONSTRAINT chk_asignacion_docente_estado CHECK (estado IN ('ACTIVO', 'INACTIVO')),
+    CONSTRAINT uk_asignacion_docente_profesor_asignatura UNIQUE (profesor_id, asignatura_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_asignacion_docente_profesor ON sigra.asignacion_docente (profesor_id);

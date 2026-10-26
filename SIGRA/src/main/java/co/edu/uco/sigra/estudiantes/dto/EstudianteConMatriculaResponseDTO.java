@@ -1,5 +1,7 @@
 package co.edu.uco.sigra.estudiantes.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Respuesta del alta de un estudiante y su matrícula en un solo paso (RF-09a).
  * <p>
@@ -8,7 +10,10 @@ package co.edu.uco.sigra.estudiantes.dto;
  * cambios.
  */
 public record EstudianteConMatriculaResponseDTO(
+        @Schema(description = "Estudiante recién registrado")
         EstudianteResponseDTO estudiante,
+
+        @Schema(description = "Matrícula creada para el estudiante")
         MatriculaResponseDTO matricula
 ) {
 }

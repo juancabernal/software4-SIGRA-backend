@@ -12,6 +12,7 @@ import co.edu.uco.sigra.estudiantes.repository.MatriculaRepository;
 import co.edu.uco.sigra.evaluaciones.entity.EstadoEvaluacion;
 import co.edu.uco.sigra.evaluaciones.entity.Evaluacion;
 import co.edu.uco.sigra.evaluaciones.repository.EvaluacionRepository;
+import co.edu.uco.sigra.evaluaciones.exception.SemestreNoEncontradoException;
 import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.resultadosaprendizaje.dto.EstadoRendimiento;
 import co.edu.uco.sigra.resultadosaprendizaje.dto.RendimientoAsignaturaResponseDTO;
@@ -20,6 +21,7 @@ import co.edu.uco.sigra.resultadosaprendizaje.entity.ResultadoAprendizaje;
 import co.edu.uco.sigra.resultadosaprendizaje.repository.ResultadoAprendizajeRepository;
 import co.edu.uco.sigra.resultadosaprendizaje.service.impl.RendimientoResultadoAprendizajeServiceImpl;
 import co.edu.uco.sigra.semestres.entity.Semestre;
+import co.edu.uco.sigra.semestres.repository.SemestreRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,6 +65,8 @@ class RendimientoResultadoAprendizajeServiceImplTest {
     private MatriculaRepository matriculaRepository;
     @Mock
     private NivelLogroEstudianteRepository nivelLogroEstudianteRepository;
+    @Mock
+    private SemestreRepository semestreRepository;
 
     private RendimientoResultadoAprendizajeServiceImpl service;
 
@@ -70,7 +74,7 @@ class RendimientoResultadoAprendizajeServiceImplTest {
     void setUp() {
         service = new RendimientoResultadoAprendizajeServiceImpl(asignaturaRepository,
                 resultadoAprendizajeRepository, evaluacionService, evaluacionRepository, matriculaRepository,
-                nivelLogroEstudianteRepository);
+                nivelLogroEstudianteRepository, semestreRepository);
     }
 
     // ------------------------------------------------------------------ datos de prueba
@@ -129,7 +133,7 @@ class RendimientoResultadoAprendizajeServiceImplTest {
     }
 
     private RendimientoResultadoAprendizajeResponseDTO unico() {
-        RendimientoAsignaturaResponseDTO r = service.consultarPorAsignatura(ID_ASIGNATURA);
+        RendimientoAsignaturaResponseDTO r = service.consultarPorAsignatura(ID_ASIGNATURA, null);
         assertThat(r.resultados()).hasSize(1);
         return r.resultados().get(0);
     }
@@ -141,7 +145,7 @@ class RendimientoResultadoAprendizajeServiceImplTest {
     void asignaturaNoExiste() {
         when(asignaturaRepository.existsById(ID_ASIGNATURA)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.consultarPorAsignatura(ID_ASIGNATURA))
+        assertThatThrownBy(() -> service.consultarPorAsignatura(ID_ASIGNATURA, null))
                 .isInstanceOf(AsignaturaNoEncontradaException.class);
         verifyNoInteractions(evaluacionService, resultadoAprendizajeRepository);
     }
@@ -152,7 +156,7 @@ class RendimientoResultadoAprendizajeServiceImplTest {
         when(asignaturaRepository.existsById(ID_ASIGNATURA)).thenReturn(true);
         when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.empty());
 
-        RendimientoAsignaturaResponseDTO r = service.consultarPorAsignatura(ID_ASIGNATURA);
+        RendimientoAsignaturaResponseDTO r = service.consultarPorAsignatura(ID_ASIGNATURA, null);
 
         assertThat(r.semestreId()).isNull();
         assertThat(r.semestreCodigo()).isNull();
@@ -182,7 +186,7 @@ class RendimientoResultadoAprendizajeServiceImplTest {
     void datosInsuficientes() {
         escenarioBase(2);
         niveles(nivel(2, null, null), nivel(1, null, null));
-        porcentajes("40", List.of());
+        porcentajes("40", List.of(), new Object[]{UUID.randomUUID(), 3L});
 
         RendimientoResultadoAprendizajeResponseDTO dto = unico();
 
@@ -212,20 +216,91 @@ class RendimientoResultadoAprendizajeServiceImplTest {
     }
 
     @Test
-    @DisplayName("Completo: asignado 100% y todas las evaluaciones calificadas a todos los matriculados")
+    @DisplayName("Completo: 3 evaluaciones que suman 100% y todas calificadas a todos los matriculados")
     void conNivelCompleto() {
         UUID e1 = UUID.randomUUID();
         UUID e2 = UUID.randomUUID();
+        UUID e3 = UUID.randomUUID();
         escenarioBase(2);
         niveles(nivel(3, 3.2, NivelLogro.MEDIO), nivel(3, 3.4, NivelLogro.MEDIO));
-        porcentajes("100", List.of(evaluacion(e1, "60"), evaluacion(e2, "40")),
-                new Object[]{e1, 2L}, new Object[]{e2, 2L});
+        porcentajes("100", List.of(evaluacion(e1, "30"), evaluacion(e2, "30"), evaluacion(e3, "40")),
+                new Object[]{e1, 2L}, new Object[]{e2, 2L}, new Object[]{e3, 2L});
 
         RendimientoResultadoAprendizajeResponseDTO dto = unico();
 
         assertThat(dto.nivelLogro()).isEqualTo(NivelLogro.MEDIO);
         assertThat(dto.porcentajeEvaluado()).isEqualByComparingTo("100");
+        assertThat(dto.evaluacionesActivas()).isEqualTo(3);
+        assertThat(dto.minimoEvaluaciones()).isEqualTo(3);
         assertThat(dto.completo()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Con menos de 3 evaluaciones activas nunca es completo, aunque sumen 100% y estén calificadas")
+    void conMenosDeTresEvaluacionesNoEsCompleto() {
+        UUID e1 = UUID.randomUUID();
+        UUID e2 = UUID.randomUUID();
+        escenarioBase(2);
+        niveles(nivel(2, null, null), nivel(2, null, null));
+        porcentajes("100", List.of(evaluacion(e1, "60"), evaluacion(e2, "40")),
+                new Object[]{e1, 2L}, new Object[]{e2, 2L});
+
+        RendimientoResultadoAprendizajeResponseDTO dto = unico();
+
+        assertThat(dto.estado()).isEqualTo(EstadoRendimiento.DATOS_INSUFICIENTES);
+        assertThat(dto.porcentajeEvaluado()).isEqualByComparingTo("100");
+        assertThat(dto.evaluacionesActivas()).isEqualTo(2);
+        assertThat(dto.completo()).isFalse();
+    }
+
+    @Test
+    @DisplayName("SIN_EVALUAR se decide con las calificaciones reales: un nivel viejo no se muestra si ya no hay notas")
+    void nivelViejoSinCalificacionesEsSinEvaluar() {
+        escenarioBase(2);
+        niveles(nivel(3, 4.5, NivelLogro.SOBRESALIENTE), nivel(3, 4.0, NivelLogro.ALTO));
+        porcentajes("40", List.of(evaluacion(UUID.randomUUID(), "40")));   // sin calificaciones vigentes
+
+        RendimientoResultadoAprendizajeResponseDTO dto = unico();
+
+        assertThat(dto.estado()).isEqualTo(EstadoRendimiento.SIN_EVALUAR);
+        assertThat(dto.nivelLogro()).isNull();
+        assertThat(dto.promedioNota()).isNull();
+    }
+
+    @Test
+    @DisplayName("Con semestreId consulta ese semestre (no el activo) y lo devuelve en la respuesta")
+    void consultaUnSemestrePasado() {
+        UUID idPasado = UUID.randomUUID();
+        Semestre pasado = new Semestre();
+        pasado.setId(idPasado);
+        pasado.setCodigo("2025-2");
+        when(asignaturaRepository.existsById(ID_ASIGNATURA)).thenReturn(true);
+        when(semestreRepository.findById(idPasado)).thenReturn(Optional.of(pasado));
+        when(matriculaRepository.buscarPorAsignaturaYSemestre(ID_ASIGNATURA, idPasado, EstadoMatricula.ACTIVA))
+                .thenReturn(List.of());
+        when(resultadoAprendizajeRepository.findByAsignatura_IdAndEstadoOrderByCodigoAsc(ID_ASIGNATURA,
+                EstadoRegistro.ACTIVO)).thenReturn(List.of(ra()));
+        when(evaluacionRepository.sumarPorcentajes(ID_RA, idPasado, EstadoEvaluacion.ACTIVA))
+                .thenReturn(BigDecimal.ZERO);
+
+        RendimientoAsignaturaResponseDTO r = service.consultarPorAsignatura(ID_ASIGNATURA, idPasado);
+
+        assertThat(r.semestreId()).isEqualTo(idPasado);
+        assertThat(r.semestreCodigo()).isEqualTo("2025-2");
+        assertThat(r.resultados()).hasSize(1);
+        verifyNoInteractions(evaluacionService);
+    }
+
+    @Test
+    @DisplayName("Con un semestreId inexistente lanza SemestreNoEncontradoException")
+    void semestreInexistente() {
+        UUID idInexistente = UUID.randomUUID();
+        when(asignaturaRepository.existsById(ID_ASIGNATURA)).thenReturn(true);
+        when(semestreRepository.findById(idInexistente)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.consultarPorAsignatura(ID_ASIGNATURA, idInexistente))
+                .isInstanceOf(SemestreNoEncontradoException.class);
+        verifyNoInteractions(resultadoAprendizajeRepository);
     }
 
     @Test

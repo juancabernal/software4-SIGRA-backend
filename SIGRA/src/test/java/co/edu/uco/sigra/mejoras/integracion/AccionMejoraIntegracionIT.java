@@ -331,7 +331,7 @@ class AccionMejoraIntegracionIT {
     }
 
     private MvcResult convertir(UUID accionId, double porcentaje, String token) throws Exception {
-        String json = "{\"fechaTentativa\":\"" + HOY_COLOMBIA.get() + "\",\"porcentaje\":" + porcentaje + "}";
+        String json = "{\"fechaTentativa\":\"" + HOY_COLOMBIA.get().plusDays(1) + "\",\"porcentaje\":" + porcentaje + "}";
         return enviar(post("/api/v1/acciones-mejora/" + accionId + "/conversion"), token, json);
     }
 

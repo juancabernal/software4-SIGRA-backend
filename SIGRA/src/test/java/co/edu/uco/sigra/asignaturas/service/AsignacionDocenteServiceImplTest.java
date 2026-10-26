@@ -120,6 +120,29 @@ class AsignacionDocenteServiceImplTest {
         }
 
         @Test
+        @DisplayName("normaliza IDs repetidos en la solicitud sin informar omisiones artificiales")
+        void normalizaIdsRepetidosDeLaSolicitud() {
+            Profesor profesor = profesor(EstadoRegistro.ACTIVO);
+            Asignatura asignatura = asignatura(EstadoAsignatura.ACTIVA);
+
+            when(profesorRepository.findById(profesor.getId())).thenReturn(Optional.of(profesor));
+            when(asignaturaRepository.findById(asignatura.getId())).thenReturn(Optional.of(asignatura));
+            when(asignacionRepository.findByProfesor_IdAndAsignatura_Id(profesor.getId(), asignatura.getId()))
+                    .thenReturn(Optional.empty());
+            when(asignacionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            var dto = new AsignacionMasivaRequestDTO(
+                    List.of(profesor.getId(), profesor.getId()),
+                    List.of(asignatura.getId(), asignatura.getId()));
+            ResultadoAsignacionMasivaDTO resultado = service.asignarMasivo(dto);
+
+            assertThat(resultado.creadas()).hasSize(1);
+            assertThat(resultado.omitidas()).isEmpty();
+            assertThat(resultado.rechazadas()).isEmpty();
+            verify(asignacionRepository).save(any());
+        }
+
+        @Test
         @DisplayName("omite un par ya asignado (duplicado) y lo informa, sin crear otra fila")
         void omiteDuplicado() {
             Profesor profesor = profesor(EstadoRegistro.ACTIVO);

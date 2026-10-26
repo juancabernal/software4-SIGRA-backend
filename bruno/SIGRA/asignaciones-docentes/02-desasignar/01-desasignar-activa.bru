@@ -1,0 +1,15 @@
+meta {
+  name: 01-desasignar-activa
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/asignaciones-docentes/{{idAsignacionDocente}}/desasignar
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 204
+}

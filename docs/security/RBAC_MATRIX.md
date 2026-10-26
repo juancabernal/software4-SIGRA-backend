@@ -14,9 +14,9 @@ La tabla documenta los mappings de negocio actuales, incluido el login público.
 | 6 | `PATCH /api/v1/asignaturas/{id}/activar` | ✓ | — | — | Gestión |
 | 7 | `PATCH /api/v1/asignaturas/{id}/inactivar` | ✓ | — | — | Gestión |
 | 8 | `POST /api/v1/auth/login` | Público | Público | Público | Credenciales institucionales; no requiere token |
-| 9 | `GET /api/v1/tipos-documento` | ✓ | — | — | Catálogo administrativo |
+| 9 | `GET /api/v1/tipos-documento` | ✓ | ✓ | — | Catálogo; profesor lo necesita para registrar estudiantes (fila 10) |
 | 10 | `POST /api/v1/estudiantes` | ✓ | ✓ | — | Alta; el profesor puede registrar cuando la regla de negocio lo permite |
-| 11 | `GET /api/v1/estudiantes` | ✓ | ✓ | — | Admin global; profesor solo estudiantes con matrícula y asignación ACTIVA |
+| 11 | `GET /api/v1/estudiantes` | ✓ | ✓ | — | Admin global; profesor con `filtro` busca entre todos los estudiantes ACTIVOS (RF-09a, D18, para poder matricular a quien aún no tiene relación con él); sin `filtro` ve su propio roster (matrícula y asignación ACTIVA) |
 | 12 | `GET /api/v1/estudiantes/{id}` | ✓ | ✓ | ✓ | Admin global; profesor relación ACTIVA; estudiante solo sí mismo |
 | 13 | `PUT /api/v1/estudiantes/{id}` | ✓ | — | — | Gestión |
 | 14 | `DELETE /api/v1/estudiantes/{id}` | ✓ | — | — | Gestión; inactivación lógica |
@@ -45,6 +45,13 @@ La tabla documenta los mappings de negocio actuales, incluido el login público.
 | 37 | `GET /api/v1/semestres` | ✓ | ✓ | ✓ | Lectura |
 | 38 | `GET /api/v1/semestres/{codigo}` | ✓ | ✓ | ✓ | Lectura |
 | 39 | `PATCH /api/v1/semestres/{codigo}` | ✓ | — | — | Gestión |
+| 40 | `POST /api/v1/resultados-aprendizaje/{raId}/evaluaciones` | — | ✓ | — | Profesor solo con asignación docente ACTIVA sobre la asignatura del RA (verificado en el servicio) |
+| 41 | `GET /api/v1/resultados-aprendizaje/{raId}/evaluaciones` | — | ✓ | — | Mismo alcance docente; sin `semestreId` usa el semestre activo |
+| 42 | `GET /api/v1/evaluaciones/{id}` | — | ✓ | — | Profesor solo si la evaluación pertenece a una asignatura asignada ACTIVA |
+| 43 | `PUT /api/v1/evaluaciones/{id}` | — | ✓ | — | Mismo alcance docente; solo semestre en curso y evaluación ACTIVA |
+| 44 | `PATCH /api/v1/evaluaciones/{id}/inactivar` | — | ✓ | — | Mismo alcance docente |
+| 45 | `PATCH /api/v1/evaluaciones/{id}/reactivar` | — | ✓ | — | Mismo alcance docente |
+| 46 | `GET /api/v1/asignaturas/{asignaturaId}/resultados-aprendizaje/rendimiento` | ✓ | ✓ | — | Profesor solo con asignación docente ACTIVA sobre la asignatura (`@securityAuthorization.hasActiveAssignment`); calcula sobre el semestre activo |
 
 ## Identidad y datos
 

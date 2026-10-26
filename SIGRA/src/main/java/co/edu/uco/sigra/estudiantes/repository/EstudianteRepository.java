@@ -37,6 +37,21 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
             """)
     List<Estudiante> buscarPorNombreODocumento(@Param("criterio") String criterio);
 
+    /**
+     * Busca estudiantes ACTIVOS por nombre o documento, sin restringir al roster del profesor.
+     * El profesor la usa para ubicar a un estudiante que todavía no tiene matrícula con él y
+     * poder matricularlo (RF-09a, D18): {@link #buscarVisiblesParaProfesor} nunca lo encontraría,
+     * porque exige una matrícula ya existente.
+     */
+    @Query("""
+            select e from Estudiante e
+            where e.estado = :estudianteEstado
+              and (lower(e.nombreCompleto) like concat('%', lower(:criterio), '%')
+                   or lower(e.numeroDocumento) like concat('%', lower(:criterio), '%'))
+            """)
+    List<Estudiante> buscarActivosPorNombreODocumento(@Param("criterio") String criterio,
+                                                       @Param("estudianteEstado") EstadoRegistro estudianteEstado);
+
     @Query("""
             select distinct e from Estudiante e, Matricula m, AsignacionDocente a
             where e.id = m.estudiante.id

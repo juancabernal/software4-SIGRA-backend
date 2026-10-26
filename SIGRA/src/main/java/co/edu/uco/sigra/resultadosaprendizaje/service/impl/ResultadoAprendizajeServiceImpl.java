@@ -43,6 +43,8 @@ public class ResultadoAprendizajeServiceImpl implements ResultadoAprendizajeServ
         if (asignatura.getEstado() == EstadoAsignatura.INACTIVA) {
             throw ResultadoAprendizajeReglaNegocioException.asignaturaInactiva();
         }
+        // Serializa los cambios de RA de la asignatura: el conteo de activos no puede quedar desfasado.
+        resultadoAprendizajeRepository.bloquearAsignaturaPorId(asignaturaId);
 
         String codigo = normalizarCodigo(dto.codigo());
         if (resultadoAprendizajeRepository.existsByAsignatura_IdAndCodigo(asignaturaId, codigo)) {
@@ -112,6 +114,7 @@ public class ResultadoAprendizajeServiceImpl implements ResultadoAprendizajeServ
         }
 
         Asignatura asignatura = resultado.getAsignatura();
+        resultadoAprendizajeRepository.bloquearAsignaturaPorId(asignatura.getId());
         // El conteo incluye a este RA: si hay MIN o menos, al inactivarlo quedaría por debajo del mínimo.
         if (asignatura.getEstado() == EstadoAsignatura.ACTIVA
                 && contarActivos(asignatura.getId()) <= Asignatura.MIN_RA_ACTIVOS) {
@@ -137,6 +140,7 @@ public class ResultadoAprendizajeServiceImpl implements ResultadoAprendizajeServ
         if (asignatura.getEstado() == EstadoAsignatura.INACTIVA) {
             throw ResultadoAprendizajeReglaNegocioException.asignaturaInactiva();
         }
+        resultadoAprendizajeRepository.bloquearAsignaturaPorId(asignatura.getId());
         if (contarActivos(asignatura.getId()) >= Asignatura.MAX_RA_ACTIVOS) {
             throw ResultadoAprendizajeReglaNegocioException.maximoActivosAlcanzado(Asignatura.MAX_RA_ACTIVOS);
         }
