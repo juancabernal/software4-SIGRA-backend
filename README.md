@@ -1502,41 +1502,105 @@ El [arquetipo de referencia](#arquetipo-de-referencia) distingue las versiones *
 #### Diagramas de clases y componentes
 
 ##### Diagrama de clases
+
 **Responsable:** Jean Paul Ortiz
 
-_Pendiente de completar._
+El diagrama de clases de SIGRA representa la estructura estática del sistema, identificando las principales clases del dominio, sus atributos, operaciones y relaciones. Su propósito es mostrar cómo se organizan los elementos académicos y cómo se relacionan los usuarios, las evaluaciones y el seguimiento de los resultados de aprendizaje.
+
+![Diagrama de clases de SIGRA](docs/imagenes_documentacion/jean_ortiz/diagrama_clases.png)
+
+**Cómo leerlo.** El modelo incluye la jerarquía de usuarios (`Usuario`, `Administrador`, `Profesor` y `Estudiante`), los catálogos y estados que apoyan las reglas de negocio, y las entidades que participan en el proceso académico. Entre ellas se encuentran `ProgramaAcademico`, `Asignatura`, `AsignacionDocente`, `Matricula`, `Evaluacion`, `Calificacion`, `ResultadoAprendizaje`, `NivelLogro`, `Conclusion` y `AccionMejora`.
+
+Las asociaciones muestran cómo se vinculan los profesores y estudiantes con las asignaturas, cómo se registran las evaluaciones y calificaciones, y cómo los resultados obtenidos pueden dar lugar a conclusiones y acciones de mejora. `HistorialAuditoria` representa el registro de los eventos relevantes del sistema. Los símbolos de visibilidad permiten distinguir atributos y operaciones públicas, privadas o protegidas, mientras que las multiplicidades indican cuántas instancias pueden participar en cada relación.
+
+**Diferencias conocidas entre el modelo y la implementación.** El diagrama debe interpretarse como un modelo de diseño y contrastarse con el código y el esquema de base de datos vigentes. El README documenta, por ejemplo, que la relación entre asignatura y programa académico se implementa mediante una clave foránea directa en `Asignatura`, y no mediante una entidad intermedia `AsignaturaPrograma`. También registra una diferencia pendiente sobre la modificación del tipo y número de documento de los profesores. Estas diferencias deben mantenerse explícitas hasta que el equipo unifique las decisiones de diseño e implementación.
 
 ---
 [← Alternativa de solución](#alternativa-de-solución) · [Índice](#índice) · [Siguiente →](#diagrama-de-componentes--back-end)
 
 ##### Diagrama de componentes — back end
+
 **Responsable:** Jean Paul Ortiz
 
-_Pendiente de completar._
+El diagrama de componentes del backend presenta la organización de los elementos que conforman los servicios del servidor de SIGRA y las dependencias entre ellos. Representa el componente principal de la API, las tecnologías utilizadas para implementar la lógica de negocio, los módulos internos y los servicios externos de persistencia y caché contemplados en la arquitectura.
+
+![Diagrama de componentes del backend de SIGRA](docs/imagenes_documentacion/jean_ortiz/diagrama_componentes_backend.png)
+
+**Cómo leerlo.** El componente `SIGRA-Backend` agrupa las funcionalidades del servidor y utiliza Java y Spring Boot como plataforma de desarrollo. Los componentes de acceso web, persistencia, seguridad y validación proporcionan las capacidades necesarias para exponer servicios REST, consultar y guardar información, proteger los endpoints y validar los datos recibidos.
+
+Los componentes propios, como `CrossCutting` y el módulo de auditoría, representan funcionalidades reutilizables y transversales. El diseño también contempla `Parameter Catalog` y `Message Catalog` para centralizar parámetros y mensajes, además de PostgreSQL para la persistencia y Redis como mecanismo de caché previsto para determinadas consultas.
+
+**Alcance de la arquitectura.** El diagrama describe los componentes previstos en el diseño y no implica que todos estén habilitados en el entorno actual. En particular, el README registra que Redis está deshabilitado temporalmente y que PostgreSQL se documenta como versión 15 o superior para el repositorio. Por ello, las versiones y los servicios que aparecen en el diagrama deben contrastarse con las dependencias y la configuración vigentes antes de considerarlos parte de la implementación desplegada.
 
 ---
 [← Diagrama de clases](#diagrama-de-clases) · [Índice](#índice) · [Siguiente →](#componentes--back-end)
 
 ##### Componentes — back end
+
 **Responsable:** Jean Paul Ortiz
 
-_Pendiente de completar._
+El inventario del backend describe los componentes tecnológicos y propios considerados para construir los servicios de SIGRA. Para facilitar su consulta, se presentan su función principal, las dependencias declaradas en el diseño y su clasificación.
+
+| Componente | Función principal | Dependencias declaradas | Tipo |
+|---|---|---|---|
+| `SIGRA-Backend 0.0.1-SNAPSHOT` | Publica los servicios REST para el catálogo académico, matrícula, evaluaciones, calificaciones, análisis y reportes. | Java 21; Spring Boot 4.1.1 y componentes asociados | Componente a desarrollar |
+| Java 21 | Plataforma base de desarrollo del backend. | Plataforma base | Lenguaje/plataforma |
+| Spring Boot 4.1.1 | Configura la aplicación y gestiona las dependencias del framework. | Java 21 | Framework |
+| `spring-boot-starter-web 4.1.1` | Expone controladores REST y gestiona solicitudes HTTP y respuestas JSON. | Spring Boot 4.1.1 | Framework |
+| `spring-boot-starter-data-jpa 4.1.1` | Facilita la persistencia mediante entidades y repositorios. | Spring Boot 4.1.1; PostgreSQL JDBC | Framework |
+| `spring-boot-starter-security 4.1.1` | Protege los servicios y aplica autenticación y autorización. | Spring Boot 4.1.1; JJWT | Framework |
+| `jjwt-api 0.13.0` | Permite generar y validar tokens JWT. | Java 21 | Librería |
+| `spring-boot-starter-validation 4.1.1` | Aplica validaciones a los datos de entrada. | Spring Boot 4.1.1 | Framework |
+| `springdoc-openapi-starter-webmvc-ui 3.1.0` | Genera la documentación OpenAPI y proporciona Swagger UI. | Spring Web MVC | Librería de documentación |
+| `spring-boot-starter-actuator 4.1.1` | Expone información de salud y monitoreo operacional. | Spring Boot 4.1.1 | Framework |
+| `spring-boot-starter-data-redis 4.1.1` | Proporciona integración con Redis para operaciones de caché. | Spring Boot 4.1.1; Redis | Framework |
+| PostgreSQL 18.6 | Motor relacional propuesto para almacenar los datos del sistema. | Servicio de base de datos | Servicio externo |
+| `mapstruct 1.6.3` | Genera mapeos entre DTO y entidades en tiempo de compilación. | Java 21 | Librería |
+| `lombok 1.18.42` | Reduce código repetitivo mediante anotaciones. | Java 21 | Librería |
+| `CrossCutting 0.0.1-SNAPSHOT` | Centraliza utilidades compartidas, respuestas estándar y manejo de excepciones. | Java 21 | Componente propio |
+| `Módulo de Auditoría 0.0.1-SNAPSHOT` | Registra los eventos relevantes del sistema mediante un historial de auditoría de solo adición. | Spring Data JPA | Componente propio |
+| `Parameter Catalog 0.0.1-SNAPSHOT` | Centraliza los parámetros funcionales y configurables de SIGRA. | Spring Data JPA; Spring Data Redis; PostgreSQL; Redis | Componente propio |
+| `Message Catalog 0.0.1-SNAPSHOT` | Centraliza mensajes funcionales, de validación y de error. | Spring Data JPA; Spring Data Redis; PostgreSQL; Redis | Componente propio |
+| Redis Community Edition | Proporciona caché en memoria para consultas frecuentes a parámetros y mensajes. | Parameter Catalog; Message Catalog | Servicio externo de caché |
+
+**Consideraciones sobre las versiones.** Este inventario conserva las versiones declaradas en la hoja de componentes del Excel. No todas deben interpretarse como dependencias instaladas o servicios activos en el repositorio actual. El README registra Java 21 como *toolchain*, PostgreSQL 15 o superior y Redis temporalmente deshabilitado. Asimismo, la versión de `springdoc-openapi` consignada en el inventario es 3.1.0, mientras que el apartado Stack del README indica 3.1.1. Antes de la entrega final, verifica las versiones efectivas en `build.gradle` y la configuración de infraestructura, y unifica la documentación donde corresponda.
 
 ---
 [← Diagrama de componentes — back end](#diagrama-de-componentes--back-end) · [Índice](#índice) · [Siguiente →](#diagrama-de-componentes--front-end)
 
 ##### Diagrama de componentes — front end
-**Responsable:** Por definir
 
-_Pendiente de completar._
+**Responsable:** Jean Paul Ortiz
+
+El diagrama de componentes del frontend representa la aplicación cliente de SIGRA y las principales dependencias utilizadas para construir la interfaz de usuario. El componente principal `SIGRA-FrontEnd` agrupa las funcionalidades de presentación, navegación y comunicación con los servicios del backend.
+
+![Diagrama de componentes del frontend de SIGRA](docs/imagenes_documentacion/jean_ortiz/diagrama_componentes_frontend.png)
+
+**Cómo leerlo.** El componente principal se apoya en Angular para construir la aplicación de página única (SPA). Angular Router permite definir rutas y controlar el acceso a las vistas según el rol; Angular Common HTTP gestiona las solicitudes al backend; RxJS facilita el manejo de operaciones asíncronas, y Angular Material proporciona componentes de interfaz basados en Material Design.
+
+El diagrama diferencia los componentes internos de SIGRA de las dependencias externas que apoyan su funcionamiento. La autenticación y autorización efectivas deben seguir siendo verificadas por el backend; los controles de navegación del frontend complementan esta protección, pero no la sustituyen.
+
+**Alcance.** Las versiones mostradas corresponden al inventario de componentes del Excel. Deben contrastarse con el archivo `package.json` y el archivo de bloqueo de dependencias del frontend antes de considerarlas versiones efectivamente instaladas.
 
 ---
 [← Componentes — back end](#componentes--back-end) · [Índice](#índice) · [Siguiente →](#componentes--front-end)
 
 ##### Componentes — front end
-**Responsable:** Por definir
 
-_Pendiente de completar._
+**Responsable:** Jean Paul Ortiz
+
+El inventario del frontend describe el componente principal de la aplicación y las bibliotecas que utiliza para construir la interfaz, administrar la navegación y comunicarse con el backend.
+
+| Componente | Función principal | Dependencias declaradas | Tipo |
+|---|---|---|---|
+| `SIGRA-Frontend 0.0.1` | Aplicación SPA que presenta los módulos para Administrador, Profesor y Estudiante, gestiona la sesión y consume la API. | `@angular/core 22.0.1`; `@angular/router 22.0.1`; `@angular/common/http 22.0.1`; `rxjs 7.8.2`; `@angular/material 22.0.1` | Componente a desarrollar |
+| `@angular/core 22.0.1` | Framework base para crear componentes, servicios y gestionar el ciclo de vida de la aplicación. | Base de Angular | Framework |
+| `@angular/router 22.0.1` | Gestiona las rutas, la navegación y los guards de acceso a las vistas. | `@angular/core 22.0.1` | Framework |
+| `@angular/common/http 22.0.1` | Proporciona el cliente HTTP para consumir los servicios del backend. | `rxjs 7.8.2` | Librería |
+| `rxjs 7.8.2` | Facilita el manejo de flujos asíncronos y observables. | — | Librería |
+| `@angular/material 22.0.1` | Proporciona componentes visuales basados en Material Design y herramientas de accesibilidad. | `@angular/core 22.0.1` | Framework de interfaz |
+
+**Consideraciones sobre las versiones.** Las versiones anteriores se transcriben del inventario de arquitectura. Deben verificarse con `package.json` y el archivo de bloqueo de dependencias del frontend para asegurar que coincidan con el proyecto implementado. La restricción de acceso por roles debe validarse también en los endpoints del backend, independientemente de los guards del cliente.
 
 ---
 [← Diagrama de componentes — front end](#diagrama-de-componentes--front-end) · [Índice](#índice)
