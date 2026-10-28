@@ -627,7 +627,57 @@ La justificación explica, actor por actor, por qué cada atributo de calidad oc
 ##### Historias de usuario
 **Responsable:** Juan José Narváez
 
-_Pendiente de completar._
+Las historias de usuario se gestionaron en Azure DevOps (Boards > Queries) del proyecto SIGRA. Se organizan en una épica y tres features, y cada historia conserva el identificador del requisito funcional (RF) del SRS que implementa. Sus criterios de aceptación están en el apartado [Criterios de aceptación](#criterios-de-aceptación).
+
+**Épica y features**
+
+- **Épica:** catalogo academico
+- **Feature: catalogo académico.** Feature que agrupa la gestión de las entidades base sobre las cuales opera SIGRA: profesores, programas académicos, asignaturas, Resultados de Aprendizaje, asignación docente y matrícula de estudiantes. Es el cimiento sobre el cual se construye todo el ciclo de evaluación académica.
+- **Feature: evaluación y analítica.** Feature que agrupa el ciclo completo de evaluación del aprendizaje: creación de evaluaciones, registro de calificaciones, cálculo automático del nivel de logro, estadísticas descriptivas, conclusiones automáticas, acciones de mejora y las consultas/reportes por rol. Es la implementación directa del ciclo evaluar→analizar→mejorar→revaluar de SIGRA.
+- **Feature: Seguridad y plataforma base.** Feature que agrupa las capacidades transversales de la plataforma: autenticación de usuarios, control de acceso basado en roles (RBAC) y el historial de auditoría append-only. Aplican por igual a los tres roles del sistema (Administrador, Profesor, Estudiante) y a todos los módulos funcionales.
+
+**Historias de usuario (38)**
+
+| ID | Título | Historia de usuario |
+| --- | --- | --- |
+| RF-01a | Registrar profesor | Como Administrador, quiero registrar un nuevo profesor en la plataforma, para poder asignarlo posteriormente a una o varias asignaturas. |
+| RF-01b | Consultar profesor | Como Administrador, quiero consultar el listado de profesores registrados, para conocer su información y estado actual dentro de la plataforma. |
+| RF-01c | Modificar profesor | Como Administrador, quiero modificar la información de un profesor ya registrado, para mantener sus datos actualizados. |
+| RF-01d | Inactivar profesor | Como Administrador, quiero inactivar un profesor registrado, para que deje de estar disponible para nuevas asignaciones docentes sin perder su historial de datos. |
+| RF-02a | Registrar programa académico | Como Administrador, quiero registrar un nuevo programa académico, para poder asociarle asignaturas dentro de la plataforma. |
+| RF-02b | Consultar programa académico | Como Administrador, quiero consultar el listado de programas académicos registrados, para conocer su información y estado actual. |
+| RF-02c | Modificar programa académico | Como Administrador, quiero modificar la información de un programa académico ya registrado, para mantener sus datos actualizados. |
+| RF-02d | Inactivar programa académico | Como Administrador, quiero inactivar un programa académico registrado, para que deje de estar disponible para nuevas asignaturas sin perder su historial de datos. |
+| RF-03a | Registrar asignatura | Como Administrador, quiero registrar una nueva asignatura dentro de un programa académico, para poder asociarle posteriormente los Resultados de Aprendizaje correspondientes. |
+| RF-03b | Consultar asignatura | Como Administrador, quiero consultar el listado de asignaturas registradas, para conocer su información, estado y los Resultados de Aprendizaje asociados a cada una. |
+| RF-03c | Modificar asignatura | Como Administrador, quiero modificar la información de una asignatura ya registrada, para mantener sus datos actualizados. |
+| RF-03d | Activar / Inactivar asignatura | Como Administrador, quiero activar o inactivar una asignatura, para controlar su disponibilidad para la asignación docente y la matrícula de estudiantes, respetando el mínimo y máximo de Resultados de Aprendizaje requeridos. |
+| RF-04 | Autenticación | Como usuario del sistema (Administrador, Profesor o Estudiante), quiero iniciar sesión con mis credenciales, para acceder de forma segura a las funcionalidades correspondientes a mi rol. |
+| RF-05 | Control de acceso basado en roles (RBAC) | Como sistema, quiero validar los permisos de cada usuario en cada endpoint del backend según su rol (Administrador, Profesor o Estudiante), para garantizar que ninguno pueda acceder a funcionalidades o datos que no le correspondan, incluso si intenta manipular la interfaz. |
+| RF-06a | Registrar Resultado de Aprendizaje | Como Administrador, quiero registrar un nuevo Resultado de Aprendizaje asociado a una asignatura, para definir sobre qué se evaluará el aprendizaje de los estudiantes en esa materia. |
+| RF-06b | Consultar Resultado de Aprendizaje | Como Administrador o Profesor, quiero consultar los Resultados de Aprendizaje de una asignatura, para conocer sobre qué se está evaluando el aprendizaje de los estudiantes. |
+| RF-06c | Modificar / Inactivar Resultado de Aprendizaje | Como Administrador, quiero modificar o inactivar un Resultado de Aprendizaje existente, para mantener actualizado el catálogo académico, siendo el único rol autorizado para hacerlo. |
+| RF-07 | Asignación docente de asignaturas | Como Administrador, quiero asignar uno o varios profesores a una o varias asignaturas, para que puedan gestionar la evaluación del aprendizaje en ellas. |
+| RF-08a | Matricular estudiante | Como Administrador o Profesor, quiero matricular un estudiante en una asignatura, para que pueda ser evaluado en los Resultados de Aprendizaje correspondientes. |
+| RF-08b | Desvincular estudiante | Como Administrador o Profesor, quiero desvincular un estudiante de una asignatura, para reflejar que ya no continúa cursándola. |
+| RF-09 | Registrar estudiante nuevo (por el docente) | Como Profesor, quiero registrar un estudiante nuevo con sus datos completos y matricularlo en mi asignatura, para poder evaluarlo sin depender de que el Administrador lo haga primero. |
+| RF-10a | Crear evaluación | Como Profesor, quiero crear una evaluación asociada a un Resultado de Aprendizaje de mi asignatura, para poder medir el desempeño de los estudiantes en ese RA. |
+| RF-10b | Modificar evaluación | Como Profesor, quiero modificar una evaluación existente, para corregir o actualizar su información antes o durante su aplicación. |
+| RF-10c | Activar / Inactivar evaluación | Como Profesor, quiero activar o inactivar una evaluación, para controlar si está disponible para el registro de calificaciones. |
+| RF-12 | Registro de calificaciones y observaciones | Como Profesor, quiero registrar la calificación y observación de un estudiante en una evaluación, para dejar constancia de su desempeño y justificar la nota asignada. |
+| RF-14 | Cálculo de nivel de logro | Como Profesor, quiero que el sistema calcule automáticamente el nivel de logro de cada estudiante en un Resultado de Aprendizaje, para conocer su desempeño sin tener que calcularlo manualmente. |
+| RF-15 | Estadísticas descriptivas | Como Profesor, quiero consultar estadísticas descriptivas del desempeño de mis estudiantes en un Resultado de Aprendizaje, para identificar patrones generales de aprendizaje en el grupo. |
+| RF-16 | Conclusiones automáticas | Como Profesor, quiero que el sistema genere automáticamente una conclusión cuando el desempeño de mis estudiantes en un Resultado de Aprendizaje sea insuficiente, para identificar oportunamente en qué RA se requiere una acción de mejora. |
+| RF-17 | Registro de acciones de mejora | Como Profesor, quiero registrar una acción de mejora para un Resultado de Aprendizaje con una conclusión insuficiente vigente, para atender el problema de aprendizaje detectado en mis estudiantes. |
+| RF-18 | Conversión de Acción de Mejora a nueva Evaluación | Como Profesor, quiero convertir una Acción de Mejora en una nueva evaluación, para volver a medir el desempeño de los estudiantes en el mismo Resultado de Aprendizaje después de aplicar la mejora, cerrando así el ciclo evaluar-analizar-mejorar-revaluar. |
+| RF-19 | Conservación de historial/auditoría | Como sistema, quiero registrar de forma permanente e inalterable los eventos relevantes ocurridos sobre las entidades académicas, para garantizar la trazabilidad y el cumplimiento del periodo mínimo de retención definido. |
+| RF-20 | Consulta para Profesores | Como Profesor, quiero consultar una vista consolidada de mis asignaturas, para tener una visión general y rápida del estado de mis evaluaciones, calificaciones y Resultados de Aprendizaje sin tener que revisar cada módulo por separado. |
+| RF-21a | Reporte de RA por asignatura | Como Administrador, quiero consultar un reporte de los Resultados de Aprendizaje por asignatura, para supervisar cómo está estructurado el catálogo académico en términos de evaluación. |
+| RF-21b | Reporte de logro por programa | Como Administrador, quiero consultar un reporte del nivel de logro agregado por programa académico, para supervisar el desempeño general de los estudiantes a nivel institucional. |
+| RF-21c | Reporte de historial completo | Como Administrador, quiero consultar el reporte del historial completo de auditoría, para supervisar los eventos y cambios ocurridos en el sistema. |
+| RF-22 | Consulta para Estudiantes | Como Estudiante, quiero consultar mis propias calificaciones, observaciones, Resultados de Aprendizaje y niveles de logro, para conocer mi desempeño académico de forma clara y directa. |
+| RF-23a | Registrar semestre | Como Administrador, quiero registrar un nuevo semestre académico, para poder asociar matrículas y evaluaciones a un periodo específico. |
+| RF-23b | Consultar semestre | Como Administrador o Profesor, quiero consultar los semestres registrados, para conocer cuál está vigente y poder asociar matrículas o evaluaciones al periodo correcto. |
 
 ---
 [← Mapa de empatía](#mapa-de-empatía) · [Índice](#índice) · [Siguiente →](#criterios-de-aceptación)
@@ -635,15 +685,338 @@ _Pendiente de completar._
 ##### Criterios de aceptación
 **Responsable:** Juan José Narváez
 
-_Pendiente de completar._
+Cada historia de usuario tiene criterios de aceptación escritos en formato *Dado que… cuando… entonces…*. Se agrupan por el identificador de la historia definida en el apartado [Historias de usuario](#historias-de-usuario-1).
+
+**RF-01a — Registrar profesor**
+
+1. Dado que el Administrador ingresa un correo electrónico, cuando el dominio no corresponde a @uco.net.co, entonces el sistema rechaza el registro y muestra un mensaje de error.
+2. Dado que el Administrador ingresa un número de cédula, cuando este tiene menos de 6 o más de 10 dígitos, entonces el sistema rechaza el registro y muestra un mensaje de error.
+3. Dado que todos los campos obligatorios son válidos, cuando el Administrador confirma el registro, entonces el profesor queda creado con estado Activo y disponible para ser asignado a asignaturas.
+
+**RF-01b — Consultar profesor**
+
+1. Dado que existen profesores registrados, cuando el Administrador accede al listado, entonces el sistema muestra nombre, correo, número de documento y estado de cada uno.
+2. Dado que el Administrador busca un profesor por nombre o número de documento, cuando el término de búsqueda coincide con un registro, entonces el sistema muestra el profesor correspondiente.
+3. Dado que no existen profesores registrados, cuando el Administrador accede al listado, entonces el sistema muestra un estado vacío indicando que no hay registros.
+
+**RF-01c — Modificar profesor**
+
+1. Dado que el Administrador edita el correo electrónico de un profesor, cuando el nuevo valor no cumple el dominio @uco.net.co, entonces el sistema rechaza el cambio y muestra un mensaje de error.
+2. Dado que el Administrador intenta modificar el número de documento de un profesor ya registrado, entonces el sistema rechaza el cambio y muestra un mensaje indicando que ese campo no es modificable.
+3. Dado que los datos modificados son válidos, cuando el Administrador confirma los cambios, entonces el sistema actualiza la información del profesor y lo refleja inmediatamente en el listado de consulta.
+
+**RF-01d — Inactivar profesor**
+
+1. Dado que el Administrador selecciona un profesor activo, cuando confirma la inactivación, entonces el sistema cambia su estado a Inactivo sin eliminar físicamente el registro.
+2. Dado que un profesor está inactivo, cuando el Administrador intenta asignarlo a una nueva asignatura, entonces el sistema no lo muestra como opción disponible.
+3. Dado que un profesor inactivo tenía asignaturas ya asignadas previamente, cuando se consulta el historial de esas asignaturas, entonces la información del profesor y su participación se sigue mostrando correctamente.
+4. Dado que un profesor tiene asignaturas activas asociadas, cuando el Administrador intenta inactivarlo, entonces el sistema rechaza la inactivación y muestra un mensaje indicando el motivo.
+
+**RF-02a — Registrar programa académico**
+
+1. Dado que el Administrador ingresa un nombre de programa académico, cuando ya existe otro programa con el mismo nombre, entonces el sistema rechaza el registro y muestra un mensaje de error.
+2. Dado que el Administrador ingresa un código de programa académico, cuando ya existe otro programa con el mismo código, entonces el sistema rechaza el registro y muestra un mensaje de error.
+3. Dado que el nombre y el código son únicos y válidos, cuando el Administrador confirma el registro, entonces el programa académico queda creado con estado Activo.
+
+**RF-02b — Consultar programa académico**
+
+1. Dado que existen programas académicos registrados, cuando el Administrador accede al listado, entonces el sistema muestra nombre, código y estado de cada uno.
+2. Dado que el Administrador busca un programa por nombre o código, cuando el término de búsqueda coincide con un registro, entonces el sistema muestra el programa correspondiente.
+3. Dado que no existen programas académicos registrados, cuando el Administrador accede al listado, entonces el sistema muestra un estado vacío indicando que no hay registros.
+
+**RF-02c — Modificar programa académico**
+
+1. Dado que el Administrador edita el nombre de un programa académico, cuando el nuevo nombre ya pertenece a otro programa existente, entonces el sistema rechaza el cambio y muestra un mensaje de error.
+2. Dado que el Administrador edita el código de un programa académico, cuando el nuevo código ya pertenece a otro programa existente, entonces el sistema rechaza el cambio y muestra un mensaje de error.
+3. Dado que los datos modificados son válidos, cuando el Administrador confirma los cambios, entonces el sistema actualiza la información del programa académico y lo refleja inmediatamente en el listado de consulta.
+
+**RF-02d — Inactivar programa académico**
+
+1. Dado que el Administrador selecciona un programa académico activo, cuando confirma la inactivación, entonces el sistema cambia su estado a Inactivo sin eliminar físicamente el registro.
+2. Dado que un programa académico está inactivo, cuando el Administrador intenta crear una nueva asignatura asociada a él, entonces el sistema no lo muestra como opción disponible.
+3. Dado que un programa académico inactivo tenía asignaturas ya creadas previamente, cuando se consulta el historial de esas asignaturas, entonces la información del programa sigue mostrándose correctamente.
+
+**RF-03a — Registrar asignatura**
+
+1. Dado que el Administrador ingresa el nombre y código de una asignatura, cuando el código ya pertenece a otra asignatura existente, entonces el sistema rechaza el registro y muestra un mensaje de error.
+2. Dado que el Administrador confirma el registro de una nueva asignatura, cuando no ha seleccionado un programa académico al cual asociarla, entonces el sistema no permite guardar el registro.
+3. Dado que los datos ingresados son válidos, cuando el Administrador confirma el registro, entonces la asignatura queda creada con estado Borrador (no puede quedar en estado Activa hasta tener entre 5 y 7 RA registrados).
+
+**RF-03b — Consultar asignatura**
+
+1. Dado que existen asignaturas registradas, cuando el Administrador accede al listado, entonces el sistema muestra nombre, código, programa académico, estado y cantidad de RA asociados.
+2. Dado que el Administrador busca una asignatura por nombre o código, cuando el término coincide con un registro, entonces el sistema muestra la asignatura correspondiente.
+3. Dado que el Administrador filtra asignaturas por programa académico, cuando selecciona un programa, entonces el sistema muestra únicamente las asignaturas asociadas a ese programa.
+4. Dado que no existen asignaturas registradas, cuando el Administrador accede al listado, entonces el sistema muestra un estado vacío indicando que no hay registros.
+
+**RF-03c — Modificar asignatura**
+
+1. Dado que el Administrador edita el código de una asignatura, cuando el nuevo código ya pertenece a otra asignatura existente, entonces el sistema rechaza el cambio y muestra un mensaje de error.
+2. Dado que el Administrador intenta asociar la asignatura a un programa académico inactivo, cuando confirma el cambio, entonces el sistema no permite la asociación.
+3. Dado que los datos modificados son válidos, cuando el Administrador confirma los cambios, entonces el sistema actualiza la información de la asignatura y lo refleja inmediatamente en el listado de consulta.
+
+**RF-03d — Activar / Inactivar asignatura**
+
+1. Dado que una asignatura tiene menos de 5 Resultados de Aprendizaje registrados, cuando el Administrador intenta activarla, entonces el sistema rechaza la activación y muestra un mensaje indicando el mínimo requerido.
+2. Dado que una asignatura tiene más de 7 Resultados de Aprendizaje registrados, cuando el Administrador intenta activarla, entonces el sistema rechaza la activación y muestra un mensaje indicando el máximo permitido.
+3. Dado que una asignatura tiene entre 5 y 7 Resultados de Aprendizaje registrados, cuando el Administrador confirma la activación, entonces el sistema cambia su estado de Borrador a Activa.
+4. Dado que una asignatura se encuentra en estado Activa, cuando el Administrador la inactiva, entonces el sistema cambia su estado a Inactiva sin eliminar el registro ni afectar las matrículas o calificaciones ya existentes.
+
+**RF-04 — Autenticación**
+
+1. Dado que un usuario ingresa correo y contraseña válidos, cuando confirma el inicio de sesión, entonces el sistema le da acceso según los permisos de su rol.
+2. Dado que un usuario ingresa una contraseña incorrecta, cuando confirma el inicio de sesión, entonces el sistema rechaza el acceso, muestra un mensaje de error y registra el intento fallido.
+3. Dado que un usuario acumula 5 intentos fallidos consecutivos, cuando realiza un sexto intento, entonces el sistema bloquea la cuenta durante 15 minutos e informa del bloqueo.
+4. Dado que una cuenta está bloqueada, cuando el usuario intenta iniciar sesión antes de que transcurran los 15 minutos, entonces el sistema rechaza el acceso e indica el tiempo restante.
+5. Dado que han transcurrido los 15 minutos de bloqueo, cuando el usuario inicia sesión con credenciales correctas, entonces el sistema permite el acceso y reinicia el contador de intentos fallidos.
+6. Dado que un usuario inicia sesión correctamente, cuando el sistema genera el token de sesión, entonces este debe expirar a los 60 minutos conforme a la política de seguridad.
+
+**RF-05 — Control de acceso basado en roles (RBAC)**
+
+1. Dado que un Estudiante intenta acceder a un endpoint exclusivo de Administrador o Profesor, cuando realiza la solicitud (aunque no la vea disponible en la interfaz), entonces el backend rechaza la solicitud con un error de autorización.
+2. Dado que un Profesor intenta consultar o modificar datos de una asignatura que no tiene asignada, cuando realiza la solicitud, entonces el backend rechaza la solicitud con un error de autorización.
+3. Dado que un Administrador accede a las funcionalidades de gestión del catálogo académico, cuando realiza cualquier operación permitida por su rol, entonces el sistema le da acceso sin restricciones adicionales.
+4. Dado que un Estudiante consulta sus propios datos (notas, RA, niveles de logro), cuando realiza la solicitud, entonces el sistema le muestra únicamente su información, sin datos agregados ni de otros estudiantes.
+5. Dado que se define la Matriz RBAC (Apéndice 4.1 del SRS), cuando se implementa cada endpoint del backend, entonces la validación de permisos debe corresponder exactamente a lo definido en dicha matriz, sin depender únicamente de ocultar opciones en el frontend.
+
+**RF-06a — Registrar Resultado de Aprendizaje**
+
+1. Dado que una asignatura ya tiene 7 Resultados de Aprendizaje registrados, cuando el Administrador intenta registrar uno adicional, entonces el sistema rechaza el registro indicando que se alcanzó el máximo permitido.
+2. Dado que el Administrador ingresa la descripción de un nuevo RA, cuando confirma el registro, entonces el sistema lo asocia correctamente a la asignatura seleccionada con estado Activo.
+3. Dado que el Administrador intenta registrar un RA sin seleccionar una asignatura, cuando confirma el registro, entonces el sistema no permite guardar el RA.
+
+**RF-06b — Consultar Resultado de Aprendizaje**
+
+1. Dado que el usuario es Administrador, cuando accede al listado de RA, entonces el sistema muestra todos los RA de todas las asignaturas, sin restricción.
+2. Dado que el usuario es Profesor, cuando accede al listado de RA, entonces el sistema muestra únicamente los RA de las asignaturas que tiene asignadas.
+3. Dado que una asignatura tiene RA registrados, cuando se consulta el listado, entonces el sistema muestra descripción y estado de cada RA.
+4. Dado que una asignatura no tiene RA registrados, cuando se consulta el listado, entonces el sistema muestra un estado vacío indicando que no hay registros.
+
+**RF-06c — Modificar / Inactivar Resultado de Aprendizaje**
+
+1. Dado que un Profesor intenta modificar o inactivar un RA, cuando realiza la solicitud, entonces el sistema rechaza la operación por no tener los permisos correspondientes (según RBAC).
+2. Dado que el Administrador edita la descripción de un RA, cuando confirma los cambios, entonces el sistema actualiza la información y la refleja inmediatamente en la consulta.
+3. Dado que el Administrador inactiva un RA, cuando este ya tiene evaluaciones y calificaciones asociadas, entonces el sistema cambia su estado a Inactivo sin eliminar el registro ni afectar el historial existente.
+4. Dado que el Administrador intenta inactivar un RA y la asignatura quedaría con menos de 5 RA activos, cuando confirma la inactivación, entonces el sistema advierte que la asignatura podría no cumplir el mínimo requerido para mantenerse Activa.
+
+**RF-07 — Asignación docente de asignaturas**
+
+1. Dado que el Administrador selecciona uno o varios profesores y una o varias asignaturas, cuando confirma la asignación, entonces el sistema crea la relación correspondiente entre cada profesor y cada asignatura seleccionada.
+2. Dado que el Administrador intenta asignar un profesor a una asignatura donde ya está asignado, cuando confirma la operación, entonces el sistema omite esa asignación duplicada y continúa con las demás sin generar error.
+3. Dado que se omiten asignaciones duplicadas durante el proceso, cuando la operación finaliza, entonces el sistema informa al Administrador cuáles asignaciones fueron omitidas por duplicidad.
+4. Dado que el Administrador intenta asignar un profesor inactivo o una asignatura inactiva, cuando confirma la operación, entonces el sistema rechaza esa asignación específica.
+
+**RF-08a — Matricular estudiante**
+
+1. Dado que se selecciona un estudiante, una asignatura y un semestre, cuando se confirma la matrícula, entonces el sistema crea la relación con estado Activa, asociada a ese semestre.
+2. Dado que un estudiante ya está matriculado y activo en una asignatura dentro del mismo semestre, cuando se intenta matricularlo de nuevo en esa combinación, entonces el sistema rechaza la operación por matrícula duplicada.
+3. Dado que un estudiante ya cursó una asignatura en un semestre anterior, cuando se le matricula de nuevo en esa misma asignatura pero en un semestre distinto (ej. repitencia), entonces el sistema sí permite crear la nueva matrícula, sin considerarla duplicada.
+4. Dado que se intenta matricular en una asignatura inactiva, cuando se confirma la operación, entonces el sistema rechaza la matrícula.
+
+**RF-08b — Desvincular estudiante**
+
+1. Dado que un estudiante matriculado no tiene calificaciones registradas en la asignatura, cuando se confirma la desvinculación, entonces el sistema cambia el estado de la matrícula a Desvinculada directamente.
+2. Dado que un estudiante matriculado ya tiene calificaciones registradas en la asignatura, cuando se intenta desvincularlo, entonces el sistema solicita una confirmación adicional antes de proceder.
+3. Dado que se confirma la desvinculación de un estudiante con calificaciones existentes, cuando se completa la operación, entonces el sistema cambia el estado a Desvinculada sin eliminar las calificaciones ya registradas.
+
+**RF-09 — Registrar estudiante nuevo (por el docente)**
+
+1. Dado que el Profesor ingresa los datos completos de un estudiante nuevo (nombre, documento, correo, etc.), cuando confirma el registro, entonces el sistema crea el estudiante y lo matricula automáticamente en la asignatura del profesor.
+2. Dado que el Profesor intenta registrar un estudiante con un número de documento ya existente en el sistema, cuando confirma el registro, entonces el sistema rechaza la operación e indica que el estudiante ya existe.
+3. Dado que los datos ingresados no cumplen las validaciones de formato (correo, documento), cuando el Profesor confirma el registro, entonces el sistema rechaza la operación y muestra el error correspondiente.
+
+**RF-10a — Crear evaluación**
+
+1. Dado que el Profesor ingresa nombre, fecha tentativa, porcentaje y descripción de la evaluación, cuando confirma el registro, entonces el sistema crea la evaluación asociada al RA seleccionado con estado Activa.
+2. Dado que la suma de los porcentajes de las evaluaciones ya existentes para ese RA en ese mismo semestre, más el porcentaje de la nueva evaluación supera el 100%, cuando el Profesor confirma el registro, entonces el sistema rechaza la creación y muestra un mensaje de error.
+3. Dado que el Profesor intenta crear una evaluación sobre un RA que no pertenece a una de sus asignaturas asignadas, cuando realiza la solicitud, entonces el sistema rechaza la operación (validado por RBAC).
+4. Dado que el Profesor no completa alguno de los campos obligatorios (nombre, fecha tentativa, porcentaje), cuando confirma el registro, entonces el sistema no permite guardar la evaluación.
+5. Dado que un RA tiene evaluaciones de un semestre anterior que ya suman 100%, cuando el Profesor crea una nueva evaluación para ese mismo RA pero en un semestre distinto, entonces el sistema permite el registro — la validación de suma es independiente por semestre.
+
+**RF-10b — Modificar evaluación**
+
+1. Dado que una evaluación no tiene calificaciones registradas, cuando el Profesor edita cualquiera de sus atributos (nombre, fecha, porcentaje, descripción), entonces el sistema permite el cambio sin restricción.
+2. Dado que una evaluación ya tiene al menos una calificación registrada, cuando el Profesor intenta modificar la fecha tentativa o el porcentaje, entonces el sistema bloquea esos dos campos específicos y no permite su edición.
+3. Dado que una evaluación ya tiene calificaciones registradas, cuando el Profesor edita el nombre o la descripción, entonces el sistema permite el cambio sin restricción (solo fecha y porcentaje quedan bloqueados).
+4. Dado que la modificación del porcentaje (cuando es editable) haría que la suma de porcentajes del RA supere el 100%, cuando el Profesor confirma el cambio, entonces el sistema rechaza la modificación.
+
+**RF-10c — Activar / Inactivar evaluación**
+
+1. Dado que una evaluación se encuentra en estado Activa, cuando el Profesor la inactiva, entonces el sistema cambia su estado a Inactiva y deja de estar disponible para nuevos registros de calificación.
+2. Dado que una evaluación ya tiene calificaciones registradas, cuando el Profesor la inactiva, entonces las calificaciones existentes no se eliminan ni se ven afectadas.
+3. Dado que una evaluación se encuentra en estado Inactiva, cuando el Profesor la reactiva, entonces el sistema cambia su estado a Activa nuevamente.
+
+**RF-12 — Registro de calificaciones y observaciones**
+
+1. Dado que el Profesor ingresa una nota, cuando el valor está fuera del rango 0.0 a 5.0, entonces el sistema rechaza el registro y muestra un mensaje de error.
+2. Dado que el Profesor registra una calificación, cuando no ingresa una observación, entonces el sistema no permite guardar el registro (la observación es obligatoria).
+3. Dado que el Profesor ingresa una observación, cuando esta tiene menos de 10 caracteres, entonces el sistema rechaza el registro y muestra un mensaje indicando el mínimo requerido.
+4. Dado que la nota y la observación cumplen todas las validaciones, cuando el Profesor confirma el registro, entonces el sistema guarda la calificación asociada al estudiante y a la evaluación correspondiente.
+5. Dado que el Profesor registra una calificación en una fecha posterior a la fecha tentativa de la evaluación, cuando confirma el registro, entonces el sistema muestra un ícono de advertencia (⚠) junto al registro.
+6. Dado que se registra una calificación fuera de la fecha tentativa de la evaluación, cuando se completa el registro, entonces el sistema deja constancia de este evento en el historial de auditoría.
+7. Dado que el Profesor intenta registrar una calificación para un estudiante que no está matriculado (o cuya matrícula está Desvinculada) en la asignatura, cuando confirma el registro, entonces el sistema rechaza la operación.
+8. Dado que el Profesor intenta modificar una calificación ya registrada, cuando confirma el cambio, entonces el sistema actualiza el valor y también deja constancia del cambio en el historial de auditoría (append-only, sin sobrescribir el registro original).
+9. Dado que el sistema va a registrar una calificación, cuando el semestre de la matrícula del estudiante en esa asignatura es distinto al semestre de la evaluación, entonces el sistema rechaza el registro — no se puede calificar a un estudiante en una evaluación de un periodo distinto al de su matrícula.
+
+**RF-14 — Cálculo de nivel de logro**
+
+1. Dado que un estudiante tiene calificaciones registradas en un RA, cuando el sistema calcula su nivel de logro, entonces asigna Bajo si el resultado está entre 0.0 y 2.9.
+2. Dado que un estudiante tiene calificaciones registradas en un RA, cuando el sistema calcula su nivel de logro, entonces asigna Medio si el resultado está entre 3.0 y 3.9.
+3. Dado que un estudiante tiene calificaciones registradas en un RA, cuando el sistema calcula su nivel de logro, entonces asigna Alto si el resultado está entre 4.0 y 4.5.
+4. Dado que un estudiante tiene calificaciones registradas en un RA, cuando el sistema calcula su nivel de logro, entonces asigna Sobresaliente si el resultado está entre 4.6 y 5.0.
+5. Dado que un estudiante no tiene ninguna calificación registrada en un RA, cuando se consulta su nivel de logro, entonces el sistema muestra el estado "Sin evaluar" en lugar de una categoría numérica.
+6. Dado que se registra una nueva calificación para un estudiante en un RA, cuando el registro se guarda, entonces el sistema recalcula automáticamente el nivel de logro correspondiente sin requerir acción manual del Profesor.
+7. Dado que se consulta el nivel de logro de un estudiante, cuando el sistema lo muestra, entonces lo presenta siempre con texto e ícono (nunca solo con color), conforme a la guía de accesibilidad definida.
+8. Dado que un estudiante cursó la misma asignatura en dos semestres distintos (repitencia), cuando se consulta su nivel de logro en un RA, entonces el sistema distingue el nivel de logro correspondiente a cada semestre por separado, sin mezclarlos.
+
+**RF-15 — Estadísticas descriptivas**
+
+1. Dado que un RA tiene al menos 3 calificaciones registradas entre los estudiantes matriculados, cuando el Profesor consulta las estadísticas, entonces el sistema calcula y muestra los datos descriptivos correspondientes (ej. promedio, distribución por nivel de logro).
+2. Dado que un RA tiene menos de 3 calificaciones registradas, cuando el Profesor intenta consultar las estadísticas, entonces el sistema muestra el mensaje "Datos insuficientes" en lugar de generar el cálculo.
+3. Dado que se consultan las estadísticas de un RA con datos suficientes, cuando se genera el resultado, entonces el sistema muestra la distribución de estudiantes por cada nivel de logro (Bajo, Medio, Alto, Sobresaliente).
+4. Dado que un Profesor intenta consultar estadísticas de un RA que no pertenece a una de sus asignaturas asignadas, cuando realiza la solicitud, entonces el sistema rechaza la operación (validado por RBAC).
+
+**RF-16 — Conclusiones automáticas**
+
+1. Dado que un RA tiene datos suficientes para estadísticas (mínimo 3 calificaciones), cuando más del 40% de los estudiantes matriculados en ese semestre obtiene nivel de logro Bajo o Medio en ese RA, entonces el sistema genera automáticamente una Conclusión con estado Vigente y el mensaje "Nivel de logro insuficiente, se recomienda acción de mejora".
+2. Dado que un RA tiene un 40% o menos de estudiantes en nivel Bajo o Medio, cuando se recalculan las estadísticas, entonces el sistema no genera ninguna conclusión.
+3. Dado que ya existe una Conclusión vigente para un RA, cuando el porcentaje de estudiantes en Bajo/Medio se mantiene por encima del 40% en un recálculo posterior, entonces el sistema no genera una nueva conclusión duplicada mientras la anterior siga vigente.
+4. Dado que se genera una nueva Conclusión, cuando el sistema la crea, entonces registra la fecha de generación y el porcentaje exacto de estudiantes insuficientes que la originó.
+5. Dado que el Profesor consulta las estadísticas de un RA con una Conclusión vigente, cuando accede a la vista, entonces el sistema muestra visiblemente el mensaje de la conclusión junto con la opción de crear una Acción de Mejora.
+6. Dado que un RA tuvo una Conclusión insuficiente en un semestre anterior ya atendida (con su Acción de Mejora), cuando ese mismo RA vuelve a superar el 40% en un semestre nuevo, entonces el sistema genera una nueva Conclusión para ese semestre, independiente de las anteriores.
+
+**RF-17 — Registro de acciones de mejora**
+
+1. Dado que un RA no tiene ninguna Conclusión vigente, cuando el Profesor intenta registrar una Acción de Mejora para ese RA, entonces el sistema rechaza la operación indicando que no existe una conclusión insuficiente vigente.
+2. Dado que un RA tiene una Conclusión vigente, cuando el Profesor registra la Acción de Mejora con su descripción, entonces el sistema la crea asociada a esa conclusión y a ese RA.
+3. Dado que se registra una Acción de Mejora para una Conclusión vigente, cuando se completa el registro, entonces el sistema marca esa Conclusión como Atendida (deja de estar vigente).
+4. Dado que un Profesor intenta registrar una Acción de Mejora sobre un RA que no pertenece a una de sus asignaturas asignadas, cuando realiza la solicitud, entonces el sistema rechaza la operación (validado por RBAC).
+5. Dado que se registra una Acción de Mejora, cuando el Profesor no completa el campo de descripción, entonces el sistema no permite guardar el registro.
+
+**RF-18 — Conversión de Acción de Mejora a nueva Evaluación**
+
+1. Dado que el Profesor convierte una Acción de Mejora en una nueva evaluación, cuando confirma la operación, entonces el sistema crea la evaluación heredando automáticamente el Resultado de Aprendizaje y la descripción de la Acción de Mejora.
+2. Dado que se está creando la nueva evaluación a partir de la conversión, cuando el Profesor define su porcentaje, entonces el sistema valida que la suma de porcentajes de las evaluaciones del RA no supere el 100%, igual que en la creación normal de una evaluación (RF-10a).
+3. Dado que la suma de porcentajes superaría el 100% con el porcentaje propuesto, cuando el Profesor intenta confirmar la conversión, entonces el sistema rechaza la operación y solicita ajustar el porcentaje.
+4. Dado que una Acción de Mejora ya fue convertida en una evaluación, cuando el Profesor intenta convertirla nuevamente, entonces el sistema no permite una segunda conversión sobre la misma Acción de Mejora.
+5. Dado que se completa la conversión exitosamente, cuando se consulta la Acción de Mejora, entonces el sistema muestra la evaluación generada como referencia, evidenciando el cierre del ciclo.
+
+**RF-19 — Conservación de historial/auditoría**
+
+1. Dado que ocurre un evento auditable (ej. registro fuera de fecha, modificación de calificación, cambio de estado), cuando el sistema lo detecta, entonces crea un nuevo registro en el historial de auditoría sin modificar ni eliminar registros anteriores (append-only).
+2. Dado que existe un registro en el historial de auditoría, cuando cualquier usuario —incluido el Administrador— intenta modificarlo o eliminarlo, entonces el sistema rechaza la operación sin excepción.
+3. Dado que un registro de auditoría tiene menos de 5 años desde su creación, cuando se ejecuta cualquier proceso de mantenimiento o limpieza de datos, entonces el sistema garantiza que dicho registro no sea eliminado.
+4. Dado que un usuario consulta el historial de auditoría, cuando accede a él, entonces el sistema le muestra únicamente los registros permitidos según su rol (ej. el Administrador accede al historial completo, mientras otros roles tienen acceso restringido o nulo).
+5. Dado que se genera un registro de auditoría, cuando el sistema lo crea, entonces incluye como mínimo: entidad afectada, tipo de acción, fecha y hora exacta, y el detalle del evento.
+
+**RF-20 — Consulta para Profesores**
+
+1. Dado que el Profesor accede a la vista consolidada, cuando la consulta, entonces el sistema muestra únicamente las asignaturas que tiene asignadas.
+2. Dado que el Profesor consulta una asignatura específica desde la vista consolidada, cuando accede a ella, entonces el sistema muestra sus RA, evaluaciones activas, y un resumen del nivel de logro general de sus estudiantes.
+3. Dado que uno o varios RA de la asignatura tienen una Conclusión vigente, cuando el Profesor accede a la vista consolidada, entonces el sistema resalta visualmente esos RA como pendientes de atención.
+4. Dado que un Profesor intenta acceder a la vista consolidada de una asignatura que no tiene asignada, cuando realiza la solicitud, entonces el sistema rechaza el acceso (validado por RBAC).
+
+**RF-21a — Reporte de RA por asignatura**
+
+1. Dado que el Administrador accede al reporte, cuando lo consulta, entonces el sistema muestra cada asignatura con la cantidad de RA registrados y su estado (Activo/Inactivo).
+2. Dado que el Administrador filtra el reporte por programa académico, cuando aplica el filtro, entonces el sistema muestra únicamente las asignaturas correspondientes a ese programa.
+3. Dado que una asignatura tiene menos de 5 o más de 7 RA activos, cuando se genera el reporte, entonces el sistema resalta esa inconsistencia visualmente.
+
+**RF-21b — Reporte de logro por programa**
+
+1. Dado que el Administrador accede al reporte, cuando lo consulta, entonces el sistema muestra, por cada programa académico, la distribución de estudiantes según nivel de logro (Bajo, Medio, Alto, Sobresaliente).
+2. Dado que el Administrador filtra el reporte por asignatura dentro de un programa, cuando aplica el filtro, entonces el sistema ajusta la distribución mostrada a esa asignatura específica.
+3. Dado que un programa académico no tiene datos suficientes (asignaturas sin calificaciones registradas), cuando se genera el reporte, entonces el sistema indica que no hay datos disponibles para ese programa.
+
+**RF-21c — Reporte de historial completo**
+
+1. Dado que el Administrador accede al reporte de historial, cuando lo consulta, entonces el sistema muestra todos los registros de auditoría con entidad afectada, acción, fecha/hora y detalle.
+2. Dado que el Administrador filtra el historial por rango de fechas o tipo de entidad, cuando aplica el filtro, entonces el sistema muestra únicamente los registros correspondientes.
+3. Dado que el reporte contiene una gran cantidad de registros, cuando el Administrador lo consulta, entonces el sistema lo presenta de forma paginada para no afectar el tiempo de carga (conforme a RNF de rendimiento).
+
+**RF-22 — Consulta para Estudiantes**
+
+1. Dado que el Estudiante accede a su vista de consulta, cuando la consulta, entonces el sistema muestra únicamente sus propias asignaturas, calificaciones, observaciones y niveles de logro.
+2. Dado que el Estudiante intenta acceder a datos agregados del grupo o de otros estudiantes, cuando realiza la solicitud, entonces el sistema rechaza el acceso (validado por RBAC).
+3. Dado que un RA no tiene calificaciones registradas aún para el Estudiante, cuando consulta ese RA, entonces el sistema muestra el estado "Sin evaluar".
+4. Dado que el Estudiante consulta una calificación específica, cuando accede al detalle, entonces el sistema le muestra la observación registrada por el Profesor junto con la nota.
+
+**RF-23a — Registrar semestre**
+
+1. Dado que el Administrador ingresa un código de semestre (ej. "2026-1"), cuando ya existe otro semestre con ese código, entonces el sistema rechaza el registro.
+2. Dado que el Administrador ingresa fecha de inicio y fecha de fin, cuando la fecha de inicio no es anterior a la fecha de fin, entonces el sistema rechaza el registro.
+3. Dado que se registra un nuevo semestre, cuando su rango de fechas se solapa con el de un semestre ya existente, entonces el sistema rechaza el registro.
+4. Dado que los datos ingresados son válidos, cuando el Administrador confirma el registro, entonces el semestre queda creado con su estado correspondiente.
+
+**RF-23b — Consultar semestre**
+
+1. Dado que existen semestres registrados, cuando se accede al listado, entonces el sistema muestra código, fecha de inicio, fecha de fin y estado de cada uno.
+2. Dado que existe un semestre marcado como activo, cuando el sistema necesita asociar una matrícula o evaluación sin que se especifique semestre explícitamente, entonces usa automáticamente ese semestre activo vigente.
+3. Dado que se busca un semestre por código, cuando el término coincide con un registro, entonces el sistema muestra el semestre correspondiente.
+4. Dado que no existen semestres registrados, cuando se accede al listado, entonces el sistema muestra un estado vacío indicando que no hay registros.
 
 ---
 [← Historias de usuario](#historias-de-usuario-1) · [Índice](#índice) · [Siguiente →](#mapa-de-historias-de-usuario)
 
 ##### Mapa de historias de usuario
-**Responsable:** Por definir
+**Responsable:** Juan José Narváez
 
-_Pendiente de completar._
+El mapa de historias de usuario organiza las historias en el flujo narrativo de actividades del sistema, de izquierda a derecha, y las distribuye en releases según su prioridad de desarrollo. Cada columna es una actividad del usuario y cada fila un release; una historia aparece en la celda de la actividad a la que pertenece y del release en que se entrega.
+
+**Mapa por actividad y release**
+
+| Release / Prioridad | Gestionar identidad y acceso | Administrar catálogo académico | Vincular profesores y estudiantes | Evaluar el aprendizaje | Analizar el desempeño | Mejorar y cerrar el ciclo | Consultar y reportar |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Release 1 (Fundamentos)** | RF-04--Autenticación<br>RF-05--RBAC | RF-01a-d Profesor<br>RF-02a-d Programa Académico<br>RF-03a-d Asignatura RF-26-a/b--Semestre |  |  |  |  |  |
+| **Release 2 (Catálogo completo)** |  | RF-06a-c-Resultado deAprendizaje | RF-07-Asignación docente<br>RF-08a-b-Matrícula /Desvinculación<br>RF-09a-Registro estudiante nuevo |  |  |  |  |
+| **Release 3 (Evaluación básica)** |  |  |  | RF-10a-c-Crear/Modificar/Activar Evaluación<br>RF-12-Calificaciones y observaciones (incluye RF-13) |  |  |  |
+| **Release 4 (Analítica)** |  |  |  |  | RF-14-Nivel de logro<br>RF-15-Estadísticas descriptivas |  |  |
+| **Release 5 (Ciclo de mejora)** |  |  |  |  |  | RF-16-Conclusiones automáticas<br>RF-17-Acciones de mejora<br>RF-18-Conversión a nueva evaluación |  |
+| **Release 6 (Consultas y reportes)** | RF-19-Historial de auditoría |  |  |  |  |  | RF-20-Consulta Profesor<br>RF-21a-c-Reportes Admin<br>RF-22-Consulta Estudiante |
+
+**Detalle de historias por feature y release**
+
+| ID (RF) | Feature | Release | Historia de usuario (título) |
+| --- | --- | --- | --- |
+| RF-01a | Catálogo Académico | Release 1 | Registrar profesor |
+| RF-01b | Catálogo Académico | Release 1 | Consultar profesor |
+| RF-01c | Catálogo Académico | Release 1 | Modificar profesor |
+| RF-01d | Catálogo Académico | Release 1 | Inactivar profesor |
+| RF-26a | Catálogo Académico | Release 1 | registrar semestre |
+| RF-26b | Catálogo Académico | Release 1 | consultar semestre |
+| RF-02a | Catálogo Académico | Release 1 | Registrar programa académico |
+| RF-02b | Catálogo Académico | Release 1 | Consultar programa académico |
+| RF-02c | Catálogo Académico | Release 1 | Modificar programa académico |
+| RF-02d | Catálogo Académico | Release 1 | Inactivar programa académico |
+| RF-03a | Catálogo Académico | Release 1 | Registrar asignatura |
+| RF-03b | Catálogo Académico | Release 1 | Consultar asignatura |
+| RF-03c | Catálogo Académico | Release 1 | Modificar asignatura |
+| RF-03d | Catálogo Académico | Release 1 | Activar / Inactivar asignatura |
+| RF-04 | Seguridad y Plataforma Base | Release 1 | Autenticación |
+| RF-05 | Seguridad y Plataforma Base | Release 1 | Control de acceso basado en roles (RBAC) |
+| RF-06a | Catálogo Académico | Release 2 | Registrar Resultado de Aprendizaje |
+| RF-06b | Catálogo Académico | Release 2 | Consultar Resultado de Aprendizaje |
+| RF-06c | Catálogo Académico | Release 2 | Modificar / Inactivar Resultado de Aprendizaje |
+| RF-07 | Catálogo Académico | Release 2 | Asignación docente de asignaturas |
+| RF-08a | Catálogo Académico | Release 2 | Matricular estudiante |
+| RF-08b | Catálogo Académico | Release 2 | Desvincular estudiante |
+| RF-09a | Catálogo Académico | Release 2 | Registrar estudiante nuevo (por el docente) |
+| RF-09b | Catálogo Académico | Release 2 | Registrar estudiante existente (= RF-08a) |
+| RF-10a | Evaluación y Analítica | Release 3 | Crear evaluación |
+| RF-10b | Evaluación y Analítica | Release 3 | Modificar evaluación |
+| RF-10c | Evaluación y Analítica | Release 3 | Activar / Inactivar evaluación |
+| RF-12 | Evaluación y Analítica | Release 3 | Registro de calificaciones y observaciones (incluye RF-13) |
+| RF-14 | Evaluación y Analítica | Release 4 | Cálculo de nivel de logro |
+| RF-15 | Evaluación y Analítica | Release 4 | Estadísticas descriptivas |
+| RF-16 | Evaluación y Analítica | Release 5 | Conclusiones automáticas |
+| RF-17 | Evaluación y Analítica | Release 5 | Registro de acciones de mejora |
+| RF-18 | Evaluación y Analítica | Release 5 | Conversión de Acción de Mejora a nueva Evaluación |
+| RF-19 | Seguridad y Plataforma Base | Release 6 | Conservación de historial/auditoría |
+| RF-20 | Evaluación y Analítica | Release 6 | Consulta para Profesores |
+| RF-21a | Evaluación y Analítica | Release 6 | Reporte de RA por asignatura |
+| RF-21b | Evaluación y Analítica | Release 6 | Reporte de logro por programa |
+| RF-21c | Seguridad y Plataforma Base | Release 6 | Reporte de historial completo |
+| RF-22 | Evaluación y Analítica | Release 6 | Consulta para Estudiantes |
 
 ---
 [← Criterios de aceptación](#criterios-de-aceptación) · [Índice](#índice) · [Siguiente →](#modelo-de-dominio-1)
