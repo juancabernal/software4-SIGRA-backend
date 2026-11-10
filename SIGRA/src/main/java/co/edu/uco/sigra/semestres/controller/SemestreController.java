@@ -6,6 +6,7 @@ import co.edu.uco.sigra.config.OpenApiConfig;
 import co.edu.uco.sigra.semestres.dto.SemestreFechaFinRequestDTO;
 import co.edu.uco.sigra.semestres.dto.SemestreRequestDTO;
 import co.edu.uco.sigra.semestres.dto.SemestreResponseDTO;
+import co.edu.uco.sigra.semestres.entity.EstadoSemestre;
 import co.edu.uco.sigra.semestres.service.SemestreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -145,14 +146,20 @@ public class SemestreController {
 
     @Operation(
             summary = "Listar semestres",
-            description = "Devuelve todos los semestres ordenados por fecha de inicio, del más reciente al más "
-                    + "antiguo, sin paginación. El estado de cada uno se recalcula con la fecha actual antes de "
-                    + "responder. Sin semestres registrados devuelve una lista vacía."
+            description = "Devuelve los semestres ordenados por fecha de inicio, del más reciente al más "
+                    + "antiguo, sin paginación. «codigo» busca por coincidencia parcial en el código, sin distinguir "
+                    + "mayúsculas, y «estado» filtra por ACTIVO o INACTIVO; ambos son opcionales y combinables. El "
+                    + "estado de cada uno se recalcula con la fecha actual antes de filtrar y responder. Sin "
+                    + "coincidencias, o sin semestres registrados, devuelve una lista vacía."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de semestres (puede estar vacía)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = SemestreResponseDTO.class)))),
+            @ApiResponse(responseCode = "400", description = "El valor de «estado» no es ACTIVO ni INACTIVO",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EjemplosError.PARAMETRO_INVALIDO_400))),
             @ApiResponse(responseCode = "401", description = "Falta el token o es inválido o expiró",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
@@ -164,8 +171,12 @@ public class SemestreController {
     })
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'PROFESOR', 'ESTUDIANTE')")
-    public ResponseEntity<List<SemestreResponseDTO>> listarSemestres() {
-        return ResponseEntity.ok(semestreService.listar());
+    public ResponseEntity<List<SemestreResponseDTO>> listarSemestres(
+            @Parameter(description = "Texto a buscar dentro del código (coincidencia parcial)", example = "2027")
+            @RequestParam(required = false) String codigo,
+            @Parameter(description = "Filtra por estado calculado (ACTIVO o INACTIVO)", example = "ACTIVO")
+            @RequestParam(required = false) EstadoSemestre estado) {
+        return ResponseEntity.ok(semestreService.listar(codigo, estado));
     }
 
     @Operation(

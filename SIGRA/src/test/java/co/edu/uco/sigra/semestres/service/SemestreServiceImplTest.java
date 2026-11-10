@@ -193,6 +193,58 @@ class SemestreServiceImplTest {
             assertThat(r).extracting(SemestreResponseDTO::estado).containsExactly(ACTIVO, INACTIVO);
             verify(repository, times(1)).save(terminado);
         }
+
+        private void dosSemestres() {
+            var terminado = semestre(COD_2026_1, LocalDate.of(2026, 1, 20), LocalDate.of(2026, 6, 10), EstadoSemestre.INACTIVO);
+            var enCurso = semestre(COD_2026_2, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 12, 15), EstadoSemestre.ACTIVO);
+            when(repository.findAllByOrderByFechaInicioDesc()).thenReturn(List.of(enCurso, terminado));
+        }
+
+        @Test
+        void buscaPorCodigoConCoincidenciaParcial() {
+            dosSemestres();
+
+            assertThat(service.listar("2026-1", null)).extracting(SemestreResponseDTO::codigo).containsExactly(COD_2026_1);
+            assertThat(service.listar("2026", null)).extracting(SemestreResponseDTO::codigo)
+                    .containsExactly(COD_2026_2, COD_2026_1);
+        }
+
+        @Test
+        void laBusquedaIgnoraEspaciosYMayusculas() {
+            dosSemestres();
+
+            assertThat(service.listar("  -2  ", null)).extracting(SemestreResponseDTO::codigo).containsExactly(COD_2026_2);
+        }
+
+        @Test
+        void sinCoincidenciasDevuelveListaVacia() {
+            dosSemestres();
+
+            assertThat(service.listar("1999", null)).isEmpty();
+        }
+
+        @Test
+        void filtraPorEstadoRecalculadoAntesDeFiltrar() {
+            var terminadoGuardadoComoActivo =
+                    semestre(COD_2026_1, LocalDate.of(2026, 1, 20), LocalDate.of(2026, 6, 10), EstadoSemestre.ACTIVO);
+            var enCurso = semestre(COD_2026_2, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 12, 15), EstadoSemestre.ACTIVO);
+            when(repository.findAllByOrderByFechaInicioDesc()).thenReturn(List.of(enCurso, terminadoGuardadoComoActivo));
+            saveDevuelveArgumento();
+
+            assertThat(service.listar(null, EstadoSemestre.ACTIVO)).extracting(SemestreResponseDTO::codigo)
+                    .containsExactly(COD_2026_2);
+            assertThat(service.listar(null, EstadoSemestre.INACTIVO)).extracting(SemestreResponseDTO::codigo)
+                    .containsExactly(COD_2026_1);
+        }
+
+        @Test
+        void combinaCodigoYEstado() {
+            dosSemestres();
+
+            assertThat(service.listar("2026", EstadoSemestre.ACTIVO)).extracting(SemestreResponseDTO::codigo)
+                    .containsExactly(COD_2026_2);
+            assertThat(service.listar("2026-1", EstadoSemestre.ACTIVO)).isEmpty();
+        }
     }
 
     @Nested

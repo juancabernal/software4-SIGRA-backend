@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class SemestreServiceImpl implements SemestreService {
@@ -68,9 +69,19 @@ public class SemestreServiceImpl implements SemestreService {
     @Override
     @Transactional
     public List<SemestreResponseDTO> listar() {
+        return listar(null, null);
+    }
+
+    @Override
+    @Transactional
+    public List<SemestreResponseDTO> listar(String codigo, EstadoSemestre estado) {
         LocalDate hoy = LocalDate.now(reloj);
+        String termino = codigo == null ? "" : codigo.trim().toLowerCase(Locale.ROOT);
+        // El estado se recalcula por fechas antes de filtrar, así el filtro usa el valor vigente.
         return semestreRepository.findAllByOrderByFechaInicioDesc().stream()
                 .map(s -> actualizarEstadoSiCambio(s, hoy))
+                .filter(s -> termino.isEmpty() || s.getCodigo().toLowerCase(Locale.ROOT).contains(termino))
+                .filter(s -> estado == null || s.getEstado() == estado)
                 .map(semestreMapper::toResponseDTO)
                 .toList();
     }
