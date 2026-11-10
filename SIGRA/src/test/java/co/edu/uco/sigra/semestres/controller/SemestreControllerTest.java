@@ -153,11 +153,28 @@ class SemestreControllerTest {
 
     @Test
     void listarDevuelve200() throws Exception {
-        when(service.listar()).thenReturn(List.of(respuesta(CODIGO), respuesta(CODIGO_OTRO)));
+        when(service.listar(null, null)).thenReturn(List.of(respuesta(CODIGO), respuesta(CODIGO_OTRO)));
 
         mockMvc.perform(get(URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void listarEntregaAlServicioLaBusquedaPorCodigoYElEstado() throws Exception {
+        when(service.listar("2026", EstadoSemestre.ACTIVO)).thenReturn(List.of(respuesta(CODIGO)));
+
+        mockMvc.perform(get(URL).param("codigo", "2026").param("estado", "ACTIVO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].codigo").value(CODIGO));
+    }
+
+    @Test
+    void listarConEstadoInvalidoDevuelve400() throws Exception {
+        mockMvc.perform(get(URL).param("estado", "CERRADO"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
     }
 
     @Test
@@ -201,7 +218,7 @@ class SemestreControllerTest {
 
     @Test
     void errorInesperadoLoResuelveElManejadorGlobalCon500() throws Exception {
-        when(service.listar()).thenThrow(new IllegalStateException("fallo inesperado"));
+        when(service.listar(null, null)).thenThrow(new IllegalStateException("fallo inesperado"));
 
         mockMvc.perform(get(URL))
                 .andExpect(status().isInternalServerError())

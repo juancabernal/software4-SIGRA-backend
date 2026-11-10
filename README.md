@@ -538,6 +538,22 @@ Códigos de respuesta: 200 (login correcto), 400 (validación), 401 (credenciale
 
 ---
 
+## R1 — Rendimiento académico por RA y asignatura
+
+Reporte de solo lectura (incidencia 0000041) que muestra el nivel de logro por resultado de aprendizaje, agrupado por asignatura y semestre. No recalcula nada: reutiliza las estadísticas del módulo `estadisticas` (nivel, promedio y distribución) y las agrupa en el paquete `reportes`.
+
+| Elemento | Detalle |
+| --- | --- |
+| Endpoint | `GET /api/v1/reportes/rendimiento-ra?semestreId=&programaId=&asignaturaId=` (todos los filtros son opcionales; sin `semestreId` se usa el semestre activo) |
+| Acceso | ADMINISTRADOR ve todas las asignaturas; PROFESOR solo las que tiene con asignación docente ACTIVA (pedir una ajena responde 403); ESTUDIANTE recibe 403 |
+| Por cada RA | código, descripción, cantidad de calificaciones, promedio, distribución Bajo/Medio/Alto/Sobresaliente (cantidad y %) y nivel de logro |
+| Casos especiales | sin calificaciones: `SIN_EVALUAR`; 1 o 2 calificaciones por estudiante: `DATOS_INSUFICIENTES` («Sin datos suficientes para calcular»); sin asignaturas que mostrar: «Sin datos disponibles» |
+| Errores | 400 (UUID inválido), 401, 403, 404 (semestre, programa o asignatura inexistentes); los mensajes no incluyen identificadores internos (RNF-17) |
+
+Los rangos de nivel de logro los define `CatalogoNivelesLogro` (módulo de estadísticas); el reporte no los redefine. Guía OpenAPI: [`docs/documentacion_openapi/swagger-reportes.md`](docs/documentacion_openapi/swagger-reportes.md).
+
+---
+
 ## Pendientes conocidos del repositorio
 
 Estado de RF-02/RF-03 (autenticación y autorización) y lo que sigue abierto:
