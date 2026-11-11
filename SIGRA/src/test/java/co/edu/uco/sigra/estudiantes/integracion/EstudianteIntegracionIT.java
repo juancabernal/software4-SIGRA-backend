@@ -1,5 +1,7 @@
 package co.edu.uco.sigra.estudiantes.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
+import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -98,6 +100,7 @@ class EstudianteIntegracionIT {
     @Autowired private AsignaturaRepository asignaturaRepository;
     @Autowired private SemestreRepository semestreRepository;
     @Autowired private ProgramaAcademicoRepository programaRepository;
+    @Autowired private FacultadRepository facultadRepository;
 
     private TipoDocumento tipoDocumento;
     private ProgramaAcademico programa;
@@ -116,6 +119,7 @@ class EstudianteIntegracionIT {
         ProgramaAcademico p = new ProgramaAcademico();
         p.setNombre(PREFIJO_PROGRAMA + " " + UUID.randomUUID().toString().substring(0, 8));
         p.setCodigo("ITEP" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+        p.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         programa = programaRepository.save(p);
 
         Asignatura asignatura = new Asignatura(PREFIJO_ASIGNATURA + "1", "ITE Asignatura Activa", programa);

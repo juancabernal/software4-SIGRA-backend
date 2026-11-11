@@ -48,8 +48,13 @@ DELETE FROM sigra.programa_academico WHERE id = '10000000-0000-4000-9000-0000000
 
 -- 2. Programa y asignatura propios de esta incidencia (prefijo HIST), para no
 --    acoplarse a datos de otros seeds.
-INSERT INTO sigra.programa_academico (id, nombre, codigo, estado) VALUES
-  ('10000000-0000-4000-9000-000000000001', 'Programa Historial QA', 'HIST-QA', 'ACTIVO');
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, nombre, codigo, estado, facultad_id) VALUES
+  ('10000000-0000-4000-9000-000000000001', 'Programa Historial QA', 'HIST-QA', 'ACTIVO', '00000000-0000-4000-fa00-000000000001');
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
   ('10000000-0000-4000-9000-000000000002', 'HISTQA01', 'Asignatura Historial QA', '10000000-0000-4000-9000-000000000001', 'ACTIVA');

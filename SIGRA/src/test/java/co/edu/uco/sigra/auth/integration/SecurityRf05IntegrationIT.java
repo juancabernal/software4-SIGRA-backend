@@ -1,5 +1,7 @@
 package co.edu.uco.sigra.auth.integration;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
+import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
@@ -66,6 +68,7 @@ class SecurityRf05IntegrationIT {
     @Autowired private AsignaturaRepository asignaturaRepository;
     @Autowired private MatriculaRepository matriculaRepository;
     @Autowired private ProgramaAcademicoRepository programaRepository;
+    @Autowired private FacultadRepository facultadRepository;
     @Autowired private SemestreRepository semestreRepository;
     @Autowired private TipoDocumentoRepository tipoDocumentoRepository;
 
@@ -91,6 +94,7 @@ class SecurityRf05IntegrationIT {
         programa = new ProgramaAcademico();
         programa.setNombre(PREFIX + "programa-" + UUID.randomUUID());
         programa.setCodigo("R5" + UUID.randomUUID().toString().replace("-", "").substring(0, 8));
+        programa.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         programa = programaRepository.save(programa);
 
         asignaturaA = asignatura("A");

@@ -1,0 +1,22 @@
+meta {
+  name: 02 Por nombre sin tildes ni mayusculas
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/facultades?nombre=BRUNO%20INGENIERIA%20{{sufijoFacultad}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("encuentra solo la facultad creada", function () {
+    expect(res.body).to.have.lengthOf(1);
+    expect(res.body[0].id).to.equal(bru.getVar("facultadCreadaId"));
+  });
+}

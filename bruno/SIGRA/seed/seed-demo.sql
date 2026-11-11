@@ -27,11 +27,16 @@ DELETE FROM sigra.resultado_aprendizaje WHERE asignatura_id::text LIKE '00000000
 DELETE FROM sigra.asignatura            WHERE id::text             LIKE '00000000-0000-4000-b0d0-%';
 DELETE FROM sigra.programa_academico    WHERE id::text             LIKE '00000000-0000-4000-a0d0-%';
 
-INSERT INTO sigra.programa_academico (id, codigo, nombre, estado) VALUES
-  ('00000000-0000-4000-a0d0-000000000001', 'ING-SIS', 'Ingeniería de Sistemas', 'ACTIVO'),
-  ('00000000-0000-4000-a0d0-000000000002', 'ING-CIV', 'Ingeniería Civil', 'ACTIVO'),
-  ('00000000-0000-4000-a0d0-000000000003', 'ADM-EMP', 'Administración de Empresas', 'ACTIVO'),
-  ('00000000-0000-4000-a0d0-000000000004', 'TEC-SIS', 'Tecnología en Sistemas', 'INACTIVO');
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, codigo, nombre, estado, facultad_id) VALUES
+  ('00000000-0000-4000-a0d0-000000000001', 'ING-SIS', 'Ingeniería de Sistemas', 'ACTIVO', '00000000-0000-4000-fa00-000000000001'),
+  ('00000000-0000-4000-a0d0-000000000002', 'ING-CIV', 'Ingeniería Civil', 'ACTIVO', '00000000-0000-4000-fa00-000000000001'),
+  ('00000000-0000-4000-a0d0-000000000003', 'ADM-EMP', 'Administración de Empresas', 'ACTIVO', '00000000-0000-4000-fa00-000000000001'),
+  ('00000000-0000-4000-a0d0-000000000004', 'TEC-SIS', 'Tecnología en Sistemas', 'INACTIVO', '00000000-0000-4000-fa00-000000000001');
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
   ('00000000-0000-4000-b0d0-000000000001', 'MAT-301', 'Cálculo Diferencial', '00000000-0000-4000-a0d0-000000000001', 'ACTIVA'),

@@ -1,0 +1,23 @@
+meta {
+  name: 08 Id que no es UUID
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/facultades/no-es-uuid
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

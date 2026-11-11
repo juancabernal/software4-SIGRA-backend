@@ -1,0 +1,21 @@
+meta {
+  name: 06 Ahora si inactivar la facultad
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadApoyoId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("sin programas activos se inactiva", function () {
+    expect(res.body.estado).to.equal("INACTIVO");
+  });
+}

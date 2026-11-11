@@ -25,11 +25,17 @@ DELETE FROM resultado_aprendizaje
 DELETE FROM asignatura WHERE codigo LIKE 'BRU%' AND codigo NOT LIKE 'BRUEST%';
 -- Programas: uno ACTIVO y uno INACTIVO. No se borran: se reinician por id, porque otras
 -- asignaturas (por ejemplo creadas a mano desde el frontend) pueden estar usandolos.
-INSERT INTO programa_academico (id, nombre, codigo, estado) VALUES
-  ('00000000-0000-4000-a000-0000000000a1', 'Programa Bruno Activo',   'BRU-ACT', 'ACTIVO'),
-  ('00000000-0000-4000-a000-0000000000a2', 'Programa Bruno Inactivo', 'BRU-INA', 'INACTIVO')
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO programa_academico (id, nombre, codigo, estado, facultad_id) VALUES
+  ('00000000-0000-4000-a000-0000000000a1', 'Programa Bruno Activo',   'BRU-ACT', 'ACTIVO',   '00000000-0000-4000-fa00-000000000001'),
+  ('00000000-0000-4000-a000-0000000000a2', 'Programa Bruno Inactivo', 'BRU-INA', 'INACTIVO', '00000000-0000-4000-fa00-000000000001')
 ON CONFLICT (id) DO UPDATE
-   SET nombre = EXCLUDED.nombre, codigo = EXCLUDED.codigo, estado = EXCLUDED.estado;
+   SET nombre = EXCLUDED.nombre, codigo = EXCLUDED.codigo, estado = EXCLUDED.estado,
+       facultad_id = EXCLUDED.facultad_id;
 
 -- Asignaturas (todas en el programa ACTIVO)
 INSERT INTO asignatura (id, codigo, nombre, programa_id, estado) VALUES
