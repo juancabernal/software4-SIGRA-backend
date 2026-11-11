@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.calificaciones.integracion;
 
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
@@ -373,7 +374,7 @@ class CalificacionIntegracionIT {
 
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITN Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITN Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias.toLowerCase() + "-"
                 + UUID.randomUUID().toString().substring(0, 8) + DOMINIO_CORREO);
         usuario.setEstado(EstadoRegistro.ACTIVO);

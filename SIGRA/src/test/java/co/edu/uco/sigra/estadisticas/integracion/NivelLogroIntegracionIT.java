@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estadisticas.integracion;
 
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
@@ -453,7 +454,7 @@ class NivelLogroIntegracionIT {
 
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITE Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITE Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-" + UUID.randomUUID().toString().substring(0, 8)
                 + DOMINIO_CORREO);
         return usuarioRepository.save(usuario);

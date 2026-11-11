@@ -44,7 +44,10 @@ CREATE TABLE IF NOT EXISTS sigra.tipo_documento (
 CREATE TABLE IF NOT EXISTS sigra.usuario (
     id                   UUID         NOT NULL DEFAULT gen_random_uuid(),
     tipo_documento_id    UUID         NOT NULL,
-    nombre_completo      VARCHAR(255) NOT NULL,
+    primer_nombre        VARCHAR(50)  NOT NULL,
+    segundo_nombre       VARCHAR(50),
+    primer_apellido      VARCHAR(50)  NOT NULL,
+    segundo_apellido     VARCHAR(50)  NOT NULL,
     correo_institucional VARCHAR(255) NOT NULL,
     password_hash        VARCHAR(255),
     estado               VARCHAR(255) NOT NULL DEFAULT 'ACTIVO',

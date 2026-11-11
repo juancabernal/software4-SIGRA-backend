@@ -86,9 +86,9 @@ BEGIN
         RAISE EXCEPTION 'Seed abortado: no hay ningun tipo de documento. Ejecute seed-auth.sql primero.';
     END IF;
     FOR i IN 1..7 LOOP
-        INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
+        INSERT INTO sigra.usuario (id, tipo_documento_id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo_institucional, estado) VALUES
           (('00000000-0000-4000-e750-00000000000' || i)::uuid, v_tipo_doc_id,
-           'Bruno Nivel Estudiante ' || i, 'bruno.niv' || i || '@uco.net.co', 'ACTIVO');
+           'Bruno', 'Nivel', 'Estudiante', i::text, 'bruno.niv' || i || '@uco.net.co', 'ACTIVO');
         INSERT INTO sigra.estudiante (id, numero_documento) VALUES
           (('00000000-0000-4000-e750-00000000000' || i)::uuid, '210000000' || i);
         INSERT INTO sigra.matricula (id, estudiante_id, asignatura_id, semestre_id, fecha_matricula, estado) VALUES

@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.asignaturas.service;
 
 import co.edu.uco.sigra.asignaturas.dto.AsignacionMasivaRequestDTO;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.dto.ResultadoAsignacionMasivaDTO;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
@@ -62,7 +63,7 @@ class AsignacionDocenteServiceImplTest {
     private static Profesor profesor(EstadoRegistro estado) {
         Profesor p = new Profesor();
         ReflectionTestUtils.setField(p, "id", UUID.randomUUID());
-        p.setNombreCompleto("Profesor de Prueba");
+        NombresPersonaTestUtil.aplicar(p, "Profesor de Prueba");
         p.setEstado(estado);
         return p;
     }

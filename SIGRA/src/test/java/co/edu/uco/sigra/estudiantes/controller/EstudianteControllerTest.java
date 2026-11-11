@@ -65,7 +65,9 @@ class EstudianteControllerTest {
             {
               "tipoDocumentoId": "6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05",
               "numeroDocumento": "1098765432",
-              "nombreCompleto": "Ana Gómez",
+              "primerNombre": "Ana",
+              "primerApellido": "Gómez",
+              "segundoApellido": "López",
               "correoInstitucional": "ana.gomez@uco.net.co"
             }
             """;
@@ -84,7 +86,8 @@ class EstudianteControllerTest {
 
     private static EstudianteResponseDTO respuestaDeAna(UUID id) {
         return new EstudianteResponseDTO(
-                id, "Cédula de ciudadanía", "1098765432", "Ana Gómez", "ana.gomez@uco.net.co", "ACTIVO");
+                id, "Cédula de ciudadanía", "1098765432", "Ana", null, "Gómez", "López", "Ana Gómez López",
+                "ana.gomez@uco.net.co", "ACTIVO");
     }
 
     @Nested
@@ -115,7 +118,9 @@ class EstudianteControllerTest {
                     {
                       "tipoDocumentoId": "6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05",
                       "numeroDocumento": "ABC123",
-                      "nombreCompleto": "Ana Gómez",
+                      "primerNombre": "Ana",
+                      "primerApellido": "Gómez",
+                      "segundoApellido": "López",
                       "correoInstitucional": "ana.gomez@uco.net.co"
                     }
                     """;
@@ -139,7 +144,9 @@ class EstudianteControllerTest {
             String cuerpoInvalido = """
                     {
                       "numeroDocumento": "1098765432",
-                      "nombreCompleto": "Ana Gómez",
+                      "primerNombre": "Ana",
+                      "primerApellido": "Gómez",
+                      "segundoApellido": "López",
                       "correoInstitucional": "ana.gomez@uco.net.co"
                     }
                     """;

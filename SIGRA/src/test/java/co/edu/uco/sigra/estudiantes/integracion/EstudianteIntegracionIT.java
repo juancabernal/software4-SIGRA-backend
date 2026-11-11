@@ -3,6 +3,7 @@ package co.edu.uco.sigra.estudiantes.integracion;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
@@ -245,7 +246,7 @@ class EstudianteIntegracionIT {
                 Arguments.of("correo de otro dominio", true, numeroOk, nombreOk, "ite-099@gmail.com"),
                 Arguments.of("tipoDocumentoId ausente", false, numeroOk, nombreOk, correoOk),
                 Arguments.of("numeroDocumento ausente", true, null, nombreOk, correoOk),
-                Arguments.of("nombreCompleto ausente", true, numeroOk, null, correoOk),
+                Arguments.of("nombre ausente", true, numeroOk, null, correoOk),
                 Arguments.of("correoInstitucional ausente", true, numeroOk, nombreOk, null));
     }
 
@@ -637,8 +638,12 @@ class EstudianteIntegracionIT {
                                           String correoInstitucional) {
         return "{\"tipoDocumentoId\":" + uuidOrNull(tipoDocumentoId)
                 + ",\"numeroDocumento\":" + texto(numeroDocumento)
-                + ",\"nombreCompleto\":" + texto(nombreCompleto)
+                + (fragmentoNombre(nombreCompleto).isEmpty() ? "" : "," + fragmentoNombre(nombreCompleto))
                 + ",\"correoInstitucional\":" + texto(correoInstitucional) + "}";
+    }
+
+    private static String fragmentoNombre(String nombreCompleto) {
+        return NombresPersonaTestUtil.fragmentoJson(nombreCompleto);
     }
 
     private static String jsonMatricula(UUID estudianteId, UUID asignaturaId, UUID semestreId) {

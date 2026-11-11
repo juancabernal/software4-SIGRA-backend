@@ -23,7 +23,9 @@ class ProfesorRequestDTOTest {
 
     private static final UUID TIPO_DOCUMENTO_ID = UUID.randomUUID();
     private static final String NUMERO_DOCUMENTO = "123456";
-    private static final String NOMBRE_COMPLETO = "Ana Gómez";
+    private static final String PRIMER_NOMBRE = "Ana";
+    private static final String PRIMER_APELLIDO = "Gómez";
+    private static final String SEGUNDO_APELLIDO = "López";
     private static final String CORREO = "ana.gomez@uco.net.co";
 
     private static final String MENSAJE_NUMERO_FORMATO =
@@ -46,7 +48,15 @@ class ProfesorRequestDTOTest {
 
     private static Set<ConstraintViolation<ProfesorRequestDTO>> validar(
             UUID tipo, String numero, String nombre, String correo) {
-        return validator.validate(new ProfesorRequestDTO(tipo, numero, nombre, correo));
+        return validator.validate(new ProfesorRequestDTO(
+                tipo, numero, nombre, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, correo));
+    }
+
+    private static Set<ConstraintViolation<ProfesorRequestDTO>> validarPartes(
+            String primerNombre, String segundoNombre, String primerApellido, String segundoApellido) {
+        return validator.validate(new ProfesorRequestDTO(
+                TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, primerNombre, segundoNombre, primerApellido,
+                segundoApellido, CORREO));
     }
 
     private static boolean hayViolacionEn(Set<ConstraintViolation<ProfesorRequestDTO>> violaciones, String campo) {
@@ -56,7 +66,7 @@ class ProfesorRequestDTOTest {
     @Test
     @DisplayName("con todos los datos válidos no genera violaciones")
     void datosValidos() {
-        assertThat(validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO)).isEmpty();
+        assertThat(validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, CORREO)).isEmpty();
     }
 
     @Nested
@@ -66,7 +76,7 @@ class ProfesorRequestDTOTest {
         @Test
         @DisplayName("en null genera exactamente una violación en tipoDocumentoId")
         void nulo() {
-            var violaciones = validar(null, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO);
+            var violaciones = validar(null, NUMERO_DOCUMENTO, PRIMER_NOMBRE, CORREO);
 
             assertThat(violaciones).hasSize(1);
             assertThat(violaciones.iterator().next().getPropertyPath()).hasToString("tipoDocumentoId");
@@ -81,14 +91,14 @@ class ProfesorRequestDTOTest {
         @ValueSource(strings = {"123456", "1234567890"})
         @DisplayName("acepta de 6 a 10 dígitos (límites incluidos)")
         void aceptaLimites(String numero) {
-            assertThat(validar(TIPO_DOCUMENTO_ID, numero, NOMBRE_COMPLETO, CORREO)).isEmpty();
+            assertThat(validar(TIPO_DOCUMENTO_ID, numero, PRIMER_NOMBRE, CORREO)).isEmpty();
         }
 
         @ParameterizedTest(name = "\"{0}\" se rechaza con el mensaje de formato")
         @ValueSource(strings = {"12345", "12345678901", "ABC12345", "12 34 56", "123.456"})
         @DisplayName("rechaza menos de 6, más de 10, letras, espacios y símbolos")
         void rechazaFormatosInvalidos(String numero) {
-            var violaciones = validar(TIPO_DOCUMENTO_ID, numero, NOMBRE_COMPLETO, CORREO);
+            var violaciones = validar(TIPO_DOCUMENTO_ID, numero, PRIMER_NOMBRE, CORREO);
 
             assertThat(violaciones).hasSize(1);
             ConstraintViolation<ProfesorRequestDTO> violacion = violaciones.iterator().next();
@@ -101,28 +111,76 @@ class ProfesorRequestDTOTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("rechaza nulo, vacío y solo espacios")
         void rechazaNuloOVacio(String numero) {
-            var violaciones = validar(TIPO_DOCUMENTO_ID, numero, NOMBRE_COMPLETO, CORREO);
+            var violaciones = validar(TIPO_DOCUMENTO_ID, numero, PRIMER_NOMBRE, CORREO);
 
             assertThat(hayViolacionEn(violaciones, "numeroDocumento")).isTrue();
         }
     }
 
     @Nested
-    @DisplayName("Nombre completo")
-    class NombreCompleto {
+    @DisplayName("Partes del nombre (RF35)")
+    class PartesDelNombre {
 
-        @ParameterizedTest(name = "[{0}] se rechaza")
+        @ParameterizedTest(name = "primer nombre [{0}] se rechaza")
         @NullSource
         @ValueSource(strings = {"", "   "})
-        @DisplayName("rechaza nulo, vacío y solo espacios")
-        void rechazaNuloOVacio(String nombre) {
+        @DisplayName("primer nombre rechaza nulo, vacío y solo espacios")
+        void primerNombreRechazaNuloOVacio(String nombre) {
+            var violaciones = validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, nombre, CORREO);
+
+            assertThat(violaciones).isNotEmpty();
+            assertThat(violaciones).allSatisfy(v -> assertThat(v.getPropertyPath()).hasToString("primerNombre"));
+        }
+
+        @ParameterizedTest(name = "\"{0}\" se rechaza (espacios, dígitos o símbolos)")
+        @ValueSource(strings = {"Ana María", "Ana1", "Ana-María", " Ana", "Ana "})
+        @DisplayName("primer nombre solo admite letras sin espacios")
+        void primerNombreFormatoInvalido(String nombre) {
             var violaciones = validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, nombre, CORREO);
 
             assertThat(violaciones).hasSize(1);
-            assertThat(violaciones.iterator().next().getPropertyPath()).hasToString("nombreCompleto");
+            assertThat(violaciones.iterator().next().getPropertyPath()).hasToString("primerNombre");
+        }
+
+        @Test
+        @DisplayName("segundo nombre es opcional")
+        void segundoNombreOpcional() {
+            assertThat(validarPartes("Ana", null, "Gómez", "López")).isEmpty();
+            assertThat(validarPartes("Ana", "María", "Gómez", "López")).isEmpty();
+        }
+
+        @ParameterizedTest(name = "segundo nombre \"{0}\" se rechaza")
+        @ValueSource(strings = {"María José", "Mar1a", ""})
+        @DisplayName("segundo nombre informado debe ser una sola palabra de letras")
+        void segundoNombreInvalido(String segundo) {
+            var violaciones = validarPartes("Ana", segundo, "Gómez", "López");
+
+            assertThat(violaciones).hasSize(1);
+            assertThat(violaciones.iterator().next().getPropertyPath()).hasToString("segundoNombre");
+        }
+
+        @ParameterizedTest(name = "primer apellido [{0}] se rechaza")
+        @NullSource
+        @ValueSource(strings = {"", "   ", "De La Cruz", "Gómez2"})
+        @DisplayName("primer apellido es obligatorio y sin espacios")
+        void primerApellidoInvalido(String apellido) {
+            var violaciones = validarPartes("Ana", null, apellido, "López");
+
+            assertThat(violaciones).isNotEmpty();
+            assertThat(violaciones).allSatisfy(v -> assertThat(v.getPropertyPath()).hasToString("primerApellido"));
+        }
+
+        @ParameterizedTest(name = "segundo apellido [{0}] se rechaza")
+        @NullSource
+        @ValueSource(strings = {"", "   ", "Del Valle", "López2"})
+        @DisplayName("segundo apellido es obligatorio y sin espacios")
+        void segundoApellidoInvalido(String apellido) {
+            var violaciones = validarPartes("Ana", null, "Gómez", apellido);
+
+            assertThat(violaciones).isNotEmpty();
+            assertThat(violaciones).allSatisfy(v -> assertThat(v.getPropertyPath()).hasToString("segundoApellido"));
         }
     }
-
     @Nested
     @DisplayName("Correo institucional")
     class CorreoInstitucional {
@@ -131,7 +189,7 @@ class ProfesorRequestDTOTest {
         @ValueSource(strings = {"ana@uco.net.co", "ana.gomez@uco.net.co", "  Ana-Gomez@UCO.NET.CO  ", "a_b@uco.net.co"})
         @DisplayName("acepta el dominio uco.net.co sin distinguir mayúsculas ni espacios laterales")
         void aceptaCorreosValidos(String correo) {
-            assertThat(validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, correo)).isEmpty();
+            assertThat(validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, correo)).isEmpty();
         }
 
         @ParameterizedTest(name = "\"{0}\" se rechaza con el mensaje de formato")
@@ -139,7 +197,7 @@ class ProfesorRequestDTOTest {
                 "ana gomez@uco.net.co"})
         @DisplayName("rechaza dominios externos y formatos inválidos")
         void rechazaFormatosInvalidos(String correo) {
-            var violaciones = validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, correo);
+            var violaciones = validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, correo);
 
             assertThat(violaciones).hasSize(1);
             ConstraintViolation<ProfesorRequestDTO> violacion = violaciones.iterator().next();
@@ -152,7 +210,7 @@ class ProfesorRequestDTOTest {
         @ValueSource(strings = {"", "   "})
         @DisplayName("rechaza nulo, vacío y solo espacios")
         void rechazaNuloOVacio(String correo) {
-            var violaciones = validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, correo);
+            var violaciones = validar(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, correo);
 
             assertThat(hayViolacionEn(violaciones, "correoInstitucional")).isTrue();
         }

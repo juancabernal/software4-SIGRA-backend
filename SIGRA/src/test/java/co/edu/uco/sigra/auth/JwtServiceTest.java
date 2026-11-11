@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.auth;
 
 import co.edu.uco.sigra.auth.entity.Usuario;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.auth.service.JwtService;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.profesores.entity.Profesor;
@@ -40,7 +41,7 @@ class JwtServiceTest {
         usuario = new Profesor();
         usuario.setId(UUID.randomUUID());
         usuario.setCorreoInstitucional("profesor.test@uco.net.co");
-        usuario.setNombreCompleto("Profesor de Prueba");
+        NombresPersonaTestUtil.aplicar(usuario, "Profesor de Prueba");
     }
 
     @Test

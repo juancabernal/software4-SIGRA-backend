@@ -72,7 +72,10 @@ class MatriculaServiceImplTest {
     private static final LocalDate OTRO_DIA = LocalDate.of(2024, 4, 2);
     private static final UUID ID_TIPO_DOCUMENTO = UUID.randomUUID();
     private static final String NUMERO_DOCUMENTO = "123456789";
-    private static final String NOMBRE_COMPLETO = "Juan Pérez";
+    private static final String PRIMER_NOMBRE = "Juan";
+    private static final String PRIMER_APELLIDO = "Pérez";
+    private static final String SEGUNDO_APELLIDO = "Gómez";
+    private static final String NOMBRE_COMPLETO = "Juan Pérez Gómez";
     private static final String CORREO_INSTITUCIONAL = "juan.perez@uco.net.co";
     private static final String TIPO_DOCUMENTO_NOMBRE = "Cédula de Ciudadanía";
 
@@ -108,12 +111,15 @@ class MatriculaServiceImplTest {
     }
 
     private static EstudianteRequestDTO estudianteRequestDTO() {
-        return new EstudianteRequestDTO(ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+        return new EstudianteRequestDTO(
+                ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO,
+                CORREO_INSTITUCIONAL);
     }
 
     private static EstudianteResponseDTO estudianteResponseDTO() {
         return new EstudianteResponseDTO(
-                ID_ESTUDIANTE, TIPO_DOCUMENTO_NOMBRE, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL,
+                ID_ESTUDIANTE, TIPO_DOCUMENTO_NOMBRE, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO,
+                SEGUNDO_APELLIDO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL,
                 EstadoRegistro.ACTIVO.name());
     }
 

@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estadisticas.integracion;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.entity.Administrador;
@@ -276,7 +277,7 @@ class ConclusionIntegracionIT {
 
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITC Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITC Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-" + UUID.randomUUID().toString().substring(0, 8)
                 + DOMINIO_CORREO);
         return usuarioRepository.save(usuario);

@@ -337,6 +337,13 @@ psql -h localhost -p <PUERTO> -U <USUARIO> -d postgres -v ON_ERROR_STOP=1 -f doc
 
 Hibernate **no crea ni modifica tablas**: con `ddl-auto=validate` solo comprueba que las entidades coincidan con el esquema. Si falta una tabla o una columna, el backend no arranca. El detalle del modelo (herencia `Usuario` → `Profesor`, correo institucional, deudas) está en [docs/db/SIGRA_DATABASE_CURRENT.md](docs/db/SIGRA_DATABASE_CURRENT.md).
 
+Si la base **ya existe** con `usuario.nombre_completo` (p. ej. Supabase compartida), no reaplicques el baseline: usa el preflight y la migración **0000035**:
+
+- [docs/db/RF35_usuario_nombres_preflight.sql](docs/db/RF35_usuario_nombres_preflight.sql)
+- [docs/db/RF35_usuario_nombres_migration.sql](docs/db/RF35_usuario_nombres_migration.sql)
+
+Esa migración la aplica el encargado de BD en Supabase; el equipo solo hace pull del código alineado.
+
 ### 3. Configurar las variables de entorno
 
 Nunca subas credenciales al repositorio. La forma recomendada es un archivo `.env` dentro de `SIGRA/`. Spring Boot lo carga de forma nativa (`spring.config.import`) y Git lo ignora (`*.env`):
@@ -1134,7 +1141,7 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 | Id | Identificador único del administrador. | `1a2b…4c5d` |
 | TipoDocumento | Tipo de documento de identidad. | `Cédula de Ciudadanía` |
 | NúmeroDocumento | Número de identificación. | `43215678` |
-| NombreCompleto | Nombre y apellidos. | `Luz Mery Ríos Alzate` |
+| PrimerNombre / SegundoNombre / PrimerApellido / SegundoApellido | Partes del nombre (segundo nombre opcional; sin espacios). El nombre completo se deriva. | `Luz` / `Mery` / `Ríos` / `Alzate` |
 | CorreoInstitucional | Correo con el que accede a la plataforma. Único. | `luzmery.rios@uco.net.co` |
 | Estado | Condición actual dentro de la plataforma. | `Activo` |
 | PasswordHash | Clave cifrada con bcrypt factor 12. | `$2a$12$xR3p…` |
@@ -1196,7 +1203,7 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 | Id | Identificador único del estudiante. | `e000…0011` |
 | TipoDocumento | Tipo de documento de identidad. | `Cédula de Ciudadanía` |
 | NúmeroDocumento | Número de identificación. | `1000000001` |
-| NombreCompleto | Nombre y apellidos. | `Juan Camilo Bernal Carmona` |
+| PrimerNombre / SegundoNombre / PrimerApellido / SegundoApellido | Partes del nombre (segundo nombre opcional; sin espacios). El nombre completo se deriva. | `Juan` / `Camilo` / `Bernal` / `Carmona` |
 | CorreoInstitucional | Correo con el que accede a la plataforma. Único. | `juan.bernal@uco.net.co` |
 | Estado | Condición actual dentro de la plataforma. | `Activo` |
 | PasswordHash | Clave cifrada con bcrypt factor 12. | `$2a$12$xR3p…` |
@@ -1260,7 +1267,7 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 | Id | Identificador único del profesor. | `e000…0001` |
 | TipoDocumento | Tipo de documento de identidad. | `Cédula de Ciudadanía` |
 | NúmeroDocumento | Número de identificación, de 6 a 10 dígitos. | `1098765432` |
-| NombreCompleto | Nombre y apellidos. | `Ana Gómez` |
+| PrimerNombre / SegundoNombre / PrimerApellido / SegundoApellido | Partes del nombre (segundo nombre opcional; sin espacios). El nombre completo se deriva. | `Ana` / — / `Gómez` / `López` |
 | CorreoInstitucional | Correo del dominio `@uco.net.co`. Único. | `ana.gomez@uco.net.co` |
 | Estado | Condición actual dentro de la plataforma. | `Activo` |
 | PasswordHash | Clave cifrada con bcrypt factor 12. | `$2a$12$xR3p…` |

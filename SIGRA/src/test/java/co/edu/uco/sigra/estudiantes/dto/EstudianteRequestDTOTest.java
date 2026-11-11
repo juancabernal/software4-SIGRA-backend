@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.dto;
 
+import co.edu.uco.sigra.common.util.NombresPersona;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -22,18 +23,21 @@ class EstudianteRequestDTOTest {
 
     private static final UUID TIPO_DOCUMENTO_ID = UUID.randomUUID();
     private static final String NUMERO_DOCUMENTO = "123456";
-    private static final String NOMBRE_COMPLETO = "Juan Pérez";
+    private static final String PRIMER_NOMBRE = "Juan";
+    private static final String SEGUNDO_NOMBRE = "Carlos";
+    private static final String PRIMER_APELLIDO = "Pérez";
+    private static final String SEGUNDO_APELLIDO = "Gómez";
     private static final String CORREO_INSTITUCIONAL = "juan.perez@uco.net.co";
 
     private static final String MENSAJE_TIPO_DOCUMENTO_OBLIGATORIO = "El tipo de documento es obligatorio";
     private static final String MENSAJE_NUMERO_DOCUMENTO_OBLIGATORIO = "El número de documento es obligatorio";
     private static final String MENSAJE_NUMERO_DOCUMENTO_FORMATO =
             "El número de documento debe tener entre 6 y 10 dígitos numéricos";
-    private static final String MENSAJE_NOMBRE_COMPLETO_OBLIGATORIO = "El nombre completo es obligatorio";
-    private static final String MENSAJE_NOMBRE_COMPLETO_LONGITUD =
-            "El nombre completo debe tener entre 3 y 150 caracteres";
-    private static final String MENSAJE_NOMBRE_COMPLETO_FORMATO =
-            "El nombre completo solo puede contener letras y un único espacio entre cada palabra";
+    private static final String MENSAJE_PRIMER_NOMBRE_OBLIGATORIO = "El primer nombre es obligatorio";
+    private static final String MENSAJE_PRIMER_NOMBRE_LONGITUD = "El primer nombre debe tener entre 1 y 50 caracteres";
+    private static final String MENSAJE_PRIMER_APELLIDO_OBLIGATORIO = "El primer apellido es obligatorio";
+    private static final String MENSAJE_SEGUNDO_APELLIDO_OBLIGATORIO = "El segundo apellido es obligatorio";
+    private static final String MENSAJE_PARTE_FORMATO = NombresPersona.MENSAJE_PARTE;
     private static final String MENSAJE_CORREO_OBLIGATORIO = "El correo institucional es obligatorio";
     private static final String MENSAJE_CORREO_FORMATO = "El correo debe tener formato usuario@uco.net.co";
 
@@ -52,7 +56,8 @@ class EstudianteRequestDTOTest {
     }
 
     private static EstudianteRequestDTO dtoValido() {
-        return new EstudianteRequestDTO(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+        return new EstudianteRequestDTO(TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO,
+                SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
     }
 
     @Test
@@ -71,7 +76,8 @@ class EstudianteRequestDTOTest {
         @DisplayName("en null genera exactamente una violación en tipoDocumentoId con el mensaje en español")
         void nulo() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    null, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+                    null, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO,
+                SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
@@ -91,7 +97,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("con letras, símbolos o una longitud fuera de 6-10 dígitos genera una violación")
         void formatoInvalido(String numeroDocumento) {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, numeroDocumento, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, numeroDocumento, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
@@ -103,7 +109,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("el mensaje de @Pattern está en español")
         void mensajeFormatoInvalido() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, "12345", NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, "12345", PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
@@ -116,7 +122,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("con 6 o 10 dígitos (límites del rango válido) no genera violaciones")
         void longitudLimiteValida(String numeroDocumento) {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, numeroDocumento, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, numeroDocumento, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
 
             assertThat(validator.validate(dto)).isEmpty();
         }
@@ -125,7 +131,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("en null genera exactamente una violación por @NotBlank con el mensaje en español")
         void nulo() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, null, NOMBRE_COMPLETO, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, null, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
@@ -137,118 +143,193 @@ class EstudianteRequestDTOTest {
     }
 
     @Nested
-    @DisplayName("Nombre completo")
-    class NombreCompleto {
+    @DisplayName("Partes del nombre (RF35)")
+    class PartesDelNombre {
 
         @Test
-        @DisplayName("en null genera exactamente una violación por @NotBlank (@Size y @Pattern no evalúan null)")
-        void nulo() {
+        @DisplayName("primer nombre en null genera exactamente una violación por @NotBlank")
+        void primerNombreNulo() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, null, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, null, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO,
+                    CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
             assertThat(violaciones).hasSize(1);
             ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
-            assertThat(violacion.getPropertyPath()).hasToString("nombreCompleto");
-            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_NOMBRE_COMPLETO_OBLIGATORIO);
+            assertThat(violacion.getPropertyPath()).hasToString("primerNombre");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_PRIMER_NOMBRE_OBLIGATORIO);
         }
 
         @Test
-        @DisplayName("vacío genera tres violaciones: @NotBlank, @Size y @Pattern, las tres sobre nombreCompleto")
-        void vacio() {
+        @DisplayName("primer nombre vacío genera tres violaciones: @NotBlank, @Size y @Pattern")
+        void primerNombreVacio() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, "", CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, "", SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO,
+                    CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
             assertThat(violaciones).hasSize(3);
             assertThat(violaciones)
-                    .allSatisfy(v -> assertThat(v.getPropertyPath()).hasToString("nombreCompleto"));
+                    .allSatisfy(v -> assertThat(v.getPropertyPath()).hasToString("primerNombre"));
             assertThat(violaciones.stream().map(ConstraintViolation::getMessage))
                     .containsExactlyInAnyOrder(
-                            MENSAJE_NOMBRE_COMPLETO_OBLIGATORIO,
-                            MENSAJE_NOMBRE_COMPLETO_LONGITUD,
-                            MENSAJE_NOMBRE_COMPLETO_FORMATO);
+                            MENSAJE_PRIMER_NOMBRE_OBLIGATORIO,
+                            MENSAJE_PRIMER_NOMBRE_LONGITUD,
+                            MENSAJE_PARTE_FORMATO);
         }
 
         @Test
-        @DisplayName("solo espacios genera dos violaciones: @NotBlank y @Pattern, ambas sobre nombreCompleto")
-        void soloEspacios() {
+        @DisplayName("primer nombre solo espacios genera dos violaciones: @NotBlank y @Pattern")
+        void primerNombreSoloEspacios() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, "   ", CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, "   ", SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO,
+                    CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
             assertThat(violaciones).hasSize(2);
             assertThat(violaciones)
-                    .allSatisfy(v -> assertThat(v.getPropertyPath()).hasToString("nombreCompleto"));
+                    .allSatisfy(v -> assertThat(v.getPropertyPath()).hasToString("primerNombre"));
             assertThat(violaciones.stream().map(ConstraintViolation::getMessage))
-                    .containsExactlyInAnyOrder(
-                            MENSAJE_NOMBRE_COMPLETO_OBLIGATORIO, MENSAJE_NOMBRE_COMPLETO_FORMATO);
+                    .containsExactlyInAnyOrder(MENSAJE_PRIMER_NOMBRE_OBLIGATORIO, MENSAJE_PARTE_FORMATO);
         }
 
-        @ParameterizedTest(name = "\"{0}\" no es un nombre completo válido")
+        @ParameterizedTest(name = "\"{0}\" no es una parte de nombre válida")
         @ValueSource(strings = {
                 "Juan123",
-                "Juan Pérez2",
-                "Juan@Perez",
+                "Juan@",
                 "Juan_Perez",
                 "Juan-Perez",
-                "Juan  Pérez",
-                " Juan Pérez",
-                "Juan Pérez "
+                "Juan Carlos",
+                " Juan",
+                "Juan "
         })
-        @DisplayName("con dígitos, símbolos, guiones o espacios dobles/al borde genera una violación por @Pattern")
-        void formatoInvalido(String nombreCompleto) {
+        @DisplayName("con dígitos, símbolos, guiones o espacios genera una violación por @Pattern en primerNombre")
+        void primerNombreFormatoInvalido(String valor) {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, nombreCompleto, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, valor, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO,
+                    CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
             assertThat(violaciones).hasSize(1);
             ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
-            assertThat(violacion.getPropertyPath()).hasToString("nombreCompleto");
-            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_NOMBRE_COMPLETO_FORMATO);
+            assertThat(violacion.getPropertyPath()).hasToString("primerNombre");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_PARTE_FORMATO);
         }
 
-        @ParameterizedTest(name = "\"{0}\" es un nombre completo válido")
-        @ValueSource(strings = {"Ana", "José María Gómez Pérez", "Maria Ñustes"})
-        @DisplayName("con solo letras (incluye tildes, Ñ y nombres compuestos) no genera violaciones")
-        void formatoValido(String nombreCompleto) {
+        @ParameterizedTest(name = "\"{0}\" es una parte de nombre válida")
+        @ValueSource(strings = {"Ana", "José", "Ñustes", "Pérez"})
+        @DisplayName("con solo letras (incluye tildes y Ñ) no genera violaciones")
+        void formatoValido(String valor) {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, nombreCompleto, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, valor, SEGUNDO_NOMBRE, valor, valor,
+                    CORREO_INSTITUCIONAL);
 
             assertThat(validator.validate(dto)).isEmpty();
         }
 
         @Test
-        @DisplayName("con menos de 3 caracteres genera una violación por @Size")
-        void muyCorto() {
+        @DisplayName("primer nombre con más de 50 caracteres genera una violación por @Size")
+        void primerNombreMuyLargo() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, "Jo", CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, "A".repeat(51), SEGUNDO_NOMBRE, PRIMER_APELLIDO,
+                    SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
             assertThat(violaciones).hasSize(1);
             ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
-            assertThat(violacion.getPropertyPath()).hasToString("nombreCompleto");
-            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_NOMBRE_COMPLETO_LONGITUD);
+            assertThat(violacion.getPropertyPath()).hasToString("primerNombre");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_PRIMER_NOMBRE_LONGITUD);
         }
 
         @Test
-        @DisplayName("con más de 150 caracteres genera una violación por @Size")
-        void muyLargo() {
-            String nombreLargo = "A".repeat(151);
+        @DisplayName("segundo nombre en null es válido (opcional)")
+        void segundoNombreNuloEsValido() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, nombreLargo, CORREO_INSTITUCIONAL);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO,
+                    CORREO_INSTITUCIONAL);
+
+            assertThat(validator.validate(dto)).isEmpty();
+        }
+
+        @ParameterizedTest(name = "segundo nombre \"{0}\" es inválido")
+        @ValueSource(strings = {"Luis Fernando", "Luis1", "Luis-", "", " "})
+        @DisplayName("segundo nombre informado con espacios, símbolos o vacío genera violación por @Pattern")
+        void segundoNombreInvalido(String valor) {
+            EstudianteRequestDTO dto = new EstudianteRequestDTO(
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, valor, PRIMER_APELLIDO, SEGUNDO_APELLIDO,
+                    CORREO_INSTITUCIONAL);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
             assertThat(violaciones).hasSize(1);
             ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
-            assertThat(violacion.getPropertyPath()).hasToString("nombreCompleto");
-            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_NOMBRE_COMPLETO_LONGITUD);
+            assertThat(violacion.getPropertyPath()).hasToString("segundoNombre");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_PARTE_FORMATO);
+        }
+
+        @Test
+        @DisplayName("primer apellido en null genera exactamente una violación por @NotBlank")
+        void primerApellidoNulo() {
+            EstudianteRequestDTO dto = new EstudianteRequestDTO(
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, null, SEGUNDO_APELLIDO,
+                    CORREO_INSTITUCIONAL);
+
+            Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
+
+            assertThat(violaciones).hasSize(1);
+            ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
+            assertThat(violacion.getPropertyPath()).hasToString("primerApellido");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_PRIMER_APELLIDO_OBLIGATORIO);
+        }
+
+        @Test
+        @DisplayName("primer apellido con espacio interno genera una violación por @Pattern")
+        void primerApellidoConEspacio() {
+            EstudianteRequestDTO dto = new EstudianteRequestDTO(
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, "De La Cruz",
+                    SEGUNDO_APELLIDO, CORREO_INSTITUCIONAL);
+
+            Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
+
+            assertThat(violaciones).hasSize(1);
+            ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
+            assertThat(violacion.getPropertyPath()).hasToString("primerApellido");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_PARTE_FORMATO);
+        }
+
+        @Test
+        @DisplayName("segundo apellido en null genera exactamente una violación por @NotBlank")
+        void segundoApellidoNulo() {
+            EstudianteRequestDTO dto = new EstudianteRequestDTO(
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, null,
+                    CORREO_INSTITUCIONAL);
+
+            Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
+
+            assertThat(violaciones).hasSize(1);
+            ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
+            assertThat(violacion.getPropertyPath()).hasToString("segundoApellido");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_SEGUNDO_APELLIDO_OBLIGATORIO);
+        }
+
+        @Test
+        @DisplayName("segundo apellido con espacio interno genera una violación por @Pattern")
+        void segundoApellidoConEspacio() {
+            EstudianteRequestDTO dto = new EstudianteRequestDTO(
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO,
+                    "Del Valle", CORREO_INSTITUCIONAL);
+
+            Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
+
+            assertThat(violaciones).hasSize(1);
+            ConstraintViolation<EstudianteRequestDTO> violacion = violaciones.iterator().next();
+            assertThat(violacion.getPropertyPath()).hasToString("segundoApellido");
+            assertThat(violacion.getMessage()).isEqualTo(MENSAJE_PARTE_FORMATO);
         }
     }
 
@@ -260,7 +341,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("en null genera exactamente una violación por @NotBlank con el mensaje en español")
         void nulo() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, null);
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, null);
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
@@ -274,7 +355,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("con un dominio distinto a uco.net.co genera una violación con el mensaje en español")
         void dominioDistinto() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "alguien@gmail.com");
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "alguien@gmail.com");
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
@@ -288,7 +369,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("con el dominio en mayúsculas no genera violaciones (insensible a mayúsculas)")
         void dominioEnMayusculas() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "Usuario@UCO.NET.CO");
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "Usuario@UCO.NET.CO");
 
             assertThat(validator.validate(dto)).isEmpty();
         }
@@ -297,7 +378,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("vacío genera dos violaciones: @NotBlank y @Pattern, ambas sobre correoInstitucional")
         void vacio() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "");
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "");
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 
@@ -312,7 +393,7 @@ class EstudianteRequestDTOTest {
         @DisplayName("con dominio correcto pero sin parte local genera una violación por @Pattern")
         void sinParteLocal() {
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "@uco.net.co");
+                    TIPO_DOCUMENTO_ID, NUMERO_DOCUMENTO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "@uco.net.co");
 
             Set<ConstraintViolation<EstudianteRequestDTO>> violaciones = validator.validate(dto);
 

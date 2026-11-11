@@ -57,7 +57,10 @@ tiene su propia tabla, enlazada por la misma clave primaria.
 | --- | --- | --- | --- |
 | `id` | UUID | no | PK |
 | `tipo_documento_id` | UUID | no | FK a `sigra.tipo_documento(id)` (catálogo reutilizable) |
-| `nombre_completo` | VARCHAR(255) | no | |
+| `primer_nombre` | VARCHAR(50) | no | Una sola palabra (0000035) |
+| `segundo_nombre` | VARCHAR(50) | sí | Opcional |
+| `primer_apellido` | VARCHAR(50) | no | |
+| `segundo_apellido` | VARCHAR(50) | no | |
 | `correo_institucional` | VARCHAR(255) | no | UNIQUE. Ver «Correo institucional» |
 | `password_hash` | VARCHAR(255) | sí | BCrypt factor 12. Puede ser nulo (ver deuda `PASSWORD_PROVISIONING_FLOW`) |
 | `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK) |

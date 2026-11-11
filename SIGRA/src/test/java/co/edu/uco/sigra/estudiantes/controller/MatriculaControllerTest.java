@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estudiantes.controller;
 
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.exception.AsercionesContratoError;
 import co.edu.uco.sigra.estudiantes.dto.EstudianteRequestDTO;
@@ -97,7 +98,9 @@ class MatriculaControllerTest {
               "estudiante": {
                 "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
                 "numeroDocumento": "1098765432",
-                "nombreCompleto": "Ana Gómez",
+                "primerNombre": "Ana",
+                "primerApellido": "Gómez",
+                "segundoApellido": "López",
                 "correoInstitucional": "ana.gomez@uco.net.co"
               },
               "asignaturaId": "22222222-2222-2222-2222-222222222222",
@@ -116,7 +119,7 @@ class MatriculaControllerTest {
         Estudiante estudiante = new Estudiante();
         ReflectionTestUtils.setField(estudiante, "id", estudianteId);
         estudiante.setNumeroDocumento("1098765432");
-        estudiante.setNombreCompleto("Ana Gómez");
+        NombresPersonaTestUtil.aplicar(estudiante, "Ana Gómez");
         estudiante.setEstado(EstadoRegistro.ACTIVO);
 
         Asignatura asignatura = new Asignatura("ASIG-001", "Cálculo I", null);
@@ -138,14 +141,15 @@ class MatriculaControllerTest {
 
     private static EstudianteResponseDTO estudianteCreadoDeAna(UUID id) {
         return new EstudianteResponseDTO(
-                id, "Cédula de ciudadanía", "1098765432", "Ana Gómez", "ana.gomez@uco.net.co", "ACTIVO");
+                id, "Cédula de ciudadanía", "1098765432", "Ana", null, "Gómez", "López", "Ana Gómez López",
+                "ana.gomez@uco.net.co", "ACTIVO");
     }
 
     private static Matricula matriculaDeListado(UUID id, String numeroDocumento, String nombreCompleto,
                                                   EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         estudiante.setNumeroDocumento(numeroDocumento);
-        estudiante.setNombreCompleto(nombreCompleto);
+        NombresPersonaTestUtil.aplicar(estudiante, nombreCompleto);
 
         Matricula matricula = new Matricula();
         matricula.setId(id);
@@ -393,7 +397,9 @@ class MatriculaControllerTest {
                       "estudiante": {
                         "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
                         "numeroDocumento": "123",
-                        "nombreCompleto": "Ana Gómez",
+                        "primerNombre": "Ana",
+                        "primerApellido": "Gómez",
+                        "segundoApellido": "López",
                         "correoInstitucional": "ana.gomez@uco.net.co"
                       },
                       "asignaturaId": "22222222-2222-2222-2222-222222222222",
@@ -426,7 +432,9 @@ class MatriculaControllerTest {
                       "estudiante": {
                         "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
                         "numeroDocumento": "1098765432",
-                        "nombreCompleto": "Ana Gómez",
+                        "primerNombre": "Ana",
+                        "primerApellido": "Gómez",
+                        "segundoApellido": "López",
                         "correoInstitucional": "ana.gomez@gmail.com"
                       },
                       "asignaturaId": "22222222-2222-2222-2222-222222222222",
@@ -480,7 +488,9 @@ class MatriculaControllerTest {
                       "estudiante": {
                         "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
                         "numeroDocumento": "1098765432",
-                        "nombreCompleto": "Ana Gómez",
+                        "primerNombre": "Ana",
+                        "primerApellido": "Gómez",
+                        "segundoApellido": "López",
                         "correoInstitucional": "ana.gomez@uco.net.co"
                       },
                       "semestreId": "33333333-3333-3333-3333-333333333333"
@@ -509,7 +519,9 @@ class MatriculaControllerTest {
                       "estudiante": {
                         "tipoDocumentoId": "55555555-5555-5555-5555-555555555555",
                         "numeroDocumento": "1098765432",
-                        "nombreCompleto": "Ana Gómez",
+                        "primerNombre": "Ana",
+                        "primerApellido": "Gómez",
+                        "segundoApellido": "López",
                         "correoInstitucional": "ana.gomez@uco.net.co"
                       },
                       "asignaturaId": "22222222-2222-2222-2222-222222222222"
@@ -746,7 +758,7 @@ class MatriculaControllerTest {
         @Test
         @DisplayName("Sin incluirInactivas devuelve 200 y llama al servicio con incluirInactivas=false")
         void sinIncluirInactivasDevuelve200() throws Exception {
-            Matricula matricula = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez",
+            Matricula matricula = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez López",
                     EstadoMatricula.ACTIVA);
             given(matriculaService.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false))
                     .willReturn(List.of(matricula));
@@ -758,7 +770,7 @@ class MatriculaControllerTest {
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].matriculaId").value(ID_MATRICULA.toString()))
                     .andExpect(jsonPath("$[0].numeroDocumento").value("1098765432"))
-                    .andExpect(jsonPath("$[0].nombreCompleto").value("Ana Gómez"))
+                    .andExpect(jsonPath("$[0].nombreCompleto").value("Ana Gómez López"))
                     .andExpect(jsonPath("$[0].fechaMatricula").value("2026-03-02"))
                     .andExpect(jsonPath("$[0].estado").value("ACTIVA"));
 
@@ -768,7 +780,7 @@ class MatriculaControllerTest {
         @Test
         @DisplayName("Con incluirInactivas=true llama al servicio con ese valor")
         void conIncluirInactivasDevuelve200() throws Exception {
-            Matricula desvinculada = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez",
+            Matricula desvinculada = matriculaDeListado(ID_MATRICULA, "1098765432", "Ana Gómez López",
                     EstadoMatricula.DESVINCULADA);
             given(matriculaService.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, true))
                     .willReturn(List.of(desvinculada));

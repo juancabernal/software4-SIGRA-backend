@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.auth.integration;
 
 import co.edu.uco.sigra.auth.dto.LoginRequestDTO;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.auth.exception.CredencialesInvalidasException;
 import co.edu.uco.sigra.auth.exception.UsuarioBloqueadoException;
@@ -62,7 +63,7 @@ class AuthConcurrencyIntegrationIT {
 
         usuario = new Profesor();
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("Profesor concurrencia");
+        NombresPersonaTestUtil.aplicar(usuario, "Profesor concurrencia");
         usuario.setCorreoInstitucional(PREFIX + UUID.randomUUID() + "@uco.net.co");
         usuario.setPasswordHash(passwordEncoder.encode("PasswordSeguro123*"));
         usuario.setEstado(EstadoRegistro.ACTIVO);

@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.mejoras.integracion;
 
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.entity.EstadoAsignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
@@ -389,7 +390,7 @@ class AccionMejoraIntegracionIT {
 
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITM Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITM Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-" + UUID.randomUUID().toString().substring(0, 8)
                 + DOMINIO_CORREO);
         return usuarioRepository.save(usuario);
