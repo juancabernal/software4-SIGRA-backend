@@ -337,7 +337,8 @@ class ProfesorServiceImplTest {
 
             assertThatThrownBy(() -> service.consultarAsignaturas(ID_PROFESOR, null))
                     .isInstanceOf(ProfesorNoEncontradoException.class)
-                    .hasMessageContaining(ID_PROFESOR.toString());
+                    .hasMessageContaining("profesor")
+                    .hasMessageNotContaining(ID_PROFESOR.toString());
 
             verifyNoInteractions(asignacionDocenteRepository);
         }

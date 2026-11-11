@@ -60,9 +60,9 @@ public class EvaluacionController {
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
                     + "\"mensaje\":\"Los datos de entrada no cumplen con las validaciones requeridas\","
                     + "\"detalles\":[\"porcentaje: El porcentaje debe ser mayor que 0 y máximo 100\"]}";
-    private static final String EJ_EVALUACION_NO_ENCONTRADA = P404 + "No existe una evaluación con id " + ID_EJEMPLO + "." + FIN;
-    private static final String EJ_RA_NO_ENCONTRADO = P404 + "No existe un resultado de aprendizaje con id " + RA_EJEMPLO + "." + FIN;
-    private static final String EJ_SEMESTRE_NO_ENCONTRADO = P404 + "No existe un semestre con id " + SEMESTRE_EJEMPLO + "." + FIN;
+    private static final String EJ_EVALUACION_NO_ENCONTRADA = P404 + "No existe la evaluación indicada." + FIN;
+    private static final String EJ_RA_NO_ENCONTRADO = P404 + "No existe el resultado de aprendizaje indicado." + FIN;
+    private static final String EJ_SEMESTRE_NO_ENCONTRADO = P404 + "No existe el semestre indicado." + FIN;
     private static final String EJ_NOMBRE_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
                     + "\"mensaje\":\"" + NombreEvaluacionDuplicadoException.MENSAJE + "\"}";

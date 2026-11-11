@@ -41,8 +41,8 @@ public class RendimientoResultadoAprendizajeController {
     private static final String P404 = "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\",\"mensaje\":\"";
     private static final String FIN = "\"}";
 
-    private static final String EJ_ASIGNATURA_NO_ENCONTRADA = P404 + "No existe una asignatura con id " + ASIGNATURA_EJEMPLO + "." + FIN;
-    private static final String EJ_SEMESTRE_NO_ENCONTRADO = P404 + "No existe un semestre con id " + SEMESTRE_EJEMPLO + "." + FIN;
+    private static final String EJ_ASIGNATURA_NO_ENCONTRADA = P404 + "No existe la asignatura indicada." + FIN;
+    private static final String EJ_SEMESTRE_NO_ENCONTRADO = P404 + "No existe el semestre indicado." + FIN;
 
     private final RendimientoResultadoAprendizajeService rendimientoService;
 

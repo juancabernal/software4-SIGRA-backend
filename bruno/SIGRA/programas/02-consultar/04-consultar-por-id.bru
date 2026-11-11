@@ -20,4 +20,9 @@ tests {
     expect(res.body.codigo).to.equal("BRU-ACT");
     expect(res.body.estado).to.equal("ACTIVO");
   });
+
+  test("incluye la facultad del programa", function () {
+    expect(res.body.facultadId).to.equal(bru.getEnvVar("facultadPorDefectoId"));
+    expect(res.body.facultadNombre).to.equal(bru.getEnvVar("facultadPorDefectoNombre"));
+  });
 }

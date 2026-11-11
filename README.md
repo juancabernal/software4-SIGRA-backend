@@ -452,6 +452,8 @@ Las pruebas se separan por etiqueta para saber siempre qué se ejecutó:
 
 Las 5 pruebas de integración del módulo Asignaturas (casos, datos y limpieza con prefijo ITG) están en [docs/pruebas/asignaturas-integracion.md](docs/pruebas/asignaturas-integracion.md).
 
+Las pruebas del módulo Facultades (casos IT-01 a IT-08, datos y limpieza con prefijo ITF, y la facultad compartida que usan las demás pruebas) están en [docs/pruebas/facultades-integracion.md](docs/pruebas/facultades-integracion.md); requieren la migración [`docs/db/RF20_facultad_migration.sql`](docs/db/RF20_facultad_migration.sql).
+
 La matriz de pruebas de matrícula y la migración de `fecha_matricula`/`EstadoMatricula` están en
 [`docs/pruebas/matricula-integracion.md`](docs/pruebas/matricula-integracion.md) y
 [`docs/db/RF08_matricula_fecha_y_estado_migration.sql`](docs/db/RF08_matricula_fecha_y_estado_migration.sql).
@@ -1069,6 +1071,11 @@ cada asignatura pertenece a exactamente un programa académico, conforme a RF-03
 registrar "el programa académico al que pertenece". La tabla intermedia no existe en el
 esquema. El MER refleja la decisión implementada.
 
+**Facultad (incidencia 0000036).** El diagrama es anterior a la incidencia 0000036 y todavía no
+muestra la **Facultad**. En el dominio implementado cada **ProgramaAcadémico** pertenece a
+exactamente una Facultad (relación muchos a uno), lo que permite agrupar y filtrar los
+programas por facultad. La imagen debe actualizarse para incluirla.
+
 ---
 [← Mapa de historias de usuario](#mapa-de-historias-de-usuario) · [Índice](#índice) · [Siguiente →](#objetos-de-dominio)
 
@@ -1087,12 +1094,13 @@ el equipo para cada uno.
 | **Conclusión** | Alerta automática que se genera cuando más del 40 % de los estudiantes obtiene un Nivel de Logro Bajo o Medio en un mismo Resultado de Aprendizaje. |
 | **Estudiante** | Persona matriculada en una o varias asignaturas, cuyo aprendizaje es evaluado por RA y que solo tiene acceso de lectura a sus propios resultados. |
 | **Evaluación** | Actividad definida por el profesor (nombre, fecha tentativa, porcentaje y descripción) mediante la cual se mide el desempeño de los estudiantes en un Resultado de Aprendizaje. |
+| **Facultad** | Unidad académica (por ejemplo, Facultad de Ingeniería) que agrupa uno o varios programas académicos. Puede estar Activa o Inactiva; no se inactiva mientras tenga programas activos. |
 | **HistorialAuditoría** | Registro histórico, de solo escritura (*append-only*), de los cambios y eventos relevantes ocurridos sobre las entidades académicas. |
 | **Matrícula** | Relación entre un estudiante y una asignatura en un periodo determinado, indicando si la vinculación está Activa o Desvinculada. |
 | **NivelLogro** | Categoría (Bajo, Medio, Alto o Sobresaliente) que resulta de calcular el desempeño de un estudiante en un Resultado de Aprendizaje a partir de sus calificaciones. |
 | **Profesor** | Persona encargada de evaluar el aprendizaje de los estudiantes en las asignaturas que tiene asignadas, mediante la creación de evaluaciones y el registro de calificaciones. |
 | **ProfesorAsignatura** | Asignación docente de uno o varios profesores a una o varias asignaturas para su evaluación. |
-| **ProgramaAcadémico** | Programa de formación (por ejemplo, Ingeniería de Sistemas) al cual pertenecen una o varias asignaturas. |
+| **ProgramaAcadémico** | Programa de formación (por ejemplo, Ingeniería de Sistemas) que pertenece a una facultad y al cual pertenecen una o varias asignaturas. |
 | **ResultadoAprendizaje** | Unidad de medida sobre la cual se evalúa el aprendizaje del estudiante dentro de una asignatura; es fijo por asignatura y solo editable por el Administrador. |
 | **Semestre** | Periodo académico (con fecha de inicio y fin) respecto al cual se generan y enmarcan las matrículas, evaluaciones y conclusiones. Los RA no varían de un semestre a otro. |
 | **TipoDocumento** | Tipos de identificación válidos para un usuario del sistema. |
@@ -1219,6 +1227,19 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 | Descripción | Contenido o alcance de la evaluación. | `Evaluación escrita sobre límites y continuidad` |
 | Estado | Condición actual de la evaluación. | `ACTIVA` |
 
+#### Facultad
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la facultad. | `7c8d…9e0f` |
+| Nombre | Nombre de la facultad. Único sin distinguir mayúsculas, hasta 150 caracteres. | `Facultad de Ingeniería` |
+| Estado | Condición actual de la facultad. Solo se inactiva si no tiene programas activos. | `ACTIVO` |
+
+> Los programas que existían antes de la incidencia 0000036 quedaron en la facultad
+> `Facultad sin asignar` (`fa00…0001`), creada por la migración
+> [`RF20_facultad_migration.sql`](docs/db/RF20_facultad_migration.sql); el Administrador los
+> reasigna a su facultad real modificando el programa.
+
 #### HistorialAuditoría
 
 | Atributo | Descripción | Ejemplo |
@@ -1286,7 +1307,8 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 | --- | --- | --- |
 | Id | Identificador único del programa académico. | `a0d0…0001` |
 | Nombre | Nombre del programa. Único, hasta 100 caracteres. | `Ingeniería de Sistemas` |
-| Código | Código único, alfanumérico, de 4 a 10 caracteres. | `ING-SIS` |
+| Código | Código único, alfanumérico, de 4 a 10 caracteres. Se guarda en mayúsculas y no se modifica. | `ING-SIS` |
+| Facultad | Facultad a la que pertenece. Obligatoria; al registrar o reasignar debe estar activa. | `Facultad de Ingeniería` |
 | Estado | Condición actual del programa. | `ACTIVO` |
 
 #### ResultadoAprendizaje
@@ -1346,6 +1368,13 @@ expresarse solo con relaciones.
   deduce de la tabla de subtipo en la que está, sin una columna de rol.
 - **Asignatura y programa.** La asignatura referencia directamente a un programa académico.
   Ni el código ni el programa son modificables después de creada (RF-03c).
+- **Programa y facultad (incidencia 0000036).** `programa_academico.facultad_id` es una clave
+  foránea obligatoria (`fk_programa_facultad`, con índice `idx_programa_facultad_id`) hacia
+  `facultad`, cuyo nombre es único (`uk_facultad_nombre`). A diferencia del código, la
+  facultad de un programa sí se puede cambiar, siempre hacia una facultad activa. Los
+  programas existentes se migraron a `Facultad sin asignar`
+  ([`RF20_facultad_migration.sql`](docs/db/RF20_facultad_migration.sql)). La imagen del MER es
+  anterior a este cambio y debe actualizarse para incluir la tabla `facultad`.
 - **Evaluación generada.** `AcciónMejora` referencia opcionalmente a la evaluación que se
   creó al convertirla. Esa referencia vacía es lo que distingue una acción convertible de
   una ya convertida.
@@ -1376,13 +1405,14 @@ columna, en [`docs/db/SIGRA_DATABASE_CURRENT.md`](docs/db/SIGRA_DATABASE_CURRENT
 | **conclusión** | Alertas automáticas generadas cuando el desempeño en un Resultado de Aprendizaje resulta insuficiente, con el diagnóstico que las originó. |
 | **estudiante** | Subtipo de usuario matriculado en asignaturas, cuyo aprendizaje se evalúa por Resultados de Aprendizaje. |
 | **evaluación** | Actividades definidas por un profesor para medir el desempeño de los estudiantes en un Resultado de Aprendizaje. |
+| **facultad** | Unidades académicas que agrupan los programas académicos, con su nombre único y estado. |
 | **historial_auditoría** | Eventos y cambios registrados sobre las entidades académicas, con fines de trazabilidad. |
 | **historial_calificación** | Versiones anteriores de una calificación, conservadas cada vez que se modifica. |
 | **matrícula** | Vinculación entre un estudiante y una asignatura en un semestre, con su fecha y estado. |
 | **nivel_logro_estudiante** | Nivel de logro calculado para cada estudiante en un RA y semestre, con su promedio ponderado. |
 | **profesor** | Subtipo de usuario encargado de crear evaluaciones y registrar calificaciones en sus asignaturas. |
 | **asignación_docente** | Asignación de un profesor a una asignatura, con su fecha y estado. |
-| **programa_académico** | Programas de formación a los cuales pertenecen las asignaturas. |
+| **programa_académico** | Programas de formación, cada uno dentro de una facultad, a los cuales pertenecen las asignaturas. |
 | **resultado_aprendizaje** | Unidades de medida sobre las cuales se evalúa el aprendizaje dentro de una asignatura. |
 | **semestre** | Periodos académicos, con su código y fechas de inicio y fin. |
 | **tipo_documento** | Tipos de documento de identidad disponibles para el registro de usuarios. |
@@ -1529,7 +1559,7 @@ El diagrama de clases de SIGRA representa la estructura estática del sistema, i
 
 Las asociaciones muestran cómo se vinculan los profesores y estudiantes con las asignaturas, cómo se registran las evaluaciones y calificaciones, y cómo los resultados obtenidos pueden dar lugar a conclusiones y acciones de mejora. `HistorialAuditoria` representa el registro de los eventos relevantes del sistema. Los símbolos de visibilidad permiten distinguir atributos y operaciones públicas, privadas o protegidas, mientras que las multiplicidades indican cuántas instancias pueden participar en cada relación.
 
-**Diferencias conocidas entre el modelo y la implementación.** El diagrama debe interpretarse como un modelo de diseño y contrastarse con el código y el esquema de base de datos vigentes. El README documenta, por ejemplo, que la relación entre asignatura y programa académico se implementa mediante una clave foránea directa en `Asignatura`, y no mediante una entidad intermedia `AsignaturaPrograma`. También registra una diferencia pendiente sobre la modificación del tipo y número de documento de los profesores. Estas diferencias deben mantenerse explícitas hasta que el equipo unifique las decisiones de diseño e implementación.
+**Diferencias conocidas entre el modelo y la implementación.** El diagrama debe interpretarse como un modelo de diseño y contrastarse con el código y el esquema de base de datos vigentes. El README documenta, por ejemplo, que la relación entre asignatura y programa académico se implementa mediante una clave foránea directa en `Asignatura`, y no mediante una entidad intermedia `AsignaturaPrograma`. También registra una diferencia pendiente sobre la modificación del tipo y número de documento de los profesores, y que la entidad `Facultad` (incidencia 0000036), con su relación muchos a uno desde `ProgramaAcademico`, existe en el código pero aún no aparece en el diagrama. Estas diferencias deben mantenerse explícitas hasta que el equipo unifique las decisiones de diseño e implementación.
 
 ---
 [← Alternativa de solución](#alternativa-de-solución) · [Índice](#índice) · [Siguiente →](#diagrama-de-componentes--back-end)

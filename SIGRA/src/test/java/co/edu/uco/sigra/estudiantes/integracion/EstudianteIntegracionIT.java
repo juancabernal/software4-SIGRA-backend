@@ -1,5 +1,7 @@
 package co.edu.uco.sigra.estudiantes.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
+import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -97,6 +99,7 @@ class EstudianteIntegracionIT {
     @Autowired private AsignaturaRepository asignaturaRepository;
     @Autowired private SemestreRepository semestreRepository;
     @Autowired private ProgramaAcademicoRepository programaRepository;
+    @Autowired private FacultadRepository facultadRepository;
 
     private TipoDocumento tipoDocumento;
     private ProgramaAcademico programa;
@@ -115,6 +118,7 @@ class EstudianteIntegracionIT {
         ProgramaAcademico p = new ProgramaAcademico();
         p.setNombre(PREFIJO_PROGRAMA + " " + UUID.randomUUID().toString().substring(0, 8));
         p.setCodigo("ITEP" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
+        p.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         programa = programaRepository.save(p);
 
         Asignatura asignatura = new Asignatura(PREFIJO_ASIGNATURA + "1", "ITE Asignatura Activa", programa);
@@ -318,7 +322,7 @@ class EstudianteIntegracionIT {
                 jsonEstudiante(tipoDocumento.getId(), PREFIJO_DOCUMENTO + "014", "ITE Nombre", correo("014")));
         assertThat(noEncontrado.getResponse().getStatus()).isEqualTo(404);
         assertThat((String) JsonPath.read(cuerpo(noEncontrado), "$.mensaje"))
-                .isEqualTo("No existe un estudiante con id " + inexistente + ".");
+                .isEqualTo("No existe el estudiante solicitado.");
     }
 
     // ---------------------------------------------------------------- IT-04
@@ -410,7 +414,7 @@ class EstudianteIntegracionIT {
                 jsonMatricula(estudianteInactivoId, asignaturaActiva.getId(), semestre1.getId()));
         assertThat(porEstudianteInactivo.getResponse().getStatus()).isEqualTo(400);
         assertThat((String) JsonPath.read(cuerpo(porEstudianteInactivo), "$.mensaje"))
-                .isEqualTo("El estudiante con id " + estudianteInactivoId + " no está activo.");
+                .isEqualTo("El estudiante no está activo.");
         assertThat(matriculaRepository.buscarPorTerna(estudianteInactivoId, asignaturaActiva.getId(), semestre1.getId()))
                 .isEmpty();
 
@@ -421,7 +425,7 @@ class EstudianteIntegracionIT {
                 jsonMatricula(estudianteId, asignaturaBorrador.getId(), semestre1.getId()));
         assertThat(porAsignaturaNoActiva.getResponse().getStatus()).isEqualTo(400);
         assertThat((String) JsonPath.read(cuerpo(porAsignaturaNoActiva), "$.mensaje"))
-                .isEqualTo("La asignatura con id " + asignaturaBorrador.getId() + " no está activa.");
+                .isEqualTo("La asignatura no está activa.");
         assertThat(matriculaRepository.buscarPorTerna(estudianteId, asignaturaBorrador.getId(), semestre1.getId()))
                 .isEmpty();
 
@@ -433,7 +437,7 @@ class EstudianteIntegracionIT {
                 jsonMatricula(estudianteId, asignaturaActiva.getId(), semestreInactivo.getId()));
         assertThat(porSemestreNoActivo.getResponse().getStatus()).isEqualTo(400);
         assertThat((String) JsonPath.read(cuerpo(porSemestreNoActivo), "$.mensaje"))
-                .isEqualTo("El semestre con id " + semestreInactivo.getId() + " no está vigente.");
+                .isEqualTo("El semestre no está vigente.");
         assertThat(matriculaRepository.buscarPorTerna(estudianteId, asignaturaActiva.getId(), semestreInactivo.getId()))
                 .isEmpty();
 
@@ -446,7 +450,7 @@ class EstudianteIntegracionIT {
         MvcResult desvinculadaOtraVez = enviar(delete(URL_MATRICULAS + "/" + matriculaId), null);
         assertThat(desvinculadaOtraVez.getResponse().getStatus()).isEqualTo(409);
         assertThat((String) JsonPath.read(cuerpo(desvinculadaOtraVez), "$.mensaje"))
-                .isEqualTo("La matrícula con id " + matriculaId + " ya no está activa.");
+                .isEqualTo("La matrícula ya no está activa.");
 
         // Volver a matricular la misma terna original: reactivación (200), mismo id, sin fila nueva.
         MvcResult reactivada = enviar(post(URL_MATRICULAS),
@@ -484,7 +488,7 @@ class EstudianteIntegracionIT {
                         correoPorSemestre, asignaturaActiva.getId(), semestreNoVigente.getId()));
         assertThat(porSemestreNoVigente.getResponse().getStatus()).isEqualTo(400);
         assertThat((String) JsonPath.read(cuerpo(porSemestreNoVigente), "$.mensaje"))
-                .isEqualTo("El semestre con id " + semestreNoVigente.getId() + " no está vigente.");
+                .isEqualTo("El semestre no está vigente.");
 
         assertThat(estudianteRepository.findAll().stream()
                 .anyMatch(e -> e.getNumeroDocumento().equals(numeroPorSemestre)))
@@ -504,7 +508,7 @@ class EstudianteIntegracionIT {
                         correoPorAsignatura, asignaturaInexistente, semestre1.getId()));
         assertThat(porAsignaturaInexistente.getResponse().getStatus()).isEqualTo(404);
         assertThat((String) JsonPath.read(cuerpo(porAsignaturaInexistente), "$.mensaje"))
-                .isEqualTo("No existe una asignatura con id " + asignaturaInexistente + ".");
+                .isEqualTo("No existe la asignatura indicada.");
 
         assertThat(estudianteRepository.findAll().stream()
                 .anyMatch(e -> e.getNumeroDocumento().equals(numeroPorAsignatura)))

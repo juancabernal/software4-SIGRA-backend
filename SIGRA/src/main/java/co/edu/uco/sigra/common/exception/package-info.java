@@ -52,8 +52,9 @@
  *
  * <p>Ningún campo del cuerpo puede revelar la implementación interna. Está prohibido: trazas de
  * pila, nombres de clase Java, el texto {@code Exception}, rutas de paquete como {@code at co.edu},
- * fragmentos de SQL, nombres de tablas, columnas o restricciones de base de datos, y rutas del
- * sistema de archivos.
+ * fragmentos de SQL, nombres de tablas, columnas o restricciones de base de datos, rutas del
+ * sistema de archivos, y UUID u otros identificadores internos en {@code mensaje} (el cliente no
+ * debe ver «con id …» ni GUID en el texto de error).
  *
  * <p>Esto aplica <em>también</em> cuando el fallo es inesperado. El patrón correcto es registrar un
  * evento sanitizado con {@code requestId} y la clase de excepción, y devolver un {@code mensaje}

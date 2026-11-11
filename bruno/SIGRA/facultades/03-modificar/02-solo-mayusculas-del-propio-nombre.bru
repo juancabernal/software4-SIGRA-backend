@@ -1,0 +1,39 @@
+meta {
+  name: 02 Solo mayusculas del propio nombre
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadCreadaId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "{{facultadCreadaNombreMayus}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("facultadCreadaNombreMayus", bru.getVar("facultadCreadaNombre").toUpperCase());
+}
+
+script:post-response {
+  bru.setVar("facultadCreadaNombre", res.body.nombre);
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("se permite porque es su propio nombre", function () {
+    expect(res.body.nombre).to.equal(bru.getVar("facultadCreadaNombreMayus"));
+  });
+}

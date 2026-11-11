@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.semestres.controller;
 
+import co.edu.uco.sigra.auth.security.CurrentUser;
 import co.edu.uco.sigra.common.openapi.EjemplosError;
 import co.edu.uco.sigra.common.openapi.RespuestaErrorDoc;
 import co.edu.uco.sigra.config.OpenApiConfig;
@@ -19,7 +20,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,6 @@ import java.util.List;
 @SecurityRequirement(name = OpenApiConfig.ESQUEMA_BEARER)
 @RestController
 @RequestMapping("/api/v1/semestres")
-@RequiredArgsConstructor
 public class SemestreController {
 
     private static final String CODIGO_EJEMPLO = "2027-1";
@@ -92,6 +92,18 @@ public class SemestreController {
                     + "\"mensaje\":\"La nueva fecha de fin debe ser posterior a la actual; solo se permite extender el semestre\"}";
 
     private final SemestreService semestreService;
+    private final CurrentUser currentUser;
+
+    @Autowired
+    public SemestreController(SemestreService semestreService, CurrentUser currentUser) {
+        this.semestreService = semestreService;
+        this.currentUser = currentUser;
+    }
+
+    /** Constructor reducido conservado para pruebas standalone; la identidad sigue siendo obligatoria. */
+    public SemestreController(SemestreService semestreService) {
+        this(semestreService, new CurrentUser());
+    }
 
     @Operation(
             summary = "Registrar semestre",
@@ -177,6 +189,33 @@ public class SemestreController {
             @Parameter(description = "Filtra por estado calculado (ACTIVO o INACTIVO)", example = "ACTIVO")
             @RequestParam(required = false) EstadoSemestre estado) {
         return ResponseEntity.ok(semestreService.listar(codigo, estado));
+    }
+
+    /** Mantis 0000045: el filtro de semestre del Profesor solo ofrece los semestres en que tiene asignaturas. */
+    @Operation(
+            summary = "Consultar mis semestres",
+            description = "Devuelve, del más reciente al más antiguo, los semestres en los que el PROFESOR "
+                    + "autenticado tiene asignaturas: aquellos en los que una asignación docente ACTIVA ya existía "
+                    + "antes de que el semestre terminara, o en los que esas asignaturas tienen evaluaciones o "
+                    + "matrículas registradas. El estado de cada semestre se recalcula según la fecha actual."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Semestres del profesor (puede estar vacía)",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            array = @ArraySchema(schema = @Schema(implementation = SemestreResponseDTO.class)))),
+            @ApiResponse(responseCode = "401", description = "Falta el token o es inválido o expiró",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EjemplosError.NO_AUTENTICADO_401))),
+            @ApiResponse(responseCode = "403", description = "El usuario autenticado no tiene el rol PROFESOR",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EjemplosError.PROHIBIDO_403)))
+    })
+    @GetMapping("/mios")
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<List<SemestreResponseDTO>> misSemestres() {
+        return ResponseEntity.ok(semestreService.listarDelProfesor(currentUser.required().id()));
     }
 
     @Operation(

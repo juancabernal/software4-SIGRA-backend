@@ -30,8 +30,13 @@ DELETE FROM sigra.resultado_aprendizaje
 DELETE FROM sigra.asignatura WHERE codigo LIKE 'RAP%';
 DELETE FROM sigra.programa_academico WHERE codigo = 'RAP-PRG';
 
-INSERT INTO sigra.programa_academico (id, nombre, codigo, estado) VALUES
-  ('00000000-0000-4000-c000-0000000000a1', 'Programa Pruebas RA', 'RAP-PRG', 'ACTIVO');
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, nombre, codigo, estado, facultad_id) VALUES
+  ('00000000-0000-4000-c000-0000000000a1', 'Programa Pruebas RA', 'RAP-PRG', 'ACTIVO', '00000000-0000-4000-fa00-000000000001');
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
   ('00000000-0000-4000-c000-000000000001', 'RAP-BOR0', 'RA Borrador sin RA',            '00000000-0000-4000-c000-0000000000a1', 'BORRADOR'),

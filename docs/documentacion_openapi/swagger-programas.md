@@ -53,6 +53,19 @@ Se documentan los códigos que el endpoint **realmente puede devolver**; no se a
 
 A diferencia de Profesores (que inactiva con `DELETE` y responde `204`), `ProgramaAcademicoController` inactiva con `PATCH /{id}/inactivar` y responde `200` con el programa actualizado, porque la operación es idempotente: inactivar un programa que ya está `INACTIVO` no es un error, solo devuelve el estado actual.
 
+### Facultad del programa (incidencia 0000036)
+
+Todo programa pertenece a una facultad, y eso se refleja en el contrato:
+
+| Endpoint | Cambio |
+| --- | --- |
+| `POST /api/v1/programas` | `facultadId` obligatorio en el cuerpo. Documenta además `404` (facultad inexistente) y un tercer ejemplo de `409` (`facultadInactiva`). |
+| `GET /api/v1/programas` | Parámetro opcional `facultadId` (UUID) que filtra por facultad; un valor que no es UUID responde `400`. |
+| `PUT /api/v1/programas/{id}` | `facultadId` opcional en `ProgramaUpdate`: si cambia, mueve el programa a esa facultad. `404` y `409` tienen dos ejemplos cada uno (programa o facultad inexistente; nombre repetido o facultad inactiva). |
+| Respuestas | `ProgramaResponse` incluye `facultadId` y `facultadNombre`. |
+
+Los endpoints propios de facultades (`/api/v1/facultades`) siguen el mismo patrón que Programas, incluida la inactivación idempotente con `PATCH /{id}/inactivar`. `FacultadApiDocumentacionIT` verifica sus cinco endpoints y que los esquemas y parámetros de Programas incluyan la facultad.
+
 ## Verificación automática
 
 `ProgramaApiDocumentacionIT` lee `/v3/api-docs` y comprueba que exista el esquema `bearerAuth` y que cada endpoint de Programas exija Bearer y documente sus códigos. Para otro módulo, copia la clase y cambia las rutas y los códigos esperados. Es una prueba de integración: se ejecuta con `./gradlew.bat integrationTest --tests "*ApiDocumentacionIT*"`.

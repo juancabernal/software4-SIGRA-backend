@@ -1,0 +1,38 @@
+meta {
+  name: 02 Crear programa en la facultad por defecto
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/programas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Programa Bruno Reasignar {{sufijoDestino}}",
+    "codigo": "BRK{{sufijoDestino}}",
+    "facultadId": "{{facultadPorDefectoId}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("programaReasignarId", res.body.id);
+  bru.setVar("programaReasignarNombre", res.body.nombre);
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("nace en la facultad por defecto", function () {
+    expect(res.body.facultadId).to.equal(bru.getEnvVar("facultadPorDefectoId"));
+  });
+}
