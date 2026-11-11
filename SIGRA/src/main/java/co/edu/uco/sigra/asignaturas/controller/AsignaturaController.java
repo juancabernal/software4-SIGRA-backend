@@ -214,8 +214,10 @@ public class AsignaturaController {
             @Parameter(description = "Cantidad máxima de resultados de aprendizaje activos (0 a 999)", example = "7")
             @RequestParam(required = false)
             @Min(value = 0, message = ReglasEntrada.RA_NEGATIVO)
-            @Max(value = ReglasEntrada.RA_FILTRO_MAX, message = ReglasEntrada.RA_MAXIMO) Integer raMax) {
-        AsignaturaFiltroDTO filtro = new AsignaturaFiltroDTO(texto, programaId, estado, raMin, raMax);
+            @Max(value = ReglasEntrada.RA_FILTRO_MAX, message = ReglasEntrada.RA_MAXIMO) Integer raMax,
+            @Parameter(description = "UUID del semestre. Filtra por asignaciones docentes activas vigentes al cierre del semestre o actividad académica registrada en él")
+            @RequestParam(required = false) UUID semestreId) {
+        AsignaturaFiltroDTO filtro = new AsignaturaFiltroDTO(texto, programaId, estado, raMin, raMax, semestreId);
         UsuarioPrincipal identidad = currentUser.required();
         return ResponseEntity.ok(asignaturaService.consultar(filtro, identidad));
     }
