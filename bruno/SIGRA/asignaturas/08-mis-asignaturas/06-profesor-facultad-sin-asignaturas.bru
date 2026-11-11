@@ -1,0 +1,29 @@
+meta {
+  name: 06 Profesor en una facultad sin asignaturas suyas
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/mias?facultadId={{idFacultadInexistente}}
+  body: none
+  auth: none
+}
+
+params:query {
+  facultadId: {{idFacultadInexistente}}
+}
+
+headers {
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("lista vacia", function () {
+    expect(res.body).to.be.an("array").that.is.empty;
+  });
+}

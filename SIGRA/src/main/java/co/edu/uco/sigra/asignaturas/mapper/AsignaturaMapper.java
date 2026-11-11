@@ -13,6 +13,8 @@ public interface AsignaturaMapper {
     @Mapping(target = "nombre", source = "asignatura.nombre")
     @Mapping(target = "programaId", source = "asignatura.programa.id")
     @Mapping(target = "programaNombre", source = "asignatura.programa.nombre")
+    @Mapping(target = "facultadId", source = "asignatura.programa.facultad.id")
+    @Mapping(target = "facultadNombre", source = "asignatura.programa.facultad.nombre")
     @Mapping(target = "estado", source = "asignatura.estado")
     @Mapping(target = "cantidadRa", source = "cantidadRa")
     AsignaturaResponseDTO toResponseDTO(Asignatura asignatura, long cantidadRa);

@@ -45,5 +45,13 @@ public interface AsignaturaService {
      * Asignaturas de quien pregunta, ordenadas por nombre: las del PROFESOR con asignación docente
      * ACTIVA, o las del ESTUDIANTE con matrícula ACTIVA. Otro rol recibe 403.
      */
-    List<MiAsignaturaDTO> misAsignaturas(UsuarioPrincipal identidad);
+    default List<MiAsignaturaDTO> misAsignaturas(UsuarioPrincipal identidad) {
+        return misAsignaturas(identidad, null);
+    }
+
+    /**
+     * Igual que {@link #misAsignaturas(UsuarioPrincipal)} y, si {@code facultadId} no es null, solo las
+     * asignaturas cuyo programa pertenece a esa facultad (incidencia 0000036). Sin coincidencias, lista vacía.
+     */
+    List<MiAsignaturaDTO> misAsignaturas(UsuarioPrincipal identidad, UUID facultadId);
 }

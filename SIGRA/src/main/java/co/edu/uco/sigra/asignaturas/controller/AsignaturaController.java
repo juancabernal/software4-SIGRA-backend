@@ -56,6 +56,7 @@ public class AsignaturaController {
 
     private static final String ID_EJEMPLO = "3c4d5e6f-7a8b-4c9d-0e1f-2a3b4c5d6e7f";
     private static final String PROGRAMA_ID_EJEMPLO = "4d5e6f7a-8b9c-4d0e-1f2a-3b4c5d6e7f8a";
+    private static final String FACULTAD_ID_EJEMPLO = "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f";
     private static final String TS = EjemplosError.TIMESTAMP_EJEMPLO;
 
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de asignaturas.
@@ -170,14 +171,15 @@ public class AsignaturaController {
             summary = "Consultar asignaturas",
             description = "Lista las asignaturas visibles para el usuario autenticado: el ADMINISTRADOR ve todas; "
                     + "el PROFESOR solo ve las que tiene asignadas con asignación docente ACTIVA. Admite filtrar "
-                    + "por texto (nombre o código, sin distinguir tildes), por programa, por estado y por un rango "
-                    + "de cantidad de resultados de aprendizaje activos."
+                    + "por texto (nombre o código, sin distinguir tildes), por programa, por facultad, por estado y "
+                    + "por un rango de cantidad de resultados de aprendizaje activos; los filtros se combinan con AND "
+                    + "(un programa de otra facultad da lista vacía). Cada asignatura trae la facultad de su programa."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de asignaturas (puede estar vacía)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = AsignaturaResponseDTO.class)))),
-            @ApiResponse(responseCode = "400", description = "Un parámetro tiene formato inválido (programaId o estado), raMin o raMax están fuera de rango, o raMin es mayor que raMax",
+            @ApiResponse(responseCode = "400", description = "Un parámetro tiene formato inválido (programaId, facultadId o estado), raMin o raMax están fuera de rango, o raMin es mayor que raMax",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = {
@@ -205,6 +207,8 @@ public class AsignaturaController {
             @Size(max = ReglasEntrada.TEXTO_BUSQUEDA_MAX, message = ReglasEntrada.TEXTO_LONGITUD) String texto,
             @Parameter(description = "Filtra por el identificador (UUID) del programa académico", example = PROGRAMA_ID_EJEMPLO)
             @RequestParam(required = false) UUID programaId,
+            @Parameter(description = "Filtra por el identificador (UUID) de la facultad del programa", example = FACULTAD_ID_EJEMPLO)
+            @RequestParam(required = false) UUID facultadId,
             @Parameter(description = "Filtra por el estado de la asignatura", example = "ACTIVA")
             @RequestParam(required = false) EstadoAsignatura estado,
             @Parameter(description = "Cantidad mínima de resultados de aprendizaje activos (0 a 999)", example = "5")
@@ -215,7 +219,7 @@ public class AsignaturaController {
             @RequestParam(required = false)
             @Min(value = 0, message = ReglasEntrada.RA_NEGATIVO)
             @Max(value = ReglasEntrada.RA_FILTRO_MAX, message = ReglasEntrada.RA_MAXIMO) Integer raMax) {
-        AsignaturaFiltroDTO filtro = new AsignaturaFiltroDTO(texto, programaId, estado, raMin, raMax);
+        AsignaturaFiltroDTO filtro = new AsignaturaFiltroDTO(texto, programaId, facultadId, estado, raMin, raMax);
         UsuarioPrincipal identidad = currentUser.required();
         return ResponseEntity.ok(asignaturaService.consultar(filtro, identidad));
     }
@@ -228,13 +232,18 @@ public class AsignaturaController {
             summary = "Consultar mis asignaturas",
             description = "Devuelve las asignaturas del usuario autenticado: para un PROFESOR, aquellas con "
                     + "asignación docente ACTIVA; para un ESTUDIANTE, aquellas con matrícula ACTIVA. Incluye la "
-                    + "cantidad de resultados de aprendizaje activos, la cantidad de matrículas activas y los "
-                    + "profesores asignados."
+                    + "cantidad de resultados de aprendizaje activos, la cantidad de matrículas activas, los "
+                    + "profesores asignados y la facultad del programa. Con «facultadId» devuelve solo las de esa "
+                    + "facultad (lista vacía si no hay)."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Asignaturas del usuario autenticado (puede estar vacía)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = MiAsignaturaDTO.class)))),
+            @ApiResponse(responseCode = "400", description = "El parámetro facultadId no es un UUID válido",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EjemplosError.PARAMETRO_INVALIDO_400))),
             @ApiResponse(responseCode = "401", description = "Falta el token o es inválido o expiró",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
@@ -246,8 +255,10 @@ public class AsignaturaController {
     })
     @GetMapping("/mias")
     @PreAuthorize("hasAnyRole('PROFESOR', 'ESTUDIANTE')")
-    public ResponseEntity<List<MiAsignaturaDTO>> misAsignaturas() {
-        return ResponseEntity.ok(asignaturaService.misAsignaturas(currentUser.required()));
+    public ResponseEntity<List<MiAsignaturaDTO>> misAsignaturas(
+            @Parameter(description = "Filtra por el identificador (UUID) de la facultad del programa", example = FACULTAD_ID_EJEMPLO)
+            @RequestParam(required = false) UUID facultadId) {
+        return ResponseEntity.ok(asignaturaService.misAsignaturas(currentUser.required(), facultadId));
     }
 
     @Operation(

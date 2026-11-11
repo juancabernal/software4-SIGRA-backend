@@ -1,0 +1,30 @@
+meta {
+  name: 05 Profesor filtra por facultad
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas/mias?facultadId={{facultadPorDefectoId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  facultadId: {{facultadPorDefectoId}}
+}
+
+headers {
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("sus asignaturas de esa facultad, con la facultad en cada una", function () {
+    expect(res.body.map((a) => a.codigo).sort()).to.eql(["BRU07", "BRU10"]);
+    res.body.forEach((a) => expect(a.facultadId).to.equal(bru.getEnvVar("facultadPorDefectoId")));
+  });
+}

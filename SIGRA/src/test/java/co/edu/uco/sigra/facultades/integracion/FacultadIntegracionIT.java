@@ -1,5 +1,9 @@
 package co.edu.uco.sigra.facultades.integracion;
 
+import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
+import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
+import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.auth.entity.Administrador;
 import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
@@ -69,6 +73,8 @@ class FacultadIntegracionIT {
 
     private static final String URL = "/api/v1/facultades";
     private static final String URL_PROGRAMAS = "/api/v1/programas";
+    private static final String URL_ASIGNATURAS = "/api/v1/asignaturas";
+    private static final String URL_REPORTE_R1 = "/api/v1/reportes/rendimiento-ra";
     private static final String PREFIJO_NOMBRE = "ITF Facultad ";
     private static final String PREFIJO_CODIGO_PROGRAMA = "ITF-";
     private static final String PREFIJO_NOMBRE_PROGRAMA = "ITF Programa ";
@@ -85,6 +91,8 @@ class FacultadIntegracionIT {
     @Autowired private TipoDocumentoRepository tipoDocumentoRepository;
     @Autowired private ProfesorRepository profesorRepository;
     @Autowired private EstudianteRepository estudianteRepository;
+    @Autowired private AsignaturaRepository asignaturaRepository;
+    @Autowired private AsignacionDocenteRepository asignacionRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -117,6 +125,16 @@ class FacultadIntegracionIT {
         }
 
         tx.executeWithoutResult(status -> {
+            // Primero lo que apunta a los programas de apoyo: asignaciones docentes y asignaturas ITF-.
+            asignacionRepository.deleteAll(asignacionRepository.findAll().stream()
+                    .filter(ad -> ad.getAsignatura().getCodigo().startsWith(PREFIJO_CODIGO_PROGRAMA))
+                    .toList());
+            asignacionRepository.flush();
+            asignaturaRepository.deleteAll(asignaturaRepository.findAll().stream()
+                    .filter(a -> a.getCodigo().startsWith(PREFIJO_CODIGO_PROGRAMA))
+                    .toList());
+            asignaturaRepository.flush();
+
             programaRepository.deleteAll(programaRepository.findAll().stream()
                     .filter(p -> p.getCodigo().startsWith(PREFIJO_CODIGO_PROGRAMA))
                     .toList());
@@ -454,6 +472,69 @@ class FacultadIntegracionIT {
         assertThat((String) JsonPath.read(cuerpo(reenviaInactiva), "$.facultadId")).isEqualTo(origen.getId().toString());
     }
 
+    // ---------------------------------------------------------------- IT-09
+
+    @Test
+    @DisplayName("IT-09 Facultad en asignaturas y reportes: campos nuevos y filtro facultadId respetando el alcance del profesor")
+    void it09FacultadEnAsignaturasYReportes() throws Exception {
+        Facultad ingenieria = guardar(nombre("Ingenieria A"));
+        Facultad derecho = guardar(nombre("Derecho A"));
+        ProgramaAcademico sistemas = guardarPrograma("ITF-S01", ingenieria);
+        ProgramaAcademico leyes = guardarPrograma("ITF-S02", derecho);
+        Asignatura programacion = asignaturaRepository.save(new Asignatura("ITF-A01", "ITF Programacion", sistemas));
+        Asignatura civil = asignaturaRepository.save(new Asignatura("ITF-A02", "ITF Derecho Civil", leyes));
+        Asignatura bases = asignaturaRepository.save(new Asignatura("ITF-A03", "ITF Bases de Datos", sistemas));
+
+        Profesor profesor = crearProfesor();
+        asignar(profesor, programacion);
+        asignar(profesor, civil);
+        String tokenProfesor = token(profesor);
+
+        // El profesor ve la facultad de sus asignaturas y filtra dentro de su alcance.
+        MvcResult todasProfesor = enviar(get(URL_ASIGNATURAS), tokenProfesor, null);
+        assertThat(todasProfesor.getResponse().getStatus()).isEqualTo(200);
+        List<String> facultadesProfesor = JsonPath.read(cuerpo(todasProfesor), "$[*].facultadNombre");
+        assertThat(facultadesProfesor).containsExactlyInAnyOrder(ingenieria.getNombre(), derecho.getNombre());
+
+        MvcResult profesorIngenieria = enviar(get(URL_ASIGNATURAS + "?facultadId=" + ingenieria.getId()), tokenProfesor, null);
+        List<String> codigosProfesorIngenieria = JsonPath.read(cuerpo(profesorIngenieria), "$[*].codigo");
+        assertThat(codigosProfesorIngenieria).containsExactly(programacion.getCodigo());
+
+        MvcResult miasDerecho = enviar(get(URL_ASIGNATURAS + "/mias?facultadId=" + derecho.getId()), tokenProfesor, null);
+        assertThat(miasDerecho.getResponse().getStatus()).isEqualTo(200);
+        assertThat((List<String>) JsonPath.read(cuerpo(miasDerecho), "$[*].codigo")).containsExactly(civil.getCodigo());
+        assertThat((String) JsonPath.read(cuerpo(miasDerecho), "$[0].facultadId")).isEqualTo(derecho.getId().toString());
+
+        MvcResult miasOtra = enviar(get(URL_ASIGNATURAS + "/mias?facultadId=" + UUID.randomUUID()), tokenProfesor, null);
+        assertThat((List<?>) JsonPath.read(cuerpo(miasOtra), "$[*]")).isEmpty();
+
+        // El administrador filtra todo el catálogo por facultad, combinado con programa.
+        MvcResult adminIngenieria = enviar(get(URL_ASIGNATURAS + "?facultadId=" + ingenieria.getId()), null);
+        List<String> codigosAdmin = JsonPath.read(cuerpo(adminIngenieria), "$[*].codigo");
+        assertThat(codigosAdmin).containsExactlyInAnyOrder(programacion.getCodigo(), bases.getCodigo());
+
+        MvcResult programaDeOtraFacultad = enviar(get(URL_ASIGNATURAS + "?facultadId=" + ingenieria.getId()
+                + "&programaId=" + leyes.getId()), null);
+        assertThat(programaDeOtraFacultad.getResponse().getStatus()).isEqualTo(200);
+        assertThat((List<?>) JsonPath.read(cuerpo(programaDeOtraFacultad), "$[*]")).isEmpty();
+
+        MvcResult facultadInvalida = enviar(get(URL_ASIGNATURAS + "?facultadId=no-es-uuid"), null);
+        assertThat(facultadInvalida.getResponse().getStatus()).isEqualTo(400);
+        assertSinDetallesTecnicos(cuerpo(facultadInvalida));
+
+        // El reporte R1 acepta el filtro; lo que devuelva es de esa facultad.
+        MvcResult reporte = enviar(get(URL_REPORTE_R1 + "?facultadId=" + ingenieria.getId()), tokenProfesor, null);
+        assertThat(reporte.getResponse().getStatus()).isEqualTo(200);
+        List<String> facultadesReporte = JsonPath.read(cuerpo(reporte), "$.asignaturas[*].facultadId");
+        assertThat(facultadesReporte).allMatch(id -> id.equals(ingenieria.getId().toString()));
+        MvcResult reporteInvalido = enviar(get(URL_REPORTE_R1 + "?facultadId=abc"), tokenProfesor, null);
+        assertThat(reporteInvalido.getResponse().getStatus()).isEqualTo(400);
+
+        // La seguridad de programas y facultades no cambia: el profesor sigue sin acceso.
+        assertEstado("GET /programas como profesor", 403, enviar(get(URL_PROGRAMAS), tokenProfesor, null));
+        assertEstado("GET /facultades como profesor", 403, enviar(get(URL), tokenProfesor, null));
+    }
+
     // ---------------------------------------------------------------- IT-07
 
     /** Una llamada a uno de los cinco endpoints; el builder se crea de nuevo en cada envío. */
@@ -562,6 +643,14 @@ class FacultadIntegracionIT {
         p.setCorreoInstitucional(PREFIJO_CORREO + UUID.randomUUID() + DOMINIO_CORREO);
         p.setEstado(EstadoRegistro.ACTIVO);
         return profesorRepository.save(p);
+    }
+
+    private void asignar(Profesor profesor, Asignatura asignatura) {
+        AsignacionDocente asignacion = new AsignacionDocente();
+        asignacion.setProfesor(profesor);
+        asignacion.setAsignatura(asignatura);
+        asignacion.setEstado(EstadoRegistro.ACTIVO);
+        asignacionRepository.save(asignacion);
     }
 
     private Facultad guardar(String nombre) {
