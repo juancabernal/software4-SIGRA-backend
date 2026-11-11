@@ -1,0 +1,38 @@
+meta {
+  name: 05 Nombre de 151 caracteres
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/facultades
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "{{nombre151}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("nombre151", "F".repeat(151));
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("detalles");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

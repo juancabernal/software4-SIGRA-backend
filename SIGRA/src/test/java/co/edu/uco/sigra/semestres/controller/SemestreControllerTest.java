@@ -1,5 +1,7 @@
 package co.edu.uco.sigra.semestres.controller;
 
+import co.edu.uco.sigra.common.enums.RolUsuario;
+import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.exception.GlobalExceptionHandler;
 import co.edu.uco.sigra.semestres.dto.SemestreFechaFinRequestDTO;
 import co.edu.uco.sigra.semestres.dto.SemestreRequestDTO;
@@ -11,6 +13,7 @@ import co.edu.uco.sigra.semestres.exception.SemestreNoEncontradoException;
 import co.edu.uco.sigra.semestres.exception.SemestreReglaNegocioException;
 import co.edu.uco.sigra.semestres.exception.SemestreSolapadoException;
 import co.edu.uco.sigra.semestres.service.SemestreService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +21,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -153,11 +159,28 @@ class SemestreControllerTest {
 
     @Test
     void listarDevuelve200() throws Exception {
-        when(service.listar()).thenReturn(List.of(respuesta(CODIGO), respuesta(CODIGO_OTRO)));
+        when(service.listar(null, null)).thenReturn(List.of(respuesta(CODIGO), respuesta(CODIGO_OTRO)));
 
         mockMvc.perform(get(URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void listarEntregaAlServicioLaBusquedaPorCodigoYElEstado() throws Exception {
+        when(service.listar("2026", EstadoSemestre.ACTIVO)).thenReturn(List.of(respuesta(CODIGO)));
+
+        mockMvc.perform(get(URL).param("codigo", "2026").param("estado", "ACTIVO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].codigo").value(CODIGO));
+    }
+
+    @Test
+    void listarConEstadoInvalidoDevuelve400() throws Exception {
+        mockMvc.perform(get(URL).param("estado", "CERRADO"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
     }
 
     @Test
@@ -201,7 +224,7 @@ class SemestreControllerTest {
 
     @Test
     void errorInesperadoLoResuelveElManejadorGlobalCon500() throws Exception {
-        when(service.listar()).thenThrow(new IllegalStateException("fallo inesperado"));
+        when(service.listar(null, null)).thenThrow(new IllegalStateException("fallo inesperado"));
 
         mockMvc.perform(get(URL))
                 .andExpect(status().isInternalServerError())
@@ -218,5 +241,58 @@ class SemestreControllerTest {
                 .andExpect(jsonPath(JSON_STATUS).value(403))
                 .andExpect(jsonPath("$.error").value("FORBIDDEN"))
                 .andExpect(jsonPath(JSON_MENSAJE).value("No tiene permisos suficientes para realizar esta acción"));
+    }
+
+    // ── Mantis 0000045: semestres del profesor autenticado ────────────
+
+    @AfterEach
+    void limpiarContexto() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void misSemestresConsultaLosDelProfesorAutenticado() throws Exception {
+        UUID profesorId = UUID.randomUUID();
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                new UsuarioPrincipal(profesorId, "profe@uco.net.co", RolUsuario.PROFESOR), null,
+                List.of(new SimpleGrantedAuthority("ROLE_PROFESOR"))));
+        when(service.listarDelProfesor(profesorId)).thenReturn(List.of(respuesta(CODIGO)));
+
+        mockMvc.perform(get(URL + "/mios"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].codigo").value(CODIGO));
+
+        verify(service).listarDelProfesor(profesorId);
+        verify(service, never()).consultarPorCodigo(any());
+    }
+
+    @Test
+    void misSemestresDeUnProfesorSinAsignaturasDevuelveListaVacia() throws Exception {
+        UUID profesorId = UUID.randomUUID();
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                new UsuarioPrincipal(profesorId, "sin-semestres@uco.net.co", RolUsuario.PROFESOR), null,
+                List.of(new SimpleGrantedAuthority("ROLE_PROFESOR"))));
+        when(service.listarDelProfesor(profesorId)).thenReturn(List.of());
+
+        mockMvc.perform(get(URL + "/mios"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(service).listarDelProfesor(profesorId);
+        verify(service, never()).listar(any(), any());
+    }
+
+    @Test
+    void misSemestresSinIdentidadAutenticadaNoConsultaElServicio() throws Exception {
+        SecurityContextHolder.clearContext();
+
+        mockMvc.perform(get(URL + "/mios"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath(JSON_STATUS).value(403));
+
+        verifyNoInteractions(service);
     }
 }

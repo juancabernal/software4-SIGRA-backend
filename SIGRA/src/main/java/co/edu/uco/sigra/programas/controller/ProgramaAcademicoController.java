@@ -38,13 +38,14 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Gestión de programas académicos (RF-02): registrar, consultar, modificar el nombre e inactivar.
+ * Gestión de programas académicos (RF-02): registrar, consultar (también por facultad), modificar el
+ * nombre o la facultad e inactivar. Todo programa pertenece a una facultad (incidencia #0000036).
  * El código es inmutable después de creado. Los errores de dominio los atiende ProgramaExceptionHandler.
  * Las reglas @PreAuthorize aplican la matriz RBAC de RF-05.
  */
 @Tag(name = "Programas",
-        description = "Registro, consulta, modificación del nombre e inactivación de programas académicos "
-                + "(RF-02). Todos los endpoints requieren el rol ADMINISTRADOR.")
+        description = "Registro, consulta (también por facultad), modificación del nombre o la facultad e "
+                + "inactivación de programas académicos (RF-02). Todos los endpoints requieren el rol ADMINISTRADOR.")
 @SecurityRequirement(name = OpenApiConfig.ESQUEMA_BEARER)
 @RestController
 @RequestMapping("/api/v1/programas")
@@ -57,7 +58,7 @@ public class ProgramaAcademicoController {
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de programas.
     private static final String EJ_PROGRAMA_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un programa académico con el identificador " + ID_EJEMPLO + "\"}";
+                    + "\"mensaje\":\"No existe el programa académico indicado.\"}";
 
     private static final String EJ_NOMBRE_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
@@ -71,19 +72,30 @@ public class ProgramaAcademicoController {
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
                     + "\"mensaje\":\"No se puede inactivar el programa 'Ingeniería de Sistemas' porque tiene asignaturas activas\"}";
 
+    private static final String ID_FACULTAD_EJEMPLO = "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f";
+
+    private static final String EJ_FACULTAD_NO_ENCONTRADA =
+            "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
+                    + "\"mensaje\":\"No existe una facultad con el identificador " + ID_FACULTAD_EJEMPLO + "\"}";
+
+    private static final String EJ_FACULTAD_INACTIVA =
+            "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
+                    + "\"mensaje\":\"No se puede asociar un programa a la facultad 'Facultad de Ingeniería' porque está inactiva\"}";
+
     private final ProgramaService programaService;
 
     @Operation(
             summary = "Registrar programa académico",
-            description = "Crea un programa ACTIVO. El nombre y el código no pueden repetirse (sin distinguir "
-                    + "mayúsculas); el código queda fijo y no se puede modificar después de creado."
+            description = "Crea un programa ACTIVO dentro de una facultad ACTIVA. El nombre y el código no pueden "
+                    + "repetirse (sin distinguir mayúsculas); el código se guarda en mayúsculas y no se puede "
+                    + "modificar después de creado."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Programa registrado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = ProgramaResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Datos inválidos: nombre o código vacíos, código fuera "
-                    + "de 4 a 10 caracteres o con símbolos no permitidos, o cuerpo mal formado",
+                    + "de 4 a 10 caracteres o con símbolos no permitidos, facultad ausente o cuerpo mal formado",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = @ExampleObject(value = EjemplosError.VALIDACION_400))),
@@ -95,14 +107,21 @@ public class ProgramaAcademicoController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = @ExampleObject(value = EjemplosError.PROHIBIDO_403))),
-            @ApiResponse(responseCode = "409", description = "Ya existe un programa con ese nombre o con ese código",
+            @ApiResponse(responseCode = "404", description = "No existe una facultad con ese id",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RespuestaErrorDoc.class),
+                            examples = @ExampleObject(value = EJ_FACULTAD_NO_ENCONTRADA))),
+            @ApiResponse(responseCode = "409", description = "Ya existe un programa con ese nombre o con ese código, "
+                    + "o la facultad está inactiva",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = {
                                     @ExampleObject(name = "nombreDuplicado", summary = "Nombre repetido",
                                             value = EJ_NOMBRE_DUPLICADO),
                                     @ExampleObject(name = "codigoDuplicado", summary = "Código repetido",
-                                            value = EJ_CODIGO_DUPLICADO)
+                                            value = EJ_CODIGO_DUPLICADO),
+                                    @ExampleObject(name = "facultadInactiva", summary = "Facultad inactiva",
+                                            value = EJ_FACULTAD_INACTIVA)
                             }))
     })
     @PostMapping
@@ -113,15 +132,17 @@ public class ProgramaAcademicoController {
 
     @Operation(
             summary = "Consultar programas",
-            description = "Lista los programas, activos e inactivos. Los filtros «nombre» y «código» buscan por "
-                    + "coincidencia parcial sin distinguir mayúsculas; «estado» filtra por ACTIVO o INACTIVO. "
+            description = "Lista los programas, activos e inactivos, con su facultad. Los filtros «nombre» y "
+                    + "«código» buscan por coincidencia parcial sin distinguir mayúsculas ni tildes; «facultadId» "
+                    + "devuelve solo los programas de esa facultad; «estado» filtra por ACTIVO o INACTIVO. "
                     + "Sin programas (o sin coincidencias) devuelve una lista vacía."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de programas (puede estar vacía)",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             array = @ArraySchema(schema = @Schema(implementation = ProgramaResponseDTO.class)))),
-            @ApiResponse(responseCode = "400", description = "El parámetro 'estado' no es ACTIVO ni INACTIVO",
+            @ApiResponse(responseCode = "400", description = "El parámetro 'estado' no es ACTIVO ni INACTIVO, o "
+                    + "'facultadId' no es un UUID",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = @ExampleObject(value = EjemplosError.PARAMETRO_INVALIDO_400))),
@@ -141,9 +162,12 @@ public class ProgramaAcademicoController {
             @RequestParam(required = false) String nombre,
             @Parameter(description = "Texto a buscar en el código (coincidencia parcial, ignora mayúsculas)", example = "ing")
             @RequestParam(required = false) String codigo,
+            @Parameter(description = "Identificador (UUID) de la facultad. Si se omite, devuelve los de todas",
+                    example = ID_FACULTAD_EJEMPLO)
+            @RequestParam(required = false) UUID facultadId,
             @Parameter(description = "Filtra por estado. Si se omite, devuelve todos", example = "ACTIVO")
             @RequestParam(required = false) EstadoRegistro estado) {
-        return ResponseEntity.ok(programaService.consultar(nombre, codigo, estado));
+        return ResponseEntity.ok(programaService.consultar(nombre, codigo, facultadId, estado));
     }
 
     @Operation(
@@ -180,9 +204,12 @@ public class ProgramaAcademicoController {
     }
 
     @Operation(
-            summary = "Modificar nombre del programa",
-            description = "Actualiza el nombre de un programa. El código no se puede modificar: es inmutable "
-                    + "desde el registro. El nuevo nombre no puede estar en uso por otro programa."
+            summary = "Modificar programa",
+            description = "Actualiza el nombre de un programa y, opcionalmente, su facultad. El código no se puede "
+                    + "modificar: es inmutable desde el registro. El nuevo nombre no puede estar en uso por otro "
+                    + "programa. Si «facultadId» se omite o es la actual, se conserva la facultad; si cambia, la "
+                    + "nueva facultad debe existir y estar activa (así se reasignan los programas que la "
+                    + "migración dejó en 'Facultad sin asignar')."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Programa actualizado",
@@ -200,22 +227,32 @@ public class ProgramaAcademicoController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = @ExampleObject(value = EjemplosError.PROHIBIDO_403))),
-            @ApiResponse(responseCode = "404", description = "No existe un programa con ese id",
+            @ApiResponse(responseCode = "404", description = "No existe un programa con ese id, o la nueva facultad no existe",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
-                            examples = @ExampleObject(value = EJ_PROGRAMA_NO_ENCONTRADO))),
-            @ApiResponse(responseCode = "409", description = "Ya existe otro programa con ese nombre",
+                            examples = {
+                                    @ExampleObject(name = "programaNoEncontrado", summary = "Programa inexistente",
+                                            value = EJ_PROGRAMA_NO_ENCONTRADO),
+                                    @ExampleObject(name = "facultadNoEncontrada", summary = "Facultad inexistente",
+                                            value = EJ_FACULTAD_NO_ENCONTRADA)
+                            })),
+            @ApiResponse(responseCode = "409", description = "Ya existe otro programa con ese nombre, o la nueva facultad está inactiva",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
-                            examples = @ExampleObject(value = EJ_NOMBRE_DUPLICADO)))
+                            examples = {
+                                    @ExampleObject(name = "nombreDuplicado", summary = "Nombre repetido",
+                                            value = EJ_NOMBRE_DUPLICADO),
+                                    @ExampleObject(name = "facultadInactiva", summary = "Facultad inactiva",
+                                            value = EJ_FACULTAD_INACTIVA)
+                            }))
     })
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
-    public ResponseEntity<ProgramaResponseDTO> actualizarNombre(
+    public ResponseEntity<ProgramaResponseDTO> actualizar(
             @Parameter(description = "Identificador (UUID) del programa", example = ID_EJEMPLO)
             @PathVariable UUID id,
             @Valid @RequestBody ProgramaUpdateDTO dto) {
-        return ResponseEntity.ok(programaService.actualizarNombre(id, dto));
+        return ResponseEntity.ok(programaService.actualizar(id, dto));
     }
 
     @Operation(

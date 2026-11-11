@@ -92,8 +92,13 @@ DELETE FROM sigra.nivel_logro_estudiante
 -- cuando una corrida anterior ya convirtio una accion de mejora sobre estos
 -- RA en una evaluacion real. El semestre usa fechas RELATIVAS a hoy (igual
 -- que seed-estudiantes.sql) solo la primera vez que se crea.
-INSERT INTO sigra.programa_academico (id, nombre, codigo, estado) VALUES
-  ('00000000-0000-4000-e100-000000000001', 'Programa Bruno Conclusiones', 'BRU-CONC', 'ACTIVO')
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, nombre, codigo, estado, facultad_id) VALUES
+  ('00000000-0000-4000-e100-000000000001', 'Programa Bruno Conclusiones', 'BRU-CONC', 'ACTIVO', '00000000-0000-4000-fa00-000000000001')
   ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
@@ -130,12 +135,12 @@ BEGIN
         RETURNING id INTO v_tipo_doc_id;
     END IF;
 
-    INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
-      ('00000000-0000-4000-e500-000000000001', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 1', 'bruno.conc1@uco.net.co', 'ACTIVO'),
-      ('00000000-0000-4000-e500-000000000002', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 2', 'bruno.conc2@uco.net.co', 'ACTIVO'),
-      ('00000000-0000-4000-e500-000000000003', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 3', 'bruno.conc3@uco.net.co', 'ACTIVO'),
-      ('00000000-0000-4000-e500-000000000004', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 4', 'bruno.conc4@uco.net.co', 'ACTIVO'),
-      ('00000000-0000-4000-e500-000000000005', v_tipo_doc_id, 'Bruno Conclusiones Estudiante 5', 'bruno.conc5@uco.net.co', 'ACTIVO')
+    INSERT INTO sigra.usuario (id, tipo_documento_id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo_institucional, estado) VALUES
+      ('00000000-0000-4000-e500-000000000001', v_tipo_doc_id, 'Bruno', 'Conclusiones', 'Estudiante', '1', 'bruno.conc1@uco.net.co', 'ACTIVO'),
+      ('00000000-0000-4000-e500-000000000002', v_tipo_doc_id, 'Bruno', 'Conclusiones', 'Estudiante', '2', 'bruno.conc2@uco.net.co', 'ACTIVO'),
+      ('00000000-0000-4000-e500-000000000003', v_tipo_doc_id, 'Bruno', 'Conclusiones', 'Estudiante', '3', 'bruno.conc3@uco.net.co', 'ACTIVO'),
+      ('00000000-0000-4000-e500-000000000004', v_tipo_doc_id, 'Bruno', 'Conclusiones', 'Estudiante', '4', 'bruno.conc4@uco.net.co', 'ACTIVO'),
+      ('00000000-0000-4000-e500-000000000005', v_tipo_doc_id, 'Bruno', 'Conclusiones', 'Estudiante', '5', 'bruno.conc5@uco.net.co', 'ACTIVO')
       ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO sigra.estudiante (id, numero_documento) VALUES

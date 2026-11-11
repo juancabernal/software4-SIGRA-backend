@@ -1,9 +1,15 @@
 package co.edu.uco.sigra.profesores.exception;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class TipoDocumentoNoEncontradoException extends RuntimeException {
     public TipoDocumentoNoEncontradoException(UUID id) {
-        super("No se encontró el tipo de documento con id " + id);
+        super(mensajeSinId(id));
+    }
+
+    private static String mensajeSinId(UUID id) {
+        Objects.requireNonNull(id, "id");
+        return "No se encontró el tipo de documento indicado.";
     }
 }

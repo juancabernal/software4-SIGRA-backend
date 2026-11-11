@@ -52,51 +52,49 @@ public class MatriculaController {
     private static final String TIPO_DOCUMENTO_EJEMPLO = "6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05";
     private static final String TS = EjemplosError.TIMESTAMP_EJEMPLO;
 
-    // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de estudiantes/matrículas.
     private static final String EJ_ESTUDIANTE_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un estudiante con id " + ESTUDIANTE_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el estudiante solicitado.\"}";
 
     private static final String EJ_ASIGNATURA_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una asignatura con id " + ASIGNATURA_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la asignatura indicada.\"}";
 
     private static final String EJ_SEMESTRE_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un semestre con id " + SEMESTRE_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el semestre indicado.\"}";
 
     private static final String EJ_TIPO_DOCUMENTO_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un tipo de documento con id " + TIPO_DOCUMENTO_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el tipo de documento indicado.\"}";
 
     private static final String EJ_MATRICULA_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una matrícula con id " + MATRICULA_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la matrícula solicitada.\"}";
 
     private static final String EJ_ESTUDIANTE_INACTIVO =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
-                    + "\"mensaje\":\"El estudiante con id " + ESTUDIANTE_ID_EJEMPLO + " no está activo.\"}";
+                    + "\"mensaje\":\"El estudiante no está activo.\"}";
 
     private static final String EJ_ASIGNATURA_NO_ACTIVA =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
-                    + "\"mensaje\":\"La asignatura con id " + ASIGNATURA_ID_EJEMPLO + " no está activa.\"}";
+                    + "\"mensaje\":\"La asignatura no está activa.\"}";
 
     private static final String EJ_SEMESTRE_NO_VIGENTE =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
-                    + "\"mensaje\":\"El semestre con id " + SEMESTRE_ID_EJEMPLO + " no está vigente.\"}";
+                    + "\"mensaje\":\"El semestre no está vigente.\"}";
 
     private static final String EJ_MATRICULA_DUPLICADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
-                    + "\"mensaje\":\"El estudiante " + ESTUDIANTE_ID_EJEMPLO + " ya está matriculado en la "
-                    + "asignatura " + ASIGNATURA_ID_EJEMPLO + " para el semestre " + SEMESTRE_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"El estudiante ya está matriculado en esa asignatura y semestre.\"}";
 
     private static final String EJ_MATRICULA_YA_INACTIVA =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
-                    + "\"mensaje\":\"La matrícula con id " + MATRICULA_ID_EJEMPLO + " ya no está activa.\"}";
+                    + "\"mensaje\":\"La matrícula ya no está activa.\"}";
 
     private static final String EJ_CONFIRMACION_REQUERIDA =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
-                    + "\"mensaje\":\"La matrícula con id " + MATRICULA_ID_EJEMPLO + " tiene 3 calificación(es) "
+                    + "\"mensaje\":\"La matrícula tiene 3 calificación(es) "
                     + "registrada(s). Debe confirmar la desvinculación para continuar.\"}";
 
     private static final String EJ_DOCUMENTO_DUPLICADO =

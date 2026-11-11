@@ -14,7 +14,10 @@ body:json {
   {
     "tipoDocumentoId": "{{idInexistente}}",
     "numeroDocumento": "1000000097",
-    "nombreCompleto": "Bruno Tipo Documento Inexistente",
+    "primerNombre": "Bruno",
+    "segundoNombre": "Tipo",
+    "primerApellido": "Documento",
+    "segundoApellido": "Inexistente",
     "correoInstitucional": "bruno.tipo.inexistente@uco.net.co"
   }
 }
@@ -25,7 +28,7 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("No existe un tipo de documento con id " + bru.getEnvVar("idInexistente"));
+    expect(res.body.mensaje).to.include("No existe el tipo de documento indicado");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

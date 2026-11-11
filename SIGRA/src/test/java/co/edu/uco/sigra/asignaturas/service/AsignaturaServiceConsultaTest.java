@@ -102,6 +102,30 @@ class AsignaturaServiceConsultaTest {
         SecurityContextHolder.clearContext();
     }
 
+    @Test
+    void filtraPorSemestreSinPerderFiltroDeEstado() {
+        catalogoCompleto();
+        UUID semestreId = UUID.randomUUID();
+        when(asignaturaRepository.findIdsEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
+                .thenReturn(List.of(software.getId(), arquitectura.getId()));
+
+        var resultado = service.consultar(new AsignaturaFiltroDTO(
+                null, null, EstadoAsignatura.ACTIVA, null, null, semestreId));
+
+        assertThat(codigos(resultado)).containsExactly("ISW4");
+    }
+
+    @Test
+    void semestreSinAsignaturasDevuelveListaVacia() {
+        catalogoCompleto();
+        UUID semestreId = UUID.randomUUID();
+        when(asignaturaRepository.findIdsEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
+                .thenReturn(List.of());
+
+        assertThat(service.consultar(new AsignaturaFiltroDTO(
+                null, null, null, null, null, semestreId))).isEmpty();
+    }
+
     private static ProgramaAcademico programa(UUID id, String nombre) {
         ProgramaAcademico p = new ProgramaAcademico();
         p.setId(id);

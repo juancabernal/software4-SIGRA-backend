@@ -1,0 +1,21 @@
+meta {
+  name: 05 Inactivar el programa
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/programas/{{programaDeFacultadId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("el programa queda INACTIVO", function () {
+    expect(res.body.estado).to.equal("INACTIVO");
+  });
+}

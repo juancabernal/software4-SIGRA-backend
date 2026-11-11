@@ -24,7 +24,7 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("No existe un estudiante con id " + bru.getEnvVar("idInexistente"));
+    expect(res.body.mensaje).to.include("No existe el estudiante solicitado");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

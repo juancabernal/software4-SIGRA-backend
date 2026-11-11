@@ -39,7 +39,7 @@ Estrategia:            el esquema lo controla SQL/migraciones.
 | Elemento | Decisión |
 | --- | --- |
 | Creación del esquema | `docs/db/SIGRA_SCHEMA_CURRENT.sql` (base vacía) |
-| Cambios sobre una base existente | Scripts SQL versionados: `RF04_usuario_migration.sql`, `RF09_estudiante_y_asignacion_docente_migration.sql`, `RF04_administrador_y_estudiante_subtipos_migration.sql`, `RF08_matricula_migration.sql`, `RF08_matricula_fecha_y_estado_migration.sql` y `RF03_ra_inactivado_con_asignatura_migration.sql` |
+| Cambios sobre una base existente | Scripts SQL versionados: `RF04_usuario_migration.sql`, `RF09_estudiante_y_asignacion_docente_migration.sql`, `RF04_administrador_y_estudiante_subtipos_migration.sql`, `RF08_matricula_migration.sql`, `RF08_matricula_fecha_y_estado_migration.sql`, `RF03_ra_inactivado_con_asignatura_migration.sql` y `RF20_facultad_migration.sql` |
 | Validación en el arranque | Hibernate `ddl-auto=validate`: si una entidad no coincide con la tabla, el backend no arranca |
 | Hibernate modifica tablas | **No.** Ni `update`, ni `create`, ni `create-drop` |
 
@@ -57,7 +57,10 @@ tiene su propia tabla, enlazada por la misma clave primaria.
 | --- | --- | --- | --- |
 | `id` | UUID | no | PK |
 | `tipo_documento_id` | UUID | no | FK a `sigra.tipo_documento(id)` (catálogo reutilizable) |
-| `nombre_completo` | VARCHAR(255) | no | |
+| `primer_nombre` | VARCHAR(50) | no | Una sola palabra (0000035) |
+| `segundo_nombre` | VARCHAR(50) | sí | Opcional |
+| `primer_apellido` | VARCHAR(50) | no | |
+| `segundo_apellido` | VARCHAR(50) | no | |
 | `correo_institucional` | VARCHAR(255) | no | UNIQUE. Ver «Correo institucional» |
 | `password_hash` | VARCHAR(255) | sí | BCrypt factor 12. Puede ser nulo (ver deuda `PASSWORD_PROVISIONING_FLOW`) |
 | `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK) |
@@ -138,6 +141,38 @@ La terna `(estudiante_id, asignatura_id, semestre_id)` es **única sin importar 
 (`uk_matricula_terna`). Desvincular no borra el registro: lo deja en `DESVINCULADA`, y volver a
 matricular la misma terna reactiva ese registro en lugar de crear otro.
 
+## Tablas `sigra.facultad` y `sigra.programa_academico` (incidencia 0000036)
+
+Cada programa académico pertenece a exactamente una facultad.
+
+### Tabla `sigra.facultad`
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `id` | UUID | no | PK |
+| `nombre` | VARCHAR(150) | no | UNIQUE (`uk_facultad_nombre`). El backend además lo valida sin distinguir mayúsculas |
+| `estado` | VARCHAR(20) | no | `ACTIVO` / `INACTIVO` (CHECK `chk_facultad_estado`), por defecto `ACTIVO` |
+
+### Tabla `sigra.programa_academico`
+
+| Columna | Tipo | Nulo | Notas |
+| --- | --- | --- | --- |
+| `id` | UUID | no | PK |
+| `nombre` | VARCHAR(100) | no | UNIQUE (`uk_programa_nombre`) |
+| `codigo` | VARCHAR(10) | no | UNIQUE (`uk_programa_codigo`). Se guarda en mayúsculas y no se modifica |
+| `facultad_id` | UUID | no | FK a `sigra.facultad(id)` (`fk_programa_facultad`), con índice `idx_programa_facultad_id` |
+| `estado` | VARCHAR(255) | no | `ACTIVO` / `INACTIVO` (CHECK), por defecto `ACTIVO` |
+
+Reglas que aplica el backend: un programa solo se registra o se reasigna en una facultad
+`ACTIVO`; reenviar la facultad actual al modificar un programa no se valida, para que un programa
+cuya facultad se inactivó pueda seguir renombrándose; una facultad no se inactiva mientras tenga
+programas `ACTIVO`. Inactivar no borra filas.
+
+En bases creadas antes de este cambio, `RF20_facultad_migration.sql` crea la tabla, inserta la
+facultad `Facultad sin asignar` (`00000000-0000-4000-fa00-000000000001`), la asigna a todos los
+programas existentes y solo entonces vuelve `facultad_id` obligatoria. Después, el administrador
+reasigna cada programa con `PUT /api/v1/programas/{id}` enviando `facultadId`.
+
 ## Columna `sigra.resultado_aprendizaje.inactivado_con_asignatura` (RF-03)
 
 | Columna | Tipo | Nulo | Notas |
@@ -176,7 +211,7 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | Verificación | Resultado |
 | --- | --- |
 | Schema `sigra` existe | sí |
-| Tablas `usuario`, `profesor`, `tipo_documento`, `programa_academico`, `asignatura`, `semestre`, `resultado_aprendizaje`, `asignacion_docente` | presentes |
+| Tablas `usuario`, `profesor`, `tipo_documento`, `facultad`, `programa_academico`, `asignatura`, `semestre`, `resultado_aprendizaje`, `asignacion_docente` | presentes |
 | `profesor_asignatura` (tabla antigua de asignaciones) | ausente: no hay desalineación |
 | Profesores sin usuario | 0 |
 | Correos duplicados (ignorando mayúsculas y espacios) | 0 |
@@ -196,6 +231,7 @@ Resultado del preflight (solo lectura) ejecutado sobre la base local en la fecha
 | `docs/db/RF03_ra_inactivado_con_asignatura_migration.sql` | Migración idempotente | Agrega `resultado_aprendizaje.inactivado_con_asignatura` para poder reactivar asignaturas |
 | `docs/db/RF07_asignacion_docente_fecha_migration.sql` | Migración idempotente | Agrega `asignacion_docente.fecha_asignacion` en bases creadas antes de este cambio |
 | `docs/db/RF07_asignacion_docente_unicidad_migration.sql` | Migración idempotente | Impide pares duplicados de `(profesor_id, asignatura_id)` sin eliminar datos |
+| `docs/db/RF20_facultad_migration.sql` | Migración idempotente | Crea `sigra.facultad`, la facultad `Facultad sin asignar` y la columna obligatoria `programa_academico.facultad_id` (incidencia 0000036) |
 | `bruno/SIGRA/seed/seed-roles.sql` | Datos de prueba | Un administrador y un estudiante de Bruno para RF-04, idempotente |
 | `bruno/SIGRA/seed/seed-auth.sql` | Datos de prueba | Usuarios de Bruno para RF-04, idempotente |
 

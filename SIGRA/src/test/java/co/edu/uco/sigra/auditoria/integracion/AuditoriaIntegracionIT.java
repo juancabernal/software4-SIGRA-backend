@@ -1,6 +1,9 @@
 package co.edu.uco.sigra.auditoria.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
+import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.auth.entity.Administrador;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.auth.service.JwtService;
@@ -62,6 +65,7 @@ class AuditoriaIntegracionIT {
     @Autowired private TipoDocumentoRepository tipoDocumentoRepository;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private ProgramaAcademicoRepository programaRepository;
+    @Autowired private FacultadRepository facultadRepository;
 
     private LocalDate hoy;
     private TipoDocumento tipoDocumento;
@@ -228,12 +232,13 @@ class AuditoriaIntegracionIT {
         programa.setNombre("ITA Programa " + UUID.randomUUID().toString().substring(0, 8));
         programa.setCodigo("ITA" + ThreadLocalRandom.current().nextInt(10_000, 100_000));
         programa.setEstado(EstadoRegistro.ACTIVO);
+        programa.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         return programaRepository.save(programa);
     }
 
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITA Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITA Usuario " + alias);
         usuario.setCorreoInstitucional("ita-" + alias + "-" + UUID.randomUUID().toString().substring(0, 8)
                 + "@uco.net.co");
         usuario.setEstado(EstadoRegistro.ACTIVO);

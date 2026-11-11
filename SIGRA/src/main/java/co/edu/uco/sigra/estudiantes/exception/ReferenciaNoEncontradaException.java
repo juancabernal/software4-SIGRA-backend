@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.exception;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class ReferenciaNoEncontradaException extends RuntimeException {
@@ -9,14 +10,17 @@ public class ReferenciaNoEncontradaException extends RuntimeException {
     }
 
     public static ReferenciaNoEncontradaException tipoDocumento(UUID id) {
-        return new ReferenciaNoEncontradaException("No existe un tipo de documento con id " + id + ".");
+        Objects.requireNonNull(id, "id");
+        return new ReferenciaNoEncontradaException("No existe el tipo de documento indicado.");
     }
 
     public static ReferenciaNoEncontradaException asignatura(UUID id) {
-        return new ReferenciaNoEncontradaException("No existe una asignatura con id " + id + ".");
+        Objects.requireNonNull(id, "id");
+        return new ReferenciaNoEncontradaException("No existe la asignatura indicada.");
     }
 
     public static ReferenciaNoEncontradaException semestre(UUID id) {
-        return new ReferenciaNoEncontradaException("No existe un semestre con id " + id + ".");
+        Objects.requireNonNull(id, "id");
+        return new ReferenciaNoEncontradaException("No existe el semestre indicado.");
     }
 }

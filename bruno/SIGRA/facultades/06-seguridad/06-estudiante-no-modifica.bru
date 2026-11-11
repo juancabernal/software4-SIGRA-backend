@@ -1,0 +1,27 @@
+meta {
+  name: 06 Estudiante no modifica
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadPorDefectoId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{tokenEstudiante}}
+}
+
+body:json {
+  {
+    "nombre": "Facultad Bruno Estudiante"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.error: eq FORBIDDEN
+}

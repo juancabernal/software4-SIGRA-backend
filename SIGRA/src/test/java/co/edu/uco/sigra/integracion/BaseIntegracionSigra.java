@@ -1,6 +1,8 @@
 package co.edu.uco.sigra.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
@@ -70,6 +72,7 @@ public abstract class BaseIntegracionSigra {
     @Autowired protected AsignaturaRepository asignaturaRepository;
     @Autowired protected ResultadoAprendizajeRepository raRepository;
     @Autowired protected ProgramaAcademicoRepository programaRepository;
+    @Autowired protected FacultadRepository facultadRepository;
     @Autowired protected TipoDocumentoRepository tipoDocumentoRepository;
     @Autowired protected UsuarioRepository usuarioRepository;
     @Autowired protected SemestreRepository semestreRepository;
@@ -162,12 +165,13 @@ public abstract class BaseIntegracionSigra {
         ProgramaAcademico p = new ProgramaAcademico();
         p.setNombre(prefijo() + " Programa " + UUID.randomUUID().toString().substring(0, 8));
         p.setCodigo(prefijo() + ThreadLocalRandom.current().nextInt(100_000, 1_000_000));
+        p.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         return programaRepository.save(p);
     }
 
     protected <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto(prefijo() + " Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, prefijo() + " Usuario " + alias);
         usuario.setCorreoInstitucional(prefijo().toLowerCase() + "-" + alias + "-"
                 + UUID.randomUUID().toString().substring(0, 8) + DOMINIO_CORREO);
         return usuarioRepository.save(usuario);

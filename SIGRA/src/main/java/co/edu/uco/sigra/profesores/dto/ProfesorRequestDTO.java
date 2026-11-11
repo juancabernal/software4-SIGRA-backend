@@ -1,9 +1,11 @@
 package co.edu.uco.sigra.profesores.dto;
 
+import co.edu.uco.sigra.common.util.NombresPersona;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
@@ -19,11 +21,29 @@ public record ProfesorRequestDTO(
         @Pattern(regexp = "\\d{6,10}", message = "El número de documento debe tener entre 6 y 10 dígitos numéricos")
         String numeroDocumento,
 
-        @Schema(description = "Nombre completo del profesor", example = "Ana Gómez")
-        @NotBlank
-        String nombreCompleto,
+        @Schema(description = "Primer nombre (una sola palabra, sin espacios)", example = "Ana")
+        @NotBlank(message = "El primer nombre es obligatorio")
+        @Size(min = 1, max = 50)
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String primerNombre,
 
-        // Mismo criterio que LoginRequestDTO: el dominio no distingue mayúsculas; el servicio normaliza el correo.
+        @Schema(description = "Segundo nombre opcional", example = "María")
+        @Size(max = 50)
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String segundoNombre,
+
+        @Schema(description = "Primer apellido", example = "Gómez")
+        @NotBlank(message = "El primer apellido es obligatorio")
+        @Size(min = 1, max = 50)
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String primerApellido,
+
+        @Schema(description = "Segundo apellido", example = "López")
+        @NotBlank(message = "El segundo apellido es obligatorio")
+        @Size(min = 1, max = 50)
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String segundoApellido,
+
         @Schema(description = "Correo institucional del dominio @uco.net.co. Se guarda en minúsculas y sin espacios laterales",
                 example = "ana.gomez@uco.net.co")
         @NotBlank

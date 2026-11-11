@@ -1,0 +1,20 @@
+meta {
+  name: 03 Profesor no consulta
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/facultades
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error: eq FORBIDDEN
+}

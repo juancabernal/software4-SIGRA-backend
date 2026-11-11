@@ -55,8 +55,13 @@ DELETE FROM sigra.usuario WHERE id::text LIKE '00000000-0000-4000-e750-%';
 
 -- 2. Programa, asignatura y semestre propios. Fechas relativas a hoy para que
 -- el semestre siga ACTIVO sin importar cuando se ejecute.
-INSERT INTO sigra.programa_academico (id, nombre, codigo, estado) VALUES
-  ('00000000-0000-4000-e710-000000000001', 'Programa Bruno Nivel de Logro', 'BRU-NIV', 'ACTIVO');
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, nombre, codigo, estado, facultad_id) VALUES
+  ('00000000-0000-4000-e710-000000000001', 'Programa Bruno Nivel de Logro', 'BRU-NIV', 'ACTIVO', '00000000-0000-4000-fa00-000000000001');
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
   ('00000000-0000-4000-e720-000000000001', 'BRUNIV1', 'Bruno Nivel de Logro Activa', '00000000-0000-4000-e710-000000000001', 'ACTIVA');
@@ -86,9 +91,9 @@ BEGIN
         RAISE EXCEPTION 'Seed abortado: no hay ningun tipo de documento. Ejecute seed-auth.sql primero.';
     END IF;
     FOR i IN 1..7 LOOP
-        INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
+        INSERT INTO sigra.usuario (id, tipo_documento_id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo_institucional, estado) VALUES
           (('00000000-0000-4000-e750-00000000000' || i)::uuid, v_tipo_doc_id,
-           'Bruno Nivel Estudiante ' || i, 'bruno.niv' || i || '@uco.net.co', 'ACTIVO');
+           'Bruno', 'Nivel', 'Estudiante', i::text, 'bruno.niv' || i || '@uco.net.co', 'ACTIVO');
         INSERT INTO sigra.estudiante (id, numero_documento) VALUES
           (('00000000-0000-4000-e750-00000000000' || i)::uuid, '210000000' || i);
         INSERT INTO sigra.matricula (id, estudiante_id, asignatura_id, semestre_id, fecha_matricula, estado) VALUES

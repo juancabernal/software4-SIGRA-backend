@@ -2,6 +2,7 @@ package co.edu.uco.sigra.programas.service;
 
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.programas.dto.ProgramaResponseDTO;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.mapper.ProgramaMapper;
@@ -33,6 +34,9 @@ class ProgramaServiceImplTest {
     private ProgramaAcademicoRepository programaRepository;
 
     @Mock
+    private FacultadRepository facultadRepository;
+
+    @Mock
     private AsignaturaRepository asignaturaRepository;
 
     private final ProgramaMapper mapper = Mappers.getMapper(ProgramaMapper.class);
@@ -45,7 +49,7 @@ class ProgramaServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProgramaServiceImpl(programaRepository, mapper, asignaturaRepository);
+        service = new ProgramaServiceImpl(programaRepository, facultadRepository, mapper, asignaturaRepository);
         derecho = programa("DER", "Derecho", EstadoRegistro.ACTIVO);
         ingenieria = programa("ISIS", "Ingeniería de Sistemas", EstadoRegistro.ACTIVO);
         medicina = programa("MED", "Medicina", EstadoRegistro.INACTIVO);

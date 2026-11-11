@@ -1,0 +1,39 @@
+meta {
+  name: 03 Registrar programa en facultad activa
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/programas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Programa Bruno Con Facultad {{sufijoApoyo}}",
+    "codigo": "brj{{sufijoApoyo}}",
+    "facultadId": "{{facultadApoyoId}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("programaDeFacultadId", res.body.id);
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("queda en la facultad y con el codigo en mayusculas", function () {
+    expect(res.body.facultadId).to.equal(bru.getVar("facultadApoyoId"));
+    expect(res.body.facultadNombre).to.equal(bru.getVar("facultadApoyoNombre"));
+    expect(res.body.codigo).to.equal("BRJ" + bru.getVar("sufijoApoyo"));
+  });
+}

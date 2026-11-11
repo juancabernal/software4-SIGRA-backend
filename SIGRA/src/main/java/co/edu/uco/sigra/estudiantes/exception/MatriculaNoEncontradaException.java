@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.exception;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class MatriculaNoEncontradaException extends RuntimeException {
@@ -9,6 +10,7 @@ public class MatriculaNoEncontradaException extends RuntimeException {
     }
 
     public static MatriculaNoEncontradaException porId(UUID id) {
-        return new MatriculaNoEncontradaException("No existe una matrícula con id " + id + ".");
+        Objects.requireNonNull(id, "id");
+        return new MatriculaNoEncontradaException("No existe la matrícula solicitada.");
     }
 }

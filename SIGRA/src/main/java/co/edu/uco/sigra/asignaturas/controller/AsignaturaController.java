@@ -61,11 +61,11 @@ public class AsignaturaController {
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de asignaturas.
     private static final String EJ_ASIGNATURA_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una asignatura con id " + ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la asignatura indicada.\"}";
 
     private static final String EJ_PROGRAMA_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un programa académico con id " + PROGRAMA_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el programa académico indicado.\"}";
 
     private static final String EJ_CODIGO_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
@@ -88,8 +88,8 @@ public class AsignaturaController {
 
     private static final String EJ_CONFIRMACION_REQUERIDA_INACTIVAR =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
-                    + "\"mensaje\":\"La asignatura con id " + ID_EJEMPLO + " tiene 2 evaluación(es) abierta(s) en "
-                    + "el semestre en curso. Debe confirmar la inactivación para continuar.\"}";
+                    + "\"mensaje\":\"La asignatura tiene 2 evaluación(es) abierta(s) en el semestre en curso. "
+                    + "Debe confirmar la inactivación para continuar.\"}";
 
     private static final String EJ_RANGO_RA_POCOS =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
@@ -214,8 +214,10 @@ public class AsignaturaController {
             @Parameter(description = "Cantidad máxima de resultados de aprendizaje activos (0 a 999)", example = "7")
             @RequestParam(required = false)
             @Min(value = 0, message = ReglasEntrada.RA_NEGATIVO)
-            @Max(value = ReglasEntrada.RA_FILTRO_MAX, message = ReglasEntrada.RA_MAXIMO) Integer raMax) {
-        AsignaturaFiltroDTO filtro = new AsignaturaFiltroDTO(texto, programaId, estado, raMin, raMax);
+            @Max(value = ReglasEntrada.RA_FILTRO_MAX, message = ReglasEntrada.RA_MAXIMO) Integer raMax,
+            @Parameter(description = "UUID del semestre. Filtra por asignaciones docentes activas vigentes al cierre del semestre o actividad académica registrada en él")
+            @RequestParam(required = false) UUID semestreId) {
+        AsignaturaFiltroDTO filtro = new AsignaturaFiltroDTO(texto, programaId, estado, raMin, raMax, semestreId);
         UsuarioPrincipal identidad = currentUser.required();
         return ResponseEntity.ok(asignaturaService.consultar(filtro, identidad));
     }

@@ -11,10 +11,13 @@ import co.edu.uco.sigra.estudiantes.service.EstudianteService;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import co.edu.uco.sigra.estadisticas.service.ConclusionService;
 import co.edu.uco.sigra.estadisticas.service.NivelLogroService;
+import co.edu.uco.sigra.facultades.service.FacultadService;
 import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
 import co.edu.uco.sigra.programas.service.ProgramaService;
+import co.edu.uco.sigra.reportes.service.RendimientoRaReporteService;
+import co.edu.uco.sigra.reportes.service.RiesgoAcademicoReporteService;
 import co.edu.uco.sigra.resultadosaprendizaje.service.RendimientoResultadoAprendizajeService;
 import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.semestres.service.SemestreService;
@@ -63,6 +66,9 @@ class PrivateEndpointAuthorizationArchitectureTest {
     private AuthService authService;
 
     @MockitoBean
+    private FacultadService facultadService;
+
+    @MockitoBean
     private CalificacionService calificacionService;
 
     @MockitoBean
@@ -103,6 +109,12 @@ class PrivateEndpointAuthorizationArchitectureTest {
 
     @MockitoBean
     private RendimientoResultadoAprendizajeService rendimientoResultadoAprendizajeService;
+
+    @MockitoBean
+    private RendimientoRaReporteService rendimientoRaReporteService;
+
+    @MockitoBean
+    private RiesgoAcademicoReporteService riesgoAcademicoReporteService;
 
     @MockitoBean
     private SemestreService semestreService;

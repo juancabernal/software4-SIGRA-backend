@@ -1,0 +1,22 @@
+meta {
+  name: 02 Inactivar exitoso
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadCreadaId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("queda INACTIVA", function () {
+    expect(res.body.id).to.equal(bru.getVar("facultadCreadaId"));
+    expect(res.body.estado).to.equal("INACTIVO");
+  });
+}

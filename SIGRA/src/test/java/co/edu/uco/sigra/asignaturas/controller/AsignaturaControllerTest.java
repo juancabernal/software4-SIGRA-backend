@@ -325,7 +325,7 @@ class AsignaturaControllerTest {
 
             mockMvc.perform(get(URL_ID))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath(JSON_MENSAJE).value("No existe una asignatura con id " + ID + "."));
+                    .andExpect(jsonPath(JSON_MENSAJE).value("No existe la asignatura indicada."));
         }
     }
 

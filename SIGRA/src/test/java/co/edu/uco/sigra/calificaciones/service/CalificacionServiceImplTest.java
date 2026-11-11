@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.calificaciones.service;
 
 import co.edu.uco.sigra.estudiantes.entity.EstadoMatricula;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -101,7 +102,7 @@ class CalificacionServiceImplTest {
         asignatura = asignatura("ASG-101");
         semestre = semestre("2026-2");
         evaluacion = evaluacion(asignatura, semestre, HOY);
-        matricula = matricula("Ana Gómez", asignatura, semestre, EstadoMatricula.ACTIVA);
+        matricula = matricula("Ana Gómez López", asignatura, semestre, EstadoMatricula.ACTIVA);
     }
 
     // ------------------------------------------------------------------ datos de prueba
@@ -141,7 +142,7 @@ class CalificacionServiceImplTest {
     private static Matricula matricula(String nombre, Asignatura asignatura, Semestre semestre, EstadoMatricula estado) {
         Estudiante estudiante = new Estudiante();
         estudiante.setId(UUID.randomUUID());
-        estudiante.setNombreCompleto(nombre);
+        NombresPersonaTestUtil.aplicar(estudiante, nombre);
         estudiante.setNumeroDocumento("1001001001");
         Matricula m = new Matricula();
         m.setId(UUID.randomUUID());
@@ -201,7 +202,7 @@ class CalificacionServiceImplTest {
             assertThat(respuesta.nota()).isEqualByComparingTo("4.5");
             assertThat(respuesta.fueraDeFecha()).isFalse();
             assertThat(respuesta.fechaRegistro()).isEqualTo(AHORA);
-            assertThat(respuesta.estudianteNombre()).isEqualTo("Ana Gómez");
+            assertThat(respuesta.estudianteNombre()).isEqualTo("Ana Gómez López");
 
             ArgumentCaptor<HistorialCalificacion> evento = ArgumentCaptor.forClass(HistorialCalificacion.class);
             verify(historialRepository).save(evento.capture());
@@ -464,9 +465,9 @@ class CalificacionServiceImplTest {
         @Test
         @DisplayName("Planilla: matrículas activas y desvinculadas con nota, ordenadas por nombre")
         void planilla() {
-            Matricula zoe = matricula("Zoe Pérez", asignatura, semestre, EstadoMatricula.ACTIVA);
-            Matricula retiradaConNota = matricula("Carlos Ruiz", asignatura, semestre, EstadoMatricula.DESVINCULADA);
-            Matricula retiradaSinNota = matricula("Beto Díaz", asignatura, semestre, EstadoMatricula.DESVINCULADA);
+            Matricula zoe = matricula("Zoe Pérez Díaz", asignatura, semestre, EstadoMatricula.ACTIVA);
+            Matricula retiradaConNota = matricula("Carlos Ruiz Mora", asignatura, semestre, EstadoMatricula.DESVINCULADA);
+            Matricula retiradaSinNota = matricula("Beto Díaz Sanz", asignatura, semestre, EstadoMatricula.DESVINCULADA);
             Calificacion notaZoe = calificacionExistente(new BigDecimal("4.2"), false);
             notaZoe.setMatricula(zoe);
             Calificacion notaCarlos = calificacionExistente(new BigDecimal("2.0"), true);
@@ -481,7 +482,7 @@ class CalificacionServiceImplTest {
             PlanillaCalificacionesDTO planilla = service.consultarPlanilla(evaluacion.getId(), PROFESOR);
 
             assertThat(planilla.filas()).extracting(FilaPlanillaDTO::nombreCompleto)
-                    .containsExactly("Ana Gómez", "Carlos Ruiz", "Zoe Pérez");
+                    .containsExactly("Ana Gómez López", "Carlos Ruiz Mora", "Zoe Pérez Díaz");
             assertThat(planilla.totalEstudiantes()).isEqualTo(3);
             assertThat(planilla.totalCalificados()).isEqualTo(2);
             assertThat(planilla.filas().get(0).calificacionId()).isNull();

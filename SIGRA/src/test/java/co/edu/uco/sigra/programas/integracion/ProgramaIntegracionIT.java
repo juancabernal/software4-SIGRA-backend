@@ -1,6 +1,9 @@
 package co.edu.uco.sigra.programas.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
+import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.entity.Administrador;
 import co.edu.uco.sigra.auth.entity.Usuario;
@@ -81,6 +84,7 @@ class ProgramaIntegracionIT {
     @Autowired private JwtService jwtService;
     @Autowired private PlatformTransactionManager transactionManager;
     @Autowired private ProgramaAcademicoRepository programaRepository;
+    @Autowired private FacultadRepository facultadRepository;
     @Autowired private AsignaturaRepository asignaturaRepository;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private TipoDocumentoRepository tipoDocumentoRepository;
@@ -92,6 +96,13 @@ class ProgramaIntegracionIT {
 
     private TransactionTemplate tx;
     private TipoDocumento tipoDocumento;
+
+    /**
+     * Facultad activa con la que se registran los programas por la API. Es estática porque
+     * {@link #json(String, String)} también se usa desde un {@code @MethodSource}; en esos casos de
+     * validación (400) basta cualquier UUID, así que mientras sea nula se envía uno aleatorio.
+     */
+    private static UUID facultadId;
 
     /** JWT real de un ADMINISTRADOR creado en cada caso; es el que usan IT-01 a IT-05. */
     private String tokenAdmin;
@@ -106,6 +117,7 @@ class ProgramaIntegracionIT {
             TipoDocumento tipo = new TipoDocumento();
             tipo.setNombre(TIPO_DOCUMENTO);
             tipoDocumento = tipoDocumentoRepository.save(tipo);
+            facultadId = FacultadesDePrueba.compartida(facultadRepository).getId();
         });
 
         tokenAdmin = token(crearUsuario(new Administrador(), "admin"));
@@ -176,6 +188,8 @@ class ProgramaIntegracionIT {
         assertThat((String) JsonPath.read(cuerpoCreado, "$.nombre")).isEqualTo(nombre("Uno"));
         assertThat((String) JsonPath.read(cuerpoCreado, "$.codigo")).isEqualTo("ITG-001");
         assertThat((String) JsonPath.read(cuerpoCreado, "$.estado")).isEqualTo("ACTIVO");
+        assertThat((String) JsonPath.read(cuerpoCreado, "$.facultadId")).isEqualTo(facultadId.toString());
+        assertThat((String) JsonPath.read(cuerpoCreado, "$.facultadNombre")).isEqualTo(FacultadesDePrueba.NOMBRE);
 
         ProgramaAcademico enBase = programaRepository.findById(UUID.fromString(JsonPath.read(cuerpoCreado, "$.id")))
                 .orElseThrow();
@@ -436,7 +450,7 @@ class ProgramaIntegracionIT {
     /** Guarda un usuario de la prueba (correo itg-prog-...) con el tipo de documento propio. */
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITG Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITG Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-" + UUID.randomUUID() + DOMINIO_CORREO);
         usuario.setEstado(EstadoRegistro.ACTIVO);
         return usuarioRepository.save(usuario);
@@ -446,7 +460,7 @@ class ProgramaIntegracionIT {
         Profesor p = new Profesor();
         p.setTipoDocumento(tipoDocumento);
         p.setNumeroDocumento("PR" + System.nanoTime() % 100000000L);
-        p.setNombreCompleto("ITG Profesor Programa");
+        NombresPersonaTestUtil.aplicar(p, "ITG Profesor Programa");
         p.setCorreoInstitucional(PREFIJO_CORREO + UUID.randomUUID() + DOMINIO_CORREO);
         p.setEstado(EstadoRegistro.ACTIVO);
         return profesorRepository.save(p);
@@ -456,6 +470,7 @@ class ProgramaIntegracionIT {
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setNombre(nombre);
         programa.setCodigo(codigo);
+        programa.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         return programaRepository.save(programa);
     }
 
@@ -500,7 +515,9 @@ class ProgramaIntegracionIT {
     }
 
     private static String json(String nombre, String codigo) {
-        return "{\"nombre\":" + texto(nombre) + ",\"codigo\":" + texto(codigo) + "}";
+        UUID facultad = facultadId != null ? facultadId : UUID.randomUUID();
+        return "{\"nombre\":" + texto(nombre) + ",\"codigo\":" + texto(codigo)
+                + ",\"facultadId\":\"" + facultad + "\"}";
     }
 
     private static String jsonNombre(String nombre) {

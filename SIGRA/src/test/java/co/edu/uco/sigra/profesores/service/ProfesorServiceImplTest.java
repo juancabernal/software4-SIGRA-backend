@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.profesores.service;
 
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
@@ -56,7 +57,10 @@ class ProfesorServiceImplTest {
     private static final UUID ID_TIPO_DOCUMENTO = UUID.randomUUID();
     private static final String NOMBRE_TIPO_DOCUMENTO = "Cédula de Ciudadanía";
     private static final String NUMERO_DOCUMENTO = "123456789";
-    private static final String NOMBRE_COMPLETO = "Profesor Uno";
+    private static final String PRIMER_NOMBRE = "Profesor";
+    private static final String PRIMER_APELLIDO = "Uno";
+    private static final String SEGUNDO_APELLIDO = "Dos";
+    private static final String NOMBRE_COMPLETO = "Profesor Uno Dos";
     private static final String CORREO = "profesor.uno@uco.net.co";
 
     @Mock
@@ -96,7 +100,7 @@ class ProfesorServiceImplTest {
         ReflectionTestUtils.setField(p, "id", id);
         p.setTipoDocumento(tipoDocumento());
         p.setNumeroDocumento(numeroDocumento);
-        p.setNombreCompleto(nombre);
+        NombresPersonaTestUtil.aplicar(p, nombre);
         p.setCorreoInstitucional(correo);
         p.setEstado(EstadoRegistro.ACTIVO);
         return p;
@@ -147,7 +151,7 @@ class ProfesorServiceImplTest {
             });
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "  Profesor.Uno@UCO.NET.CO  ");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "  Profesor.Uno@UCO.NET.CO  ");
 
             ProfesorResponseDTO respuesta = service.registrarProfesor(dto);
 
@@ -176,7 +180,7 @@ class ProfesorServiceImplTest {
                     .thenReturn(true);
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO);
 
             assertThatThrownBy(() -> service.registrarProfesor(dto))
                     .isInstanceOf(DocumentoDuplicadoException.class)
@@ -194,7 +198,7 @@ class ProfesorServiceImplTest {
             when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO)).thenReturn(true);
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "PROFESOR.UNO@UCO.NET.CO");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "PROFESOR.UNO@UCO.NET.CO");
 
             assertThatThrownBy(() -> service.registrarProfesor(dto))
                     .isInstanceOf(CorreoDuplicadoException.class)
@@ -213,7 +217,7 @@ class ProfesorServiceImplTest {
             when(tipoDocumentoRepository.findById(ID_TIPO_DOCUMENTO)).thenReturn(Optional.empty());
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO);
 
             assertThatThrownBy(() -> service.registrarProfesor(dto))
                     .isInstanceOf(TipoDocumentoNoEncontradoException.class);
@@ -337,7 +341,8 @@ class ProfesorServiceImplTest {
 
             assertThatThrownBy(() -> service.consultarAsignaturas(ID_PROFESOR, null))
                     .isInstanceOf(ProfesorNoEncontradoException.class)
-                    .hasMessageContaining(ID_PROFESOR.toString());
+                    .hasMessageContaining("profesor")
+                    .hasMessageNotContaining(ID_PROFESOR.toString());
 
             verifyNoInteractions(asignacionDocenteRepository);
         }
@@ -409,12 +414,12 @@ class ProfesorServiceImplTest {
             when(profesorRepository.save(any(Profesor.class))).thenAnswer(inv -> inv.getArgument(0));
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, "Profesor Modificado", "  Nuevo@UCO.NET.CO ");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, "Profesor", null, "Modificado", "Nuevo", "  Nuevo@UCO.NET.CO ");
 
             ProfesorResponseDTO respuesta = service.modificarProfesor(ID_PROFESOR, dto);
 
             assertThat(respuesta.id()).isEqualTo(ID_PROFESOR);
-            assertThat(respuesta.nombreCompleto()).isEqualTo("Profesor Modificado");
+            assertThat(respuesta.nombreCompleto()).isEqualTo("Profesor Modificado Nuevo");
             assertThat(respuesta.correoInstitucional()).isEqualTo("nuevo@uco.net.co");
             assertThat(respuesta.numeroDocumento()).isEqualTo(NUMERO_DOCUMENTO);
             assertThat(existente.getEstado()).isEqualTo(EstadoRegistro.ACTIVO);
@@ -435,7 +440,7 @@ class ProfesorServiceImplTest {
                     .thenReturn(true);
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, "Profesor Con Asignaciones", CORREO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, "Profesor", null, "ConAsignaciones", "Dos", CORREO);
 
             ProfesorResponseDTO respuesta = service.modificarProfesor(ID_PROFESOR, dto);
 
@@ -449,7 +454,7 @@ class ProfesorServiceImplTest {
             when(profesorRepository.findById(ID_PROFESOR)).thenReturn(Optional.empty());
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO);
 
             assertThatThrownBy(() -> service.modificarProfesor(ID_PROFESOR, dto))
                     .isInstanceOf(ProfesorNoEncontradoException.class);
@@ -463,7 +468,7 @@ class ProfesorServiceImplTest {
             Profesor existente = existe();
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, "999999999", NOMBRE_COMPLETO, CORREO);
+                    ID_TIPO_DOCUMENTO, "999999999", PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO);
 
             assertThatThrownBy(() -> service.modificarProfesor(ID_PROFESOR, dto))
                     .isInstanceOf(CampoNoModificableException.class)
@@ -481,7 +486,7 @@ class ProfesorServiceImplTest {
                     ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, ID_PROFESOR)).thenReturn(true);
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO);
 
             assertThatThrownBy(() -> service.modificarProfesor(ID_PROFESOR, dto))
                     .isInstanceOf(DocumentoDuplicadoException.class);
@@ -499,7 +504,7 @@ class ProfesorServiceImplTest {
                     .thenReturn(true);
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "OTRO@UCO.NET.CO");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "OTRO@UCO.NET.CO");
 
             assertThatThrownBy(() -> service.modificarProfesor(ID_PROFESOR, dto))
                     .isInstanceOf(CorreoDuplicadoException.class)
@@ -519,7 +524,7 @@ class ProfesorServiceImplTest {
             when(tipoDocumentoRepository.findById(ID_TIPO_DOCUMENTO)).thenReturn(Optional.empty());
 
             ProfesorRequestDTO dto = new ProfesorRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO);
 
             assertThatThrownBy(() -> service.modificarProfesor(ID_PROFESOR, dto))
                     .isInstanceOf(TipoDocumentoNoEncontradoException.class);

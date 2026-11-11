@@ -17,7 +17,8 @@ headers {
 body:json {
   {
     "nombre": "Programa Bruno Valido {{codigoNuevo}}",
-    "codigo": "{{codigoNuevo}}"
+    "codigo": "{{codigoNuevo}}",
+    "facultadId": "{{facultadPorDefectoId}}"
   }
 }
 
@@ -40,6 +41,11 @@ tests {
     expect(res.body.nombre).to.equal("Programa Bruno Valido " + bru.getVar("codigoNuevo"));
     expect(res.body.codigo).to.equal(bru.getVar("codigoNuevo"));
     expect(res.body.estado).to.equal("ACTIVO");
+  });
+
+  test("queda asociado a la facultad enviada", function () {
+    expect(res.body.facultadId).to.equal(bru.getEnvVar("facultadPorDefectoId"));
+    expect(res.body.facultadNombre).to.equal(bru.getEnvVar("facultadPorDefectoNombre"));
   });
 
   test("devuelve el id generado", function () {

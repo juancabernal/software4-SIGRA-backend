@@ -1,6 +1,9 @@
 package co.edu.uco.sigra.calificaciones.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
+import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
@@ -81,6 +84,7 @@ class CalificacionIntegracionIT {
     @Autowired private TipoDocumentoRepository tipoDocumentoRepository;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private ProgramaAcademicoRepository programaRepository;
+    @Autowired private FacultadRepository facultadRepository;
     @Autowired private AsignaturaRepository asignaturaRepository;
     @Autowired private ResultadoAprendizajeRepository raRepository;
     @Autowired private SemestreRepository semestreRepository;
@@ -117,6 +121,7 @@ class CalificacionIntegracionIT {
         ProgramaAcademico programa = new ProgramaAcademico();
         programa.setNombre(PREFIJO_PROGRAMA + UUID.randomUUID().toString().substring(0, 8));
         programa.setCodigo("ITN" + ThreadLocalRandom.current().nextInt(1_000_000, 10_000_000));
+        programa.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         programa = programaRepository.save(programa);
 
         asignatura = asignaturaRepository.save(new Asignatura(PREFIJO_CODIGO + "101", "ITN Asignatura", programa));
@@ -373,7 +378,7 @@ class CalificacionIntegracionIT {
 
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITN Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITN Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias.toLowerCase() + "-"
                 + UUID.randomUUID().toString().substring(0, 8) + DOMINIO_CORREO);
         usuario.setEstado(EstadoRegistro.ACTIVO);

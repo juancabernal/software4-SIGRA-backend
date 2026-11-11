@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.estudiantes.service;
 
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
 import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
@@ -52,7 +53,10 @@ class EstudianteServiceImplTest {
     private static final String NOMBRE_TIPO_DOCUMENTO = "Cédula de Ciudadanía";
     private static final String NOMBRE_TIPO_DOCUMENTO_OTRO = "Tarjeta de Identidad";
     private static final String NUMERO_DOCUMENTO = "123456789";
-    private static final String NOMBRE_COMPLETO = "Juan Pérez";
+    private static final String PRIMER_NOMBRE = "Juan";
+    private static final String PRIMER_APELLIDO = "Pérez";
+    private static final String SEGUNDO_APELLIDO = "Gómez";
+    private static final String NOMBRE_COMPLETO = "Juan Pérez Gómez";
     private static final String CORREO_NORMALIZADO = "juan.perez@uco.net.co";
 
     @Mock
@@ -100,7 +104,7 @@ class EstudianteServiceImplTest {
         ReflectionTestUtils.setField(e, "id", ID_ESTUDIANTE);
         e.setTipoDocumento(tipoDocumento());
         e.setNumeroDocumento(NUMERO_DOCUMENTO);
-        e.setNombreCompleto(NOMBRE_COMPLETO);
+        NombresPersonaTestUtil.aplicar(e, NOMBRE_COMPLETO);
         e.setCorreoInstitucional(CORREO_NORMALIZADO);
         e.setEstado(estado);
         return e;
@@ -142,7 +146,7 @@ class EstudianteServiceImplTest {
             saveDevuelveArgumentoConId();
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "  Juan.Perez@UCO.NET.CO  ");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "  Juan.Perez@UCO.NET.CO  ");
 
             EstudianteResponseDTO respuesta = service.registrar(dto);
 
@@ -164,7 +168,7 @@ class EstudianteServiceImplTest {
                     .thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(EstudianteYaRegistradoException.class)
@@ -183,7 +187,7 @@ class EstudianteServiceImplTest {
             when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class)
@@ -202,7 +206,7 @@ class EstudianteServiceImplTest {
             when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(correoProfesor)).thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, correoProfesor);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, correoProfesor);
 
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class)
@@ -220,7 +224,7 @@ class EstudianteServiceImplTest {
             when(tipoDocumentoRepository.findById(ID_TIPO_DOCUMENTO)).thenReturn(Optional.empty());
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(ReferenciaNoEncontradaException.class);
@@ -235,7 +239,7 @@ class EstudianteServiceImplTest {
                     .thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(EstudianteYaRegistradoException.class);
@@ -251,7 +255,7 @@ class EstudianteServiceImplTest {
             when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class);
@@ -269,7 +273,7 @@ class EstudianteServiceImplTest {
             saveDevuelveArgumentoConId();
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO_OTRO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO_OTRO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             EstudianteResponseDTO respuesta = service.registrar(dto);
 
@@ -286,7 +290,7 @@ class EstudianteServiceImplTest {
             when(usuarioRepository.existsByCorreoInstitucionalIgnoreCase(CORREO_NORMALIZADO)).thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "JUAN.PEREZ@UCO.NET.CO");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "JUAN.PEREZ@UCO.NET.CO");
 
             assertThatThrownBy(() -> service.registrar(dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class);
@@ -385,7 +389,8 @@ class EstudianteServiceImplTest {
 
             assertThatThrownBy(() -> service.consultarPorId(ID_ESTUDIANTE))
                     .isInstanceOf(EstudianteNoEncontradoException.class)
-                    .hasMessageContaining(ID_ESTUDIANTE.toString());
+                    .hasMessageContaining("estudiante")
+                    .hasMessageNotContaining(ID_ESTUDIANTE.toString());
         }
 
         @Test
@@ -464,11 +469,11 @@ class EstudianteServiceImplTest {
             saveDevuelveArgumento();
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, "Juan Carlos Pérez", "  Nuevo.Correo@UCO.NET.CO  ");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, "Juan", "Carlos", "Pérez", "Gómez", "  Nuevo.Correo@UCO.NET.CO  ");
 
             EstudianteResponseDTO respuesta = service.modificar(ID_ESTUDIANTE, dto);
 
-            assertThat(respuesta.nombreCompleto()).isEqualTo("Juan Carlos Pérez");
+            assertThat(respuesta.nombreCompleto()).isEqualTo("Juan Carlos Pérez Gómez");
             assertThat(respuesta.correoInstitucional()).isEqualTo("nuevo.correo@uco.net.co");
             assertThat(respuesta.numeroDocumento()).isEqualTo(NUMERO_DOCUMENTO);
 
@@ -482,7 +487,7 @@ class EstudianteServiceImplTest {
             existe(EstadoRegistro.ACTIVO);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, "987654321", NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO, "987654321", PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(DocumentoNoModificableException.class);
@@ -496,7 +501,7 @@ class EstudianteServiceImplTest {
             existe(EstadoRegistro.ACTIVO);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO_OTRO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO_OTRO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(DocumentoNoModificableException.class);
@@ -510,7 +515,7 @@ class EstudianteServiceImplTest {
             existe(EstadoRegistro.ACTIVO);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO_OTRO, "987654321", NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO_OTRO, "987654321", PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(DocumentoNoModificableException.class);
@@ -526,7 +531,7 @@ class EstudianteServiceImplTest {
                     .thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "otro@uco.net.co");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "otro@uco.net.co");
 
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class);
@@ -543,7 +548,7 @@ class EstudianteServiceImplTest {
                     .thenReturn(true);
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, correoProfesor);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, correoProfesor);
 
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(CorreoEstudianteDuplicadoException.class)
@@ -559,7 +564,7 @@ class EstudianteServiceImplTest {
             saveDevuelveArgumento();
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, "Juan.Perez@UCO.NET.CO");
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, "Juan.Perez@UCO.NET.CO");
 
             EstudianteResponseDTO respuesta = service.modificar(ID_ESTUDIANTE, dto);
 
@@ -573,7 +578,7 @@ class EstudianteServiceImplTest {
             noExiste();
 
             EstudianteRequestDTO dto = new EstudianteRequestDTO(
-                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, NOMBRE_COMPLETO, CORREO_NORMALIZADO);
+                    ID_TIPO_DOCUMENTO, NUMERO_DOCUMENTO, PRIMER_NOMBRE, null, PRIMER_APELLIDO, SEGUNDO_APELLIDO, CORREO_NORMALIZADO);
 
             assertThatThrownBy(() -> service.modificar(ID_ESTUDIANTE, dto))
                     .isInstanceOf(EstudianteNoEncontradoException.class);

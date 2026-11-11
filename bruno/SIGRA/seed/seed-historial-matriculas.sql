@@ -48,8 +48,13 @@ DELETE FROM sigra.programa_academico WHERE id = '10000000-0000-4000-9000-0000000
 
 -- 2. Programa y asignatura propios de esta incidencia (prefijo HIST), para no
 --    acoplarse a datos de otros seeds.
-INSERT INTO sigra.programa_academico (id, nombre, codigo, estado) VALUES
-  ('10000000-0000-4000-9000-000000000001', 'Programa Historial QA', 'HIST-QA', 'ACTIVO');
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, nombre, codigo, estado, facultad_id) VALUES
+  ('10000000-0000-4000-9000-000000000001', 'Programa Historial QA', 'HIST-QA', 'ACTIVO', '00000000-0000-4000-fa00-000000000001');
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
   ('10000000-0000-4000-9000-000000000002', 'HISTQA01', 'Asignatura Historial QA', '10000000-0000-4000-9000-000000000001', 'ACTIVA');
@@ -69,8 +74,8 @@ BEGIN
         RAISE EXCEPTION 'Seed abortado: no existe el tipo de documento Cedula de Ciudadania';
     END IF;
 
-    INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
-      ('10000000-0000-4000-9000-000000000003', v_tipo_doc_id, 'Estudiante Historial QA', 'historial.qa@uco.net.co', 'ACTIVO');
+    INSERT INTO sigra.usuario (id, tipo_documento_id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo_institucional, estado) VALUES
+      ('10000000-0000-4000-9000-000000000003', v_tipo_doc_id, 'Estudiante', NULL, 'Historial', 'QA', 'historial.qa@uco.net.co', 'ACTIVO');
 
     INSERT INTO sigra.estudiante (id, numero_documento) VALUES
       ('10000000-0000-4000-9000-000000000003', '9000000001');
@@ -95,7 +100,8 @@ COMMIT;
 -- Resumen: historial del estudiante de prueba, debe mostrar el semestre 2026-1
 -- (ya finalizado) junto con su fecha_fin para evidenciar que es un semestre
 -- anterior.
-SELECT u.nombre_completo, a.codigo AS asignatura, s.codigo AS semestre,
+SELECT concat_ws(' ', u.primer_nombre, u.segundo_nombre, u.primer_apellido, u.segundo_apellido) AS nombre_completo,
+       a.codigo AS asignatura, s.codigo AS semestre,
        s.fecha_fin AS semestre_fecha_fin, m.fecha_matricula, m.estado
   FROM sigra.matricula m
   JOIN sigra.estudiante e ON e.id = m.estudiante_id
