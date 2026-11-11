@@ -164,6 +164,10 @@ class HallazgosContratoErrorTest {
             @MockitoBean
             private SemestreService semestreService;
 
+            // SemestreController necesita la identidad para GET /mios (Mantis 0000045).
+            @MockitoBean
+            private CurrentUser currentUser;
+
             @Test
             @DisplayName("Content-Type no soportado responde 415, no 500")
             void contentTypeNoSoportadoResponde415() throws Exception {

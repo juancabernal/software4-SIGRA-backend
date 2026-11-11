@@ -180,6 +180,10 @@ class PrecedenciaAdvicesTest {
         @MockitoBean
         private SemestreService semestreService;
 
+        // SemestreController necesita la identidad para GET /mios (Mantis 0000045).
+        @MockitoBean
+        private CurrentUser currentUser;
+
         @Test
         @DisplayName("SemestreNoEncontradoException sigue dando 404")
         void semestreNoEncontradoSigueDando404() throws Exception {
