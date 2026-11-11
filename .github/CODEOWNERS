@@ -1,0 +1,9 @@
+# CODEOWNERS: el revisor técnico es el único aprobador técnico de los Pull Requests.
+#
+# 1) Reemplaza @USUARIO_REVISOR por tu usuario de GitHub (con la @).
+# 2) En la protección de rama activa «Require review from Code Owners».
+# 3) El usuario debe tener permiso de escritura en el repositorio; si no, GitHub ignora la regla.
+#
+# Si el frontend vive en otro repositorio, copia este archivo allí también.
+
+*       @jeanortiz22
