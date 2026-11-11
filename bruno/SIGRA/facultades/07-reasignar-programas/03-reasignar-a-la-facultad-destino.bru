@@ -1,0 +1,35 @@
+meta {
+  name: 03 Reasignar a la facultad destino
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/v1/programas/{{programaReasignarId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "{{programaReasignarNombre}}",
+    "facultadId": "{{facultadDestinoId}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("queda en la facultad destino con el mismo nombre y codigo", function () {
+    expect(res.body.facultadId).to.equal(bru.getVar("facultadDestinoId"));
+    expect(res.body.facultadNombre).to.equal(bru.getVar("facultadDestinoNombre"));
+    expect(res.body.nombre).to.equal(bru.getVar("programaReasignarNombre"));
+    expect(res.body.codigo).to.equal("BRK" + bru.getVar("sufijoDestino"));
+  });
+}

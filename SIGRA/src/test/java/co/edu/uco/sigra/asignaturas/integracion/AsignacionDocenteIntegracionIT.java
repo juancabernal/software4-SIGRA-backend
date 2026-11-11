@@ -1,5 +1,7 @@
 package co.edu.uco.sigra.asignaturas.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
+import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
@@ -83,6 +85,7 @@ class AsignacionDocenteIntegracionIT {
     @Autowired private ProfesorRepository profesorRepository;
     @Autowired private AsignaturaRepository asignaturaRepository;
     @Autowired private ProgramaAcademicoRepository programaRepository;
+    @Autowired private FacultadRepository facultadRepository;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private TipoDocumentoRepository tipoDocumentoRepository;
     @Autowired private EstudianteRepository estudianteRepository;
@@ -112,6 +115,7 @@ class AsignacionDocenteIntegracionIT {
             p.setNombre(PREFIJO_PROGRAMA + UUID.randomUUID());
             p.setCodigo("ASD" + Math.abs(UUID.randomUUID().hashCode() % 100000));
             p.setEstado(EstadoRegistro.ACTIVO);
+            p.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
             programa = programaRepository.save(p);
         });
 

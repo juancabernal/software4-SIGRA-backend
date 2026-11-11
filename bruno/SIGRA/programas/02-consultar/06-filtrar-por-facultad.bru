@@ -1,0 +1,23 @@
+meta {
+  name: 06 Filtrar por facultad
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/programas?facultadId={{facultadPorDefectoId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("todos los devueltos son de la facultad pedida", function () {
+    expect(res.body).to.be.an("array").that.is.not.empty;
+    expect(res.body.every(p => p.facultadId === bru.getEnvVar("facultadPorDefectoId"))).to.equal(true);
+    expect(res.body.some(p => p.id === bru.getEnvVar("programaActivoId"))).to.equal(true);
+  });
+}

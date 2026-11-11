@@ -1,0 +1,32 @@
+meta {
+  name: 05 Renombrar sin facultadId conserva la facultad
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/programas/{{programaReasignarId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Programa Bruno Reasignado {{sufijoDestino}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("cambia el nombre y sigue en la facultad destino", function () {
+    expect(res.body.nombre).to.equal("Programa Bruno Reasignado " + bru.getVar("sufijoDestino"));
+    expect(res.body.facultadId).to.equal(bru.getVar("facultadDestinoId"));
+  });
+}

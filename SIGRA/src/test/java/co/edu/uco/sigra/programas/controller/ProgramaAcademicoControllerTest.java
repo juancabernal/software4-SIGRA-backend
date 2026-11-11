@@ -28,6 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Controlador de programas académicos")
 class ProgramaAcademicoControllerTest {
 
+    private static final UUID FACULTAD_ID = UUID.fromString("7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f");
+
     private static final String URL = "/api/v1/programas";
 
     @Mock
@@ -43,13 +45,13 @@ class ProgramaAcademicoControllerTest {
     }
 
     private static ProgramaResponseDTO programa(String codigo, String nombre, EstadoRegistro estado) {
-        return new ProgramaResponseDTO(UUID.randomUUID(), codigo, nombre, estado);
+        return new ProgramaResponseDTO(UUID.randomUUID(), codigo, nombre, FACULTAD_ID, "Facultad de Ingeniería", estado);
     }
 
     @Test
     @DisplayName("Sin filtro devuelve 200 con la lista de programas")
     void listaDeProgramas() throws Exception {
-        when(service.consultar(null, null, null)).thenReturn(List.of(
+        when(service.consultar(null, null, null, null)).thenReturn(List.of(
                 programa("DER", "Derecho", EstadoRegistro.ACTIVO),
                 programa("MED", "Medicina", EstadoRegistro.INACTIVO)));
 
@@ -65,7 +67,7 @@ class ProgramaAcademicoControllerTest {
     @Test
     @DisplayName("Sin programas devuelve 200 y una lista vacía")
     void listaVacia() throws Exception {
-        when(service.consultar(null, null, null)).thenReturn(List.of());
+        when(service.consultar(null, null, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get(URL))
                 .andExpect(status().isOk())
@@ -75,12 +77,36 @@ class ProgramaAcademicoControllerTest {
     @Test
     @DisplayName("El filtro de estado llega al servicio")
     void filtroLlegaAlServicio() throws Exception {
-        when(service.consultar(null, null, EstadoRegistro.ACTIVO)).thenReturn(List.of());
+        when(service.consultar(null, null, null, EstadoRegistro.ACTIVO)).thenReturn(List.of());
 
         mockMvc.perform(get(URL).param("estado", "ACTIVO"))
                 .andExpect(status().isOk());
 
-        verify(service).consultar(null, null, EstadoRegistro.ACTIVO);
+        verify(service).consultar(null, null, null, EstadoRegistro.ACTIVO);
+    }
+
+    @Test
+    @DisplayName("El filtro de facultad llega al servicio y la respuesta trae la facultad")
+    void filtroDeFacultadLlegaAlServicio() throws Exception {
+        when(service.consultar(null, null, FACULTAD_ID, null)).thenReturn(List.of(
+                programa("ISIS", "Ingeniería de Sistemas", EstadoRegistro.ACTIVO)));
+
+        mockMvc.perform(get(URL).param("facultadId", FACULTAD_ID.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].facultadId").value(FACULTAD_ID.toString()))
+                .andExpect(jsonPath("$[0].facultadNombre").value("Facultad de Ingeniería"));
+
+        verify(service).consultar(null, null, FACULTAD_ID, null);
+    }
+
+    @Test
+    @DisplayName("Una facultadId que no es UUID devuelve 400 y no llama al servicio")
+    void facultadIdInvalida() throws Exception {
+        mockMvc.perform(get(URL).param("facultadId", "no-es-uuid"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(service);
     }
 
     @Test

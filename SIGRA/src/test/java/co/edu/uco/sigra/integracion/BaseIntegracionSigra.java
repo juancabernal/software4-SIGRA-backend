@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.integracion;
 
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
@@ -70,6 +71,7 @@ public abstract class BaseIntegracionSigra {
     @Autowired protected AsignaturaRepository asignaturaRepository;
     @Autowired protected ResultadoAprendizajeRepository raRepository;
     @Autowired protected ProgramaAcademicoRepository programaRepository;
+    @Autowired protected FacultadRepository facultadRepository;
     @Autowired protected TipoDocumentoRepository tipoDocumentoRepository;
     @Autowired protected UsuarioRepository usuarioRepository;
     @Autowired protected SemestreRepository semestreRepository;
@@ -162,6 +164,7 @@ public abstract class BaseIntegracionSigra {
         ProgramaAcademico p = new ProgramaAcademico();
         p.setNombre(prefijo() + " Programa " + UUID.randomUUID().toString().substring(0, 8));
         p.setCodigo(prefijo() + ThreadLocalRandom.current().nextInt(100_000, 1_000_000));
+        p.setFacultad(FacultadesDePrueba.compartida(facultadRepository));
         return programaRepository.save(p);
     }
 

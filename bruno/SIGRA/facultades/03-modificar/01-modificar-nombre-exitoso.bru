@@ -1,0 +1,37 @@
+meta {
+  name: 01 Modificar nombre exitoso
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadCreadaId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Facultad Bruno Renombrada {{sufijoFacultad}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("facultadCreadaNombre", res.body.nombre);
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("cambia el nombre y conserva id y estado", function () {
+    expect(res.body.id).to.equal(bru.getVar("facultadCreadaId"));
+    expect(res.body.nombre).to.equal("Facultad Bruno Renombrada " + bru.getVar("sufijoFacultad"));
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+}

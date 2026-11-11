@@ -75,6 +75,9 @@ PostgreSQL. El frontend vive en un repositorio aparte.
     - [Modelo de dominio](#modelo-de-dominio)
     - [Modelado de datos](#modelado-de-datos)
     - [Arquitectura y solución](#arquitectura-y-solución)
+      - [Arquitectura de referencia](#arquitectura-de-referencia)
+      - [Arquetipo de referencia](#arquetipo-de-referencia)
+      - [Alternativa de solución](#alternativa-de-solución)
     - [Diagramas de clases y componentes](#diagramas-de-clases-y-componentes)
 - [Flujo de trabajo con Git](#flujo-de-trabajo-con-git)
   - [Convención de commits](#convención-de-commits)
@@ -138,10 +141,10 @@ Queda fuera del alcance del MVP: uso de IA para el análisis, carga de rúbricas
 
 | Integrante | Funcionalidad | Requisitos | Módulo |
 | --- | --- | --- | --- |
-| Jean Paul Ortiz | Asignación docente de asignaturas: asignación masiva, omisión informada de duplicados, servicio «asignaturas del profesor» | RF-07 | `profesores` |
+| Simón Tabares | Asignación docente de asignaturas: asignación masiva, omisión informada de duplicados, servicio «asignaturas del profesor» | RF-07 | `profesores` |
 | Andrés Vélez | Matrícula y desvinculación: unicidad (estudiante, asignatura, semestre), repitencia, conservación de calificaciones al desvincular | RF-08, RF-09 | `estudiantes` |
 | Juan José Narváez | Gestión de evaluaciones: suma de porcentajes ≤ 100 por (RA, semestre), bloqueo de fecha y % si ya hay notas | RF-10, RF-11 | `evaluaciones` |
-| Simón Tabares | Calificaciones y trazabilidad: nota 0.0–5.0, observación mínima de 10 caracteres, marca `fueraDeFecha` | RF-12, RF-13 | `calificaciones` |
+| Jean Paul Ortiz | Calificaciones y trazabilidad: nota 0.0–5.0, observación mínima de 10 caracteres, marca `fueraDeFecha` | RF-12, RF-13 | `calificaciones` |
 | Santiago Torres | Nivel de logro y estadísticas: catálogo de 4 rangos, recálculo automático, umbral de 3 calificaciones | RF-14, RF-15 | `estadisticas` |
 | Juan Camilo Bernal | Conclusiones automáticas: alerta cuando más del 40 % queda en Bajo o Medio, sin duplicar conclusiones vigentes | RF-16 | `estadisticas` |
 | José Alejandro Valencia | Historial de auditoría: servicio `registrarEvento`, tabla sin UPDATE ni DELETE, reporte paginado para ADMINISTRADOR | RF-19, RF-21c | `auditoria` |
@@ -448,6 +451,8 @@ Las pruebas se separan por etiqueta para saber siempre qué se ejecutó:
 | `integrationTest` | Pruebas con `@Tag("integration")`: `SigraContextIT` levanta el contexto completo | Sí, con `.env` válido |
 
 Las 5 pruebas de integración del módulo Asignaturas (casos, datos y limpieza con prefijo ITG) están en [docs/pruebas/asignaturas-integracion.md](docs/pruebas/asignaturas-integracion.md).
+
+Las pruebas del módulo Facultades (casos IT-01 a IT-08, datos y limpieza con prefijo ITF, y la facultad compartida que usan las demás pruebas) están en [docs/pruebas/facultades-integracion.md](docs/pruebas/facultades-integracion.md); requieren la migración [`docs/db/RF20_facultad_migration.sql`](docs/db/RF20_facultad_migration.sql).
 
 La matriz de pruebas de matrícula y la migración de `fecha_matricula`/`EstadoMatricula` están en
 [`docs/pruebas/matricula-integracion.md`](docs/pruebas/matricula-integracion.md) y
@@ -1066,6 +1071,11 @@ cada asignatura pertenece a exactamente un programa académico, conforme a RF-03
 registrar "el programa académico al que pertenece". La tabla intermedia no existe en el
 esquema. El MER refleja la decisión implementada.
 
+**Facultad (incidencia 0000036).** El diagrama es anterior a la incidencia 0000036 y todavía no
+muestra la **Facultad**. En el dominio implementado cada **ProgramaAcadémico** pertenece a
+exactamente una Facultad (relación muchos a uno), lo que permite agrupar y filtrar los
+programas por facultad. La imagen debe actualizarse para incluirla.
+
 ---
 [← Mapa de historias de usuario](#mapa-de-historias-de-usuario) · [Índice](#índice) · [Siguiente →](#objetos-de-dominio)
 
@@ -1084,12 +1094,13 @@ el equipo para cada uno.
 | **Conclusión** | Alerta automática que se genera cuando más del 40 % de los estudiantes obtiene un Nivel de Logro Bajo o Medio en un mismo Resultado de Aprendizaje. |
 | **Estudiante** | Persona matriculada en una o varias asignaturas, cuyo aprendizaje es evaluado por RA y que solo tiene acceso de lectura a sus propios resultados. |
 | **Evaluación** | Actividad definida por el profesor (nombre, fecha tentativa, porcentaje y descripción) mediante la cual se mide el desempeño de los estudiantes en un Resultado de Aprendizaje. |
+| **Facultad** | Unidad académica (por ejemplo, Facultad de Ingeniería) que agrupa uno o varios programas académicos. Puede estar Activa o Inactiva; no se inactiva mientras tenga programas activos. |
 | **HistorialAuditoría** | Registro histórico, de solo escritura (*append-only*), de los cambios y eventos relevantes ocurridos sobre las entidades académicas. |
 | **Matrícula** | Relación entre un estudiante y una asignatura en un periodo determinado, indicando si la vinculación está Activa o Desvinculada. |
 | **NivelLogro** | Categoría (Bajo, Medio, Alto o Sobresaliente) que resulta de calcular el desempeño de un estudiante en un Resultado de Aprendizaje a partir de sus calificaciones. |
 | **Profesor** | Persona encargada de evaluar el aprendizaje de los estudiantes en las asignaturas que tiene asignadas, mediante la creación de evaluaciones y el registro de calificaciones. |
 | **ProfesorAsignatura** | Asignación docente de uno o varios profesores a una o varias asignaturas para su evaluación. |
-| **ProgramaAcadémico** | Programa de formación (por ejemplo, Ingeniería de Sistemas) al cual pertenecen una o varias asignaturas. |
+| **ProgramaAcadémico** | Programa de formación (por ejemplo, Ingeniería de Sistemas) que pertenece a una facultad y al cual pertenecen una o varias asignaturas. |
 | **ResultadoAprendizaje** | Unidad de medida sobre la cual se evalúa el aprendizaje del estudiante dentro de una asignatura; es fijo por asignatura y solo editable por el Administrador. |
 | **Semestre** | Periodo académico (con fecha de inicio y fin) respecto al cual se generan y enmarcan las matrículas, evaluaciones y conclusiones. Los RA no varían de un semestre a otro. |
 | **TipoDocumento** | Tipos de identificación válidos para un usuario del sistema. |
@@ -1216,6 +1227,19 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 | Descripción | Contenido o alcance de la evaluación. | `Evaluación escrita sobre límites y continuidad` |
 | Estado | Condición actual de la evaluación. | `ACTIVA` |
 
+#### Facultad
+
+| Atributo | Descripción | Ejemplo |
+| --- | --- | --- |
+| Id | Identificador único de la facultad. | `7c8d…9e0f` |
+| Nombre | Nombre de la facultad. Único sin distinguir mayúsculas, hasta 150 caracteres. | `Facultad de Ingeniería` |
+| Estado | Condición actual de la facultad. Solo se inactiva si no tiene programas activos. | `ACTIVO` |
+
+> Los programas que existían antes de la incidencia 0000036 quedaron en la facultad
+> `Facultad sin asignar` (`fa00…0001`), creada por la migración
+> [`RF20_facultad_migration.sql`](docs/db/RF20_facultad_migration.sql); el Administrador los
+> reasigna a su facultad real modificando el programa.
+
 #### HistorialAuditoría
 
 | Atributo | Descripción | Ejemplo |
@@ -1283,7 +1307,8 @@ de ejemplo. Los identificadores se muestran como UUID abreviados por legibilidad
 | --- | --- | --- |
 | Id | Identificador único del programa académico. | `a0d0…0001` |
 | Nombre | Nombre del programa. Único, hasta 100 caracteres. | `Ingeniería de Sistemas` |
-| Código | Código único, alfanumérico, de 4 a 10 caracteres. | `ING-SIS` |
+| Código | Código único, alfanumérico, de 4 a 10 caracteres. Se guarda en mayúsculas y no se modifica. | `ING-SIS` |
+| Facultad | Facultad a la que pertenece. Obligatoria; al registrar o reasignar debe estar activa. | `Facultad de Ingeniería` |
 | Estado | Condición actual del programa. | `ACTIVO` |
 
 #### ResultadoAprendizaje
@@ -1343,6 +1368,13 @@ expresarse solo con relaciones.
   deduce de la tabla de subtipo en la que está, sin una columna de rol.
 - **Asignatura y programa.** La asignatura referencia directamente a un programa académico.
   Ni el código ni el programa son modificables después de creada (RF-03c).
+- **Programa y facultad (incidencia 0000036).** `programa_academico.facultad_id` es una clave
+  foránea obligatoria (`fk_programa_facultad`, con índice `idx_programa_facultad_id`) hacia
+  `facultad`, cuyo nombre es único (`uk_facultad_nombre`). A diferencia del código, la
+  facultad de un programa sí se puede cambiar, siempre hacia una facultad activa. Los
+  programas existentes se migraron a `Facultad sin asignar`
+  ([`RF20_facultad_migration.sql`](docs/db/RF20_facultad_migration.sql)). La imagen del MER es
+  anterior a este cambio y debe actualizarse para incluir la tabla `facultad`.
 - **Evaluación generada.** `AcciónMejora` referencia opcionalmente a la evaluación que se
   creó al convertirla. Esa referencia vacía es lo que distingue una acción convertible de
   una ya convertida.
@@ -1373,13 +1405,14 @@ columna, en [`docs/db/SIGRA_DATABASE_CURRENT.md`](docs/db/SIGRA_DATABASE_CURRENT
 | **conclusión** | Alertas automáticas generadas cuando el desempeño en un Resultado de Aprendizaje resulta insuficiente, con el diagnóstico que las originó. |
 | **estudiante** | Subtipo de usuario matriculado en asignaturas, cuyo aprendizaje se evalúa por Resultados de Aprendizaje. |
 | **evaluación** | Actividades definidas por un profesor para medir el desempeño de los estudiantes en un Resultado de Aprendizaje. |
+| **facultad** | Unidades académicas que agrupan los programas académicos, con su nombre único y estado. |
 | **historial_auditoría** | Eventos y cambios registrados sobre las entidades académicas, con fines de trazabilidad. |
 | **historial_calificación** | Versiones anteriores de una calificación, conservadas cada vez que se modifica. |
 | **matrícula** | Vinculación entre un estudiante y una asignatura en un semestre, con su fecha y estado. |
 | **nivel_logro_estudiante** | Nivel de logro calculado para cada estudiante en un RA y semestre, con su promedio ponderado. |
 | **profesor** | Subtipo de usuario encargado de crear evaluaciones y registrar calificaciones en sus asignaturas. |
 | **asignación_docente** | Asignación de un profesor a una asignatura, con su fecha y estado. |
-| **programa_académico** | Programas de formación a los cuales pertenecen las asignaturas. |
+| **programa_académico** | Programas de formación, cada uno dentro de una facultad, a los cuales pertenecen las asignaturas. |
 | **resultado_aprendizaje** | Unidades de medida sobre las cuales se evalúa el aprendizaje dentro de una asignatura. |
 | **semestre** | Periodos académicos, con su código y fechas de inicio y fin. |
 | **tipo_documento** | Tipos de documento de identidad disponibles para el registro de usuarios. |
@@ -1401,23 +1434,113 @@ _Pendiente de completar._
 ##### Arquitectura de referencia
 **Responsable:** José Alejandro Valencia
 
-_Pendiente de completar._
+La arquitectura de referencia de **SIGRA (Software Integral de Gestión de Resultados de Aprendizaje)** identifica los bloques de construcción, su responsabilidad, la diferencia entre componentes **adoptados** y **a construir**, y las relaciones necesarias para soportar la aplicación académica. Se plantea una **SPA web** conectada por **HTTPS/REST** con un **backend monolítico modular**, que mantiene la información institucional en **PostgreSQL**. El diseño incorpora capacidades complementarias de parametrización, mensajes, caché, monitoreo e integración continua sin exigir microservicios independientes.
+
+![Arquitectura de referencia de SIGRA: bloques de construcción y conexiones](docs/imagenes_documentacion/alejandro_valencia/arquitectura_referencia.png)
+
+**Convenciones del diagrama:** los bloques de color **ocre** representan componentes **adoptados** (herramientas o plataformas existentes); los de color **vinotinto**, componentes **a construir** específicamente para SIGRA. Las conexiones identifican el tipo de comunicación o integración. Los catálogos se representan como capacidades lógicas: **no implican por sí mismos despliegues separados del backend**.
+
+**Bloques de construcción identificados**
+
+| Componente | Clasificación | Tipo de bloque |
+| --- | --- | --- |
+| **SIGRA Frontend (Angular)** | A construir | Específico |
+| **SIGRA Backend (Spring Boot)** | A construir | Específico |
+| **SIGRA Database (PostgreSQL)** | Adoptado | Genérico |
+| **Parameter Catalog** | A construir | Específico |
+| **Message Catalog** | A construir | Específico |
+| **Caché de datos (Redis)** | Adoptado | Genérico |
+| **Monitoring Platform** | Adoptado | Genérico |
+| **CI/CD Pipeline** | Adoptado | Genérico |
+
+Todos los anteriores se consideran **bloques de construcción** del diseño; *específico* significa desarrollado para el dominio SIGRA y *genérico*, tecnología reutilizable. **Adoptado** no significa necesariamente **desplegado o habilitado** en el entorno actual.
+
+La **responsabilidad, tecnología y justificación de adopción o construcción** de cada bloque se presenta en [Alternativa de solución](#alternativa-de-solución). Las tecnologías y sus interfaces se detallan en [Arquetipo de referencia](#arquetipo-de-referencia).
 
 ---
 [← MR](#mr) · [Índice](#índice) · [Siguiente →](#arquetipo-de-referencia)
 
-##### Arquetipo de referencia
-**Responsable:** Por definir
 
-_Pendiente de completar._
+##### Arquetipo de referencia
+**Responsable:** José Alejandro Valencia
+
+El arquetipo concreta la arquitectura anterior en **tecnologías, interfaces y ubicaciones lógicas**. Representa cómo se comunicarían la aplicación Angular, el servicio Spring Boot, la base de datos y las capacidades complementarias. Es una **propuesta de diseño**, no una certificación de que todos los módulos o servicios estén hoy operativos.
+
+![Arquetipo de referencia de SIGRA con tecnologías e interfaces](docs/imagenes_documentacion/alejandro_valencia/arquetipo_referencia.png)
+
+**Tecnologías identificadas en el arquetipo**
+
+| Elemento | Tecnología indicada | Responsabilidad técnica |
+| --- | --- | --- |
+| Cliente web | **Angular 22.0.1**, Angular Material, Router, `HttpClient` | SPA para los tres roles; consume la API y gestiona navegación y presentación. |
+| Servidor de aplicación | **Java 25 / Spring Boot 4.1.1** (versión de Java propuesta en el diagrama) | Ejecuta el backend de SIGRA como un único despliegue modular. |
+| Seguridad y datos del backend | **Spring Security, JWT, Spring Data JPA, Actuator** | Autenticación, autorización, mapeo relacional y exposición de indicadores de salud/métricas. |
+| Servidor de base de datos | **PostgreSQL 18.6** (versión propuesta en el diagrama) | Persistencia transaccional y fuente de verdad. |
+| Caché | **Redis Community Edition / Spring Data Redis** | Caché opcional para las lecturas de los catálogos; comunicación de red TCP/IP. |
+| Catálogo de parámetros | **Módulo Spring Boot / Spring Data JPA / Spring Data Redis** | Gestión lógica de parámetros persistidos en PostgreSQL y, cuando se habilite, acelerados con Redis. |
+| Catálogo de mensajes | **Módulo Spring Boot / Spring Data JPA / Spring Data Redis** | Mensajes centralizados sin duplicar un despliegue independiente. |
+| Monitoreo | **Spring Boot Actuator/Micrometer, Prometheus y Grafana** | Publicación, recopilación y visualización de métricas del servicio. |
+| Automatización | **GitHub Actions** | Pipeline de validación y eventual entrega continua desde el repositorio. |
+
+**Flujos e interfaces representados**
+
+1. **Usuario → SIGRA Frontend:** Administrador, Profesor y Estudiante utilizan un navegador y acceden a la aplicación por **HTTPS** a través de Internet.
+2. **SIGRA Frontend → SIGRA Backend:** la SPA consume los endpoints por **HTTPS/REST**. El backend autentica los JWT y verifica la autorización en cada operación protegida.
+3. **SIGRA Backend → SIGRA Database:** la capa de persistencia utiliza **Spring Data JPA** y el protocolo de red **TCP/IP** para acceder a PostgreSQL.
+4. **SIGRA Backend ↔ caché Redis:** integración opcional mediante **Spring Data Redis**; los valores persistentes deben seguir consultándose en PostgreSQL si la caché no está disponible.
+5. **Catálogos de parámetros y mensajes:** se muestran interfaces lógicas en el diagrama, pero el diseño los define **dentro del backend**; los enlaces `API`/`HTTPS` no obligan a implementar microservicios.
+6. **Backend → plataforma de monitoreo:** la superficie de métricas de **Actuator/Micrometer** puede ser recolectada por Prometheus y visualizada desde Grafana, con acceso protegido según el entorno.
+7. **Repositorio → GitHub Actions:** el pipeline aplica compilación, pruebas y validaciones repetibles antes de integrar o desplegar cambios.
+
+**Alcance y diferencia entre la propuesta y el estado del repositorio.** Este arquetipo conserva las versiones que figuran en el material de arquitectura (**Java 25** y **PostgreSQL 18.6**), mientras que el [apartado Stack](#stack) del README documenta actualmente **Java 21 como toolchain** y **PostgreSQL 15 o superior**. Asimismo, la [sección de pendientes](#pendientes-conocidos-del-repositorio) indica que **Redis está deshabilitado temporalmente**. Por tanto, caché, catálogos configurables y plataforma completa de monitoreo deben entenderse como **componentes previstos** cuando no exista verificación explícita de su puesta en marcha. Esta documentación **no modifica** las versiones de compilación, dependencias ni infraestructura existentes.
 
 ---
 [← Arquitectura de referencia](#arquitectura-de-referencia) · [Índice](#índice) · [Siguiente →](#alternativa-de-solución)
 
 ##### Alternativa de solución
-**Responsable:** Por definir
+**Responsable:** José Alejandro Valencia
 
-_Pendiente de completar._
+Para SIGRA se propone una **aplicación web de un solo frontend Angular**, un **backend monolítico modular en Spring Boot** y **PostgreSQL como fuente de verdad**. La alternativa evita desplegar microfrontends o microservicios que no se justifican por el tamaño y alcance académico del proyecto. Los catálogos se modelan como capacidades lógicas del backend; Redis, Prometheus y Grafana son apoyos complementarios, no condiciones para que la aplicación funcione.
+
+A continuación se separan los componentes que **SIGRA debe construir** de las tecnologías **adoptadas**. Esta clasificación describe la decisión de arquitectura, no su estado de implementación o despliegue.
+
+**1. Componentes a construir (específicos de SIGRA)**
+
+| Componente | Responsabilidad y justificación |
+| --- | --- |
+| **SIGRA Frontend (Angular)** | Interfaz SPA para **Administrador, Profesor y Estudiante**. La propuesta utiliza **Angular 22.0.1**, Angular Router y *guards* por rol para navegación, `HttpClient` para consumir la API REST y Angular Material para interfaz y accesibilidad. Un único frontend reduce la complejidad operativa frente a microfrontends. |
+| **SIGRA Backend (Spring Boot)** | Concentra la lógica académica y publica una API REST. El arquetipo propone **Java 25 y Spring Boot 4.1.1**, con Spring Security + JWT para autenticación/autorización, Spring Data JPA para persistencia, Bean Validation para entradas y Actuator para observabilidad. Un **monolito modular** resulta suficiente para el volumen y alcance previstos. |
+| **Parameter Catalog** | Módulo lógico para centralizar parámetros configurables (por ejemplo, rangos de logro y umbrales). **Spring Data JPA** mantiene los valores en PostgreSQL y **Spring Data Redis** permitiría acelerar lecturas frecuentes cuando la caché esté habilitada. Evita constantes dispersas y admite trazabilidad de cambios. |
+| **Message Catalog** | Módulo lógico que centraliza mensajes funcionales, de validación y error. La propuesta contempla Spring Boot, **Spring Data JPA** y, de manera opcional, **Spring Data Redis**. Reduce duplicación y facilita el mantenimiento; los textos visuales propios de Angular pueden permanecer en el frontend. |
+
+**2. Componentes adoptados (tecnologías reutilizables)**
+
+| Componente | Responsabilidad y justificación |
+| --- | --- |
+| **SIGRA Database (PostgreSQL)** | Fuente de verdad relacional para programas, asignaturas, RA, estudiantes, matrículas, evaluaciones, calificaciones y auditoría. La referencia propone **PostgreSQL 18.6**. Sus transacciones ACID y restricciones mantienen integridad y consistencia sin introducir una base distribuida. |
+| **Caché de datos (Redis)** | **Redis Community Edition** como caché auxiliar de consultas frecuentes de los catálogos, con TTL e invalidación controlada. **No** reemplaza PostgreSQL y su indisponibilidad no debe impedir consultar la fuente de verdad. No se introduce para resolver una supuesta carga alta. |
+| **Monitoring Platform** | **Prometheus** recopilaría métricas publicadas mediante Actuator/Micrometer y **Grafana** las mostraría en paneles de disponibilidad, errores y latencia. La arquitectura limita su alcance a métricas y no presupone un sistema adicional de logs o trazas. |
+| **CI/CD Pipeline** | **GitHub Actions** para automatizar compilación, pruebas y controles de integración del frontend y backend, con trazabilidad de ejecuciones. Aprovecha el repositorio del equipo sin requerir un servidor propio de integración continua. |
+
+**Criterios de elección de la alternativa**
+
+- **Frontend único en lugar de microfrontends:** concentra navegación, accesibilidad y consumo de la API en una sola SPA Angular.
+- **Monolito modular en lugar de microservicios:** organiza la lógica académica por dominios y evita costos de operación y comunicación entre despliegues independientes.
+- **PostgreSQL como fuente de verdad:** prioriza integridad transaccional; la caché Redis, si se habilita, acelera consultas sin sustituir la persistencia.
+- **Catálogos internos en lugar de servicios separados:** mantienen parámetros y mensajes centralizados sin agregar infraestructura no requerida.
+- **Observabilidad y automatización proporcionales:** Actuator, métricas y GitHub Actions ayudan al seguimiento y la validación; Prometheus/Grafana se contemplan como integración del diseño.
+
+**Principios que orientan la selección**
+
+- **Simplicidad:** frontend único y backend monolítico modular, adecuados a un proyecto académico de alcance acotado; se evita la sobrecarga de microservicios.
+- **Seguridad por capas:** HTTPS hacia la API, tokens JWT y autorización por rol aplicada en el backend; los *guards* de Angular solo complementan la experiencia de usuario.
+- **Consistencia de datos:** PostgreSQL es la fuente de verdad incluso cuando se implemente la caché; las operaciones sensibles utilizan las garantías del motor relacional.
+- **Desacoplamiento lógico:** los catálogos son módulos dentro del backend y pueden evolucionar sin introducir servicios ni despliegues adicionales.
+- **Operabilidad proporcional:** métricas con Actuator/Prometheus/Grafana y automatización mediante GitHub Actions, sin agregar infraestructura que no justifique el proyecto.
+
+**Documentación de las tecnologías:** [Angular](https://angular.dev/overview) · [Spring Boot](https://spring.io/projects/spring-boot/) · [PostgreSQL](https://www.postgresql.org/about/) · [Spring Data JPA](https://spring.io/projects/spring-data-jpa) · [Spring Data Redis](https://spring.io/projects/spring-data-redis) · [Spring MessageSource](https://docs.spring.io/spring-framework/reference/core/beans/context-introduction.html#context-functionality-messagesource) · [Redis](https://redis.io/) · [Prometheus](https://prometheus.io/docs/introduction/overview/) · [Grafana](https://grafana.com/oss/) · [GitHub Actions](https://docs.github.com/en/actions).
+
+El [arquetipo de referencia](#arquetipo-de-referencia) distingue las versiones **propuestas en los diagramas** de las versiones **actualmente documentadas en el stack del repositorio**. Ninguna decisión expuesta aquí supone que Redis o la plataforma completa de monitoreo estén desplegados.
 
 ---
 [← Arquetipo de referencia](#arquetipo-de-referencia) · [Índice](#índice) · [Siguiente →](#diagrama-de-clases)
@@ -1425,41 +1548,105 @@ _Pendiente de completar._
 #### Diagramas de clases y componentes
 
 ##### Diagrama de clases
+
 **Responsable:** Jean Paul Ortiz
 
-_Pendiente de completar._
+El diagrama de clases de SIGRA representa la estructura estática del sistema, identificando las principales clases del dominio, sus atributos, operaciones y relaciones. Su propósito es mostrar cómo se organizan los elementos académicos y cómo se relacionan los usuarios, las evaluaciones y el seguimiento de los resultados de aprendizaje.
+
+![Diagrama de clases de SIGRA](docs/imagenes_documentacion/jean_ortiz/diagrama_clases.png)
+
+**Cómo leerlo.** El modelo incluye la jerarquía de usuarios (`Usuario`, `Administrador`, `Profesor` y `Estudiante`), los catálogos y estados que apoyan las reglas de negocio, y las entidades que participan en el proceso académico. Entre ellas se encuentran `ProgramaAcademico`, `Asignatura`, `AsignacionDocente`, `Matricula`, `Evaluacion`, `Calificacion`, `ResultadoAprendizaje`, `NivelLogro`, `Conclusion` y `AccionMejora`.
+
+Las asociaciones muestran cómo se vinculan los profesores y estudiantes con las asignaturas, cómo se registran las evaluaciones y calificaciones, y cómo los resultados obtenidos pueden dar lugar a conclusiones y acciones de mejora. `HistorialAuditoria` representa el registro de los eventos relevantes del sistema. Los símbolos de visibilidad permiten distinguir atributos y operaciones públicas, privadas o protegidas, mientras que las multiplicidades indican cuántas instancias pueden participar en cada relación.
+
+**Diferencias conocidas entre el modelo y la implementación.** El diagrama debe interpretarse como un modelo de diseño y contrastarse con el código y el esquema de base de datos vigentes. El README documenta, por ejemplo, que la relación entre asignatura y programa académico se implementa mediante una clave foránea directa en `Asignatura`, y no mediante una entidad intermedia `AsignaturaPrograma`. También registra una diferencia pendiente sobre la modificación del tipo y número de documento de los profesores, y que la entidad `Facultad` (incidencia 0000036), con su relación muchos a uno desde `ProgramaAcademico`, existe en el código pero aún no aparece en el diagrama. Estas diferencias deben mantenerse explícitas hasta que el equipo unifique las decisiones de diseño e implementación.
 
 ---
 [← Alternativa de solución](#alternativa-de-solución) · [Índice](#índice) · [Siguiente →](#diagrama-de-componentes--back-end)
 
 ##### Diagrama de componentes — back end
+
 **Responsable:** Jean Paul Ortiz
 
-_Pendiente de completar._
+El diagrama de componentes del backend presenta la organización de los elementos que conforman los servicios del servidor de SIGRA y las dependencias entre ellos. Representa el componente principal de la API, las tecnologías utilizadas para implementar la lógica de negocio, los módulos internos y los servicios externos de persistencia y caché contemplados en la arquitectura.
+
+![Diagrama de componentes del backend de SIGRA](docs/imagenes_documentacion/jean_ortiz/diagrama_componentes_backend.png)
+
+**Cómo leerlo.** El componente `SIGRA-Backend` agrupa las funcionalidades del servidor y utiliza Java y Spring Boot como plataforma de desarrollo. Los componentes de acceso web, persistencia, seguridad y validación proporcionan las capacidades necesarias para exponer servicios REST, consultar y guardar información, proteger los endpoints y validar los datos recibidos.
+
+Los componentes propios, como `CrossCutting` y el módulo de auditoría, representan funcionalidades reutilizables y transversales. El diseño también contempla `Parameter Catalog` y `Message Catalog` para centralizar parámetros y mensajes, además de PostgreSQL para la persistencia y Redis como mecanismo de caché previsto para determinadas consultas.
+
+**Alcance de la arquitectura.** El diagrama describe los componentes previstos en el diseño y no implica que todos estén habilitados en el entorno actual. En particular, el README registra que Redis está deshabilitado temporalmente y que PostgreSQL se documenta como versión 15 o superior para el repositorio. Por ello, las versiones y los servicios que aparecen en el diagrama deben contrastarse con las dependencias y la configuración vigentes antes de considerarlos parte de la implementación desplegada.
 
 ---
 [← Diagrama de clases](#diagrama-de-clases) · [Índice](#índice) · [Siguiente →](#componentes--back-end)
 
 ##### Componentes — back end
+
 **Responsable:** Jean Paul Ortiz
 
-_Pendiente de completar._
+El inventario del backend describe los componentes tecnológicos y propios considerados para construir los servicios de SIGRA. Para facilitar su consulta, se presentan su función principal, las dependencias declaradas en el diseño y su clasificación.
+
+| Componente | Función principal | Dependencias declaradas | Tipo |
+|---|---|---|---|
+| `SIGRA-Backend 0.0.1-SNAPSHOT` | Publica los servicios REST para el catálogo académico, matrícula, evaluaciones, calificaciones, análisis y reportes. | Java 21; Spring Boot 4.1.1 y componentes asociados | Componente a desarrollar |
+| Java 21 | Plataforma base de desarrollo del backend. | Plataforma base | Lenguaje/plataforma |
+| Spring Boot 4.1.1 | Configura la aplicación y gestiona las dependencias del framework. | Java 21 | Framework |
+| `spring-boot-starter-web 4.1.1` | Expone controladores REST y gestiona solicitudes HTTP y respuestas JSON. | Spring Boot 4.1.1 | Framework |
+| `spring-boot-starter-data-jpa 4.1.1` | Facilita la persistencia mediante entidades y repositorios. | Spring Boot 4.1.1; PostgreSQL JDBC | Framework |
+| `spring-boot-starter-security 4.1.1` | Protege los servicios y aplica autenticación y autorización. | Spring Boot 4.1.1; JJWT | Framework |
+| `jjwt-api 0.13.0` | Permite generar y validar tokens JWT. | Java 21 | Librería |
+| `spring-boot-starter-validation 4.1.1` | Aplica validaciones a los datos de entrada. | Spring Boot 4.1.1 | Framework |
+| `springdoc-openapi-starter-webmvc-ui 3.1.0` | Genera la documentación OpenAPI y proporciona Swagger UI. | Spring Web MVC | Librería de documentación |
+| `spring-boot-starter-actuator 4.1.1` | Expone información de salud y monitoreo operacional. | Spring Boot 4.1.1 | Framework |
+| `spring-boot-starter-data-redis 4.1.1` | Proporciona integración con Redis para operaciones de caché. | Spring Boot 4.1.1; Redis | Framework |
+| PostgreSQL 18.6 | Motor relacional propuesto para almacenar los datos del sistema. | Servicio de base de datos | Servicio externo |
+| `mapstruct 1.6.3` | Genera mapeos entre DTO y entidades en tiempo de compilación. | Java 21 | Librería |
+| `lombok 1.18.42` | Reduce código repetitivo mediante anotaciones. | Java 21 | Librería |
+| `CrossCutting 0.0.1-SNAPSHOT` | Centraliza utilidades compartidas, respuestas estándar y manejo de excepciones. | Java 21 | Componente propio |
+| `Módulo de Auditoría 0.0.1-SNAPSHOT` | Registra los eventos relevantes del sistema mediante un historial de auditoría de solo adición. | Spring Data JPA | Componente propio |
+| `Parameter Catalog 0.0.1-SNAPSHOT` | Centraliza los parámetros funcionales y configurables de SIGRA. | Spring Data JPA; Spring Data Redis; PostgreSQL; Redis | Componente propio |
+| `Message Catalog 0.0.1-SNAPSHOT` | Centraliza mensajes funcionales, de validación y de error. | Spring Data JPA; Spring Data Redis; PostgreSQL; Redis | Componente propio |
+| Redis Community Edition | Proporciona caché en memoria para consultas frecuentes a parámetros y mensajes. | Parameter Catalog; Message Catalog | Servicio externo de caché |
+
+**Consideraciones sobre las versiones.** Este inventario conserva las versiones declaradas en la hoja de componentes del Excel. No todas deben interpretarse como dependencias instaladas o servicios activos en el repositorio actual. El README registra Java 21 como *toolchain*, PostgreSQL 15 o superior y Redis temporalmente deshabilitado. Asimismo, la versión de `springdoc-openapi` consignada en el inventario es 3.1.0, mientras que el apartado Stack del README indica 3.1.1. Antes de la entrega final, verifica las versiones efectivas en `build.gradle` y la configuración de infraestructura, y unifica la documentación donde corresponda.
 
 ---
 [← Diagrama de componentes — back end](#diagrama-de-componentes--back-end) · [Índice](#índice) · [Siguiente →](#diagrama-de-componentes--front-end)
 
 ##### Diagrama de componentes — front end
-**Responsable:** Por definir
 
-_Pendiente de completar._
+**Responsable:** Jean Paul Ortiz
+
+El diagrama de componentes del frontend representa la aplicación cliente de SIGRA y las principales dependencias utilizadas para construir la interfaz de usuario. El componente principal `SIGRA-FrontEnd` agrupa las funcionalidades de presentación, navegación y comunicación con los servicios del backend.
+
+![Diagrama de componentes del frontend de SIGRA](docs/imagenes_documentacion/jean_ortiz/diagrama_componentes_frontend.png)
+
+**Cómo leerlo.** El componente principal se apoya en Angular para construir la aplicación de página única (SPA). Angular Router permite definir rutas y controlar el acceso a las vistas según el rol; Angular Common HTTP gestiona las solicitudes al backend; RxJS facilita el manejo de operaciones asíncronas, y Angular Material proporciona componentes de interfaz basados en Material Design.
+
+El diagrama diferencia los componentes internos de SIGRA de las dependencias externas que apoyan su funcionamiento. La autenticación y autorización efectivas deben seguir siendo verificadas por el backend; los controles de navegación del frontend complementan esta protección, pero no la sustituyen.
+
+**Alcance.** Las versiones mostradas corresponden al inventario de componentes del Excel. Deben contrastarse con el archivo `package.json` y el archivo de bloqueo de dependencias del frontend antes de considerarlas versiones efectivamente instaladas.
 
 ---
 [← Componentes — back end](#componentes--back-end) · [Índice](#índice) · [Siguiente →](#componentes--front-end)
 
 ##### Componentes — front end
-**Responsable:** Por definir
 
-_Pendiente de completar._
+**Responsable:** Jean Paul Ortiz
+
+El inventario del frontend describe el componente principal de la aplicación y las bibliotecas que utiliza para construir la interfaz, administrar la navegación y comunicarse con el backend.
+
+| Componente | Función principal | Dependencias declaradas | Tipo |
+|---|---|---|---|
+| `SIGRA-Frontend 0.0.1` | Aplicación SPA que presenta los módulos para Administrador, Profesor y Estudiante, gestiona la sesión y consume la API. | `@angular/core 22.0.1`; `@angular/router 22.0.1`; `@angular/common/http 22.0.1`; `rxjs 7.8.2`; `@angular/material 22.0.1` | Componente a desarrollar |
+| `@angular/core 22.0.1` | Framework base para crear componentes, servicios y gestionar el ciclo de vida de la aplicación. | Base de Angular | Framework |
+| `@angular/router 22.0.1` | Gestiona las rutas, la navegación y los guards de acceso a las vistas. | `@angular/core 22.0.1` | Framework |
+| `@angular/common/http 22.0.1` | Proporciona el cliente HTTP para consumir los servicios del backend. | `rxjs 7.8.2` | Librería |
+| `rxjs 7.8.2` | Facilita el manejo de flujos asíncronos y observables. | — | Librería |
+| `@angular/material 22.0.1` | Proporciona componentes visuales basados en Material Design y herramientas de accesibilidad. | `@angular/core 22.0.1` | Framework de interfaz |
+
+**Consideraciones sobre las versiones.** Las versiones anteriores se transcriben del inventario de arquitectura. Deben verificarse con `package.json` y el archivo de bloqueo de dependencias del frontend para asegurar que coincidan con el proyecto implementado. La restricción de acceso por roles debe validarse también en los endpoints del backend, independientemente de los guards del cliente.
 
 ---
 [← Diagrama de componentes — front end](#diagrama-de-componentes--front-end) · [Índice](#índice)

@@ -1,0 +1,32 @@
+meta {
+  name: 06 Sin nombre
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/facultades
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body).to.have.property("detalles");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

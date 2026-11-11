@@ -1,0 +1,22 @@
+meta {
+  name: 04 Filtrar por la facultad destino
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/programas?facultadId={{facultadDestinoId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("solo aparece el programa reasignado", function () {
+    expect(res.body).to.have.lengthOf(1);
+    expect(res.body[0].id).to.equal(bru.getVar("programaReasignarId"));
+  });
+}

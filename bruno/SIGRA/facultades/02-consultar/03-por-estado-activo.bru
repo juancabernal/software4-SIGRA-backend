@@ -1,0 +1,22 @@
+meta {
+  name: 03 Por estado ACTIVO
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/facultades?estado=ACTIVO
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("todas las devueltas estan ACTIVAS", function () {
+    expect(res.body.every(f => f.estado === "ACTIVO")).to.equal(true);
+    expect(res.body.some(f => f.id === bru.getVar("facultadCreadaId"))).to.equal(true);
+  });
+}

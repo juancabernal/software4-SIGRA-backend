@@ -1,0 +1,34 @@
+meta {
+  name: 01 Crear facultad destino
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/facultades
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Facultad Bruno Destino {{sufijoDestino}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("sufijoDestino", String(Date.now()).slice(-7));
+}
+
+script:post-response {
+  bru.setVar("facultadDestinoId", res.body.id);
+  bru.setVar("facultadDestinoNombre", res.body.nombre);
+}
+
+assert {
+  res.status: eq 201
+}

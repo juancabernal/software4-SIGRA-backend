@@ -1,0 +1,31 @@
+meta {
+  name: 03-login-estudiante
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "correoInstitucional": "{{authCorreoEstudiante}}",
+    "contrasena": "{{authPasswordCorrecto}}"
+  }
+}
+
+script:pre-request {
+  req.deleteHeader("Authorization");
+}
+
+assert {
+  res.status: eq 200
+  res.body.usuario.rol: eq ESTUDIANTE
+}
+
+script:post-response {
+  bru.setVar("tokenEstudiante", res.body.token);
+}

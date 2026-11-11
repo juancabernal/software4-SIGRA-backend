@@ -1,0 +1,33 @@
+meta {
+  name: 05 Id inexistente
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/v1/facultades/{{idFacultadInexistente}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Facultad Bruno Fantasma"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}
