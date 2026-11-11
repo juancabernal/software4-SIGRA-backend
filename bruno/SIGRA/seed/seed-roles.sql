@@ -34,15 +34,21 @@ BEGIN
                (SELECT id FROM sigra.tipo_documento ORDER BY nombre LIMIT 1))
       INTO v_tipo_doc_id;
 
-    INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional,
+    INSERT INTO sigra.usuario (id, tipo_documento_id,
+                               primer_nombre, segundo_nombre, primer_apellido, segundo_apellido,
+                               correo_institucional,
                                password_hash, estado, intentos_fallidos, fecha_bloqueo)
-    VALUES ('00000000-0000-4000-e000-000000000010', v_tipo_doc_id, 'Administrador Bruno',
+    VALUES ('00000000-0000-4000-e000-000000000010', v_tipo_doc_id,
+            'Administrador', NULL, 'Bruno', 'S/D',
             'admin.bruno@uco.net.co', v_hash, 'ACTIVO', 0, NULL);
     INSERT INTO sigra.administrador (id) VALUES ('00000000-0000-4000-e000-000000000010');
 
-    INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional,
+    INSERT INTO sigra.usuario (id, tipo_documento_id,
+                               primer_nombre, segundo_nombre, primer_apellido, segundo_apellido,
+                               correo_institucional,
                                password_hash, estado, intentos_fallidos, fecha_bloqueo)
-    VALUES ('00000000-0000-4000-e000-000000000011', v_tipo_doc_id, 'Estudiante Bruno',
+    VALUES ('00000000-0000-4000-e000-000000000011', v_tipo_doc_id,
+            'Estudiante', NULL, 'Bruno', 'S/D',
             'estudiante.bruno@uco.net.co', v_hash, 'ACTIVO', 0, NULL);
     INSERT INTO sigra.estudiante (id, numero_documento)
     VALUES ('00000000-0000-4000-e000-000000000011', '1122334455');

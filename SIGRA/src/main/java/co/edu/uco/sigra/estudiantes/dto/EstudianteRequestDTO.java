@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.dto;
 
+import co.edu.uco.sigra.common.util.NombresPersona;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,14 +19,28 @@ public record EstudianteRequestDTO(
         @Pattern(regexp = "\\d{6,10}", message = "El número de documento debe tener entre 6 y 10 dígitos numéricos")
         String numeroDocumento,
 
-        @Schema(description = "Nombre completo del estudiante", example = "Mariana Gómez Restrepo")
-        @NotBlank(message = "El nombre completo es obligatorio")
-        @Size(min = 3, max = 150, message = "El nombre completo debe tener entre 3 y 150 caracteres")
-        @Pattern(
-                regexp = "^\\p{L}+(?:\\s\\p{L}+)*$",
-                message = "El nombre completo solo puede contener letras y un único espacio entre cada palabra"
-        )
-        String nombreCompleto,
+        @Schema(description = "Primer nombre (una sola palabra, sin espacios)", example = "Mariana")
+        @NotBlank(message = "El primer nombre es obligatorio")
+        @Size(min = 1, max = 50, message = "El primer nombre debe tener entre 1 y 50 caracteres")
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String primerNombre,
+
+        @Schema(description = "Segundo nombre opcional (una sola palabra, sin espacios)", example = "Lucía")
+        @Size(max = 50, message = "El segundo nombre debe tener máximo 50 caracteres")
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String segundoNombre,
+
+        @Schema(description = "Primer apellido (una sola palabra, sin espacios)", example = "Gómez")
+        @NotBlank(message = "El primer apellido es obligatorio")
+        @Size(min = 1, max = 50, message = "El primer apellido debe tener entre 1 y 50 caracteres")
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String primerApellido,
+
+        @Schema(description = "Segundo apellido (una sola palabra, sin espacios)", example = "Restrepo")
+        @NotBlank(message = "El segundo apellido es obligatorio")
+        @Size(min = 1, max = 50, message = "El segundo apellido debe tener entre 1 y 50 caracteres")
+        @Pattern(regexp = NombresPersona.PATRON_PARTE, message = NombresPersona.MENSAJE_PARTE)
+        String segundoApellido,
 
         @Schema(description = "Correo institucional, dominio @uco.net.co", example = "mariana.gomez@uco.net.co")
         @NotBlank(message = "El correo institucional es obligatorio")

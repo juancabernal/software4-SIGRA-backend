@@ -154,15 +154,15 @@ BEGIN
         RAISE EXCEPTION 'Seed abortado: no existe el tipo de documento Cédula de Ciudadanía';
     END IF;
 
-    INSERT INTO sigra.usuario (id, tipo_documento_id, nombre_completo, correo_institucional, estado) VALUES
-      ('00000000-0000-4000-f300-000000000001', v_tipo_doc_id, 'Bruno Registrado Original',          'bruno.registrado@uco.net.co',       'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000002', v_tipo_doc_id, 'Bruno Esperanza Quintero Consulta',  'bruno.consulta@uco.net.co',         'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000003', v_tipo_doc_id, 'Bruno Modificar Original',           'bruno.modificar@uco.net.co',        'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000004', v_tipo_doc_id, 'Bruno Otro Correo',                  'bruno.otrocorreo@uco.net.co',       'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000005', v_tipo_doc_id, 'Bruno Matricula Valida',             'bruno.matricula@uco.net.co',        'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000006', v_tipo_doc_id, 'Bruno Matricula Inactivo',           'bruno.inactivo@uco.net.co',         'INACTIVO'),
-      ('00000000-0000-4000-f300-000000000007', v_tipo_doc_id, 'Bruno Listado Matriculados',         'bruno.listado@uco.net.co',          'ACTIVO'),
-      ('00000000-0000-4000-f300-000000000008', v_tipo_doc_id, 'Bruno Confirmacion Desvincular',     'bruno.confirmacion@uco.net.co',     'ACTIVO');
+    INSERT INTO sigra.usuario (id, tipo_documento_id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, correo_institucional, estado) VALUES
+      ('00000000-0000-4000-f300-000000000001', v_tipo_doc_id, 'Bruno', NULL, 'Registrado', 'Original',          'bruno.registrado@uco.net.co',       'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000002', v_tipo_doc_id, 'Bruno', 'Esperanza', 'Quintero', 'Consulta',  'bruno.consulta@uco.net.co',         'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000003', v_tipo_doc_id, 'Bruno', NULL, 'Modificar', 'Original',           'bruno.modificar@uco.net.co',        'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000004', v_tipo_doc_id, 'Bruno', NULL, 'Otro', 'Correo',                  'bruno.otrocorreo@uco.net.co',       'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000005', v_tipo_doc_id, 'Bruno', NULL, 'Matricula', 'Valida',             'bruno.matricula@uco.net.co',        'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000006', v_tipo_doc_id, 'Bruno', NULL, 'Matricula', 'Inactivo',           'bruno.inactivo@uco.net.co',         'INACTIVO'),
+      ('00000000-0000-4000-f300-000000000007', v_tipo_doc_id, 'Bruno', NULL, 'Listado', 'Matriculados',         'bruno.listado@uco.net.co',          'ACTIVO'),
+      ('00000000-0000-4000-f300-000000000008', v_tipo_doc_id, 'Bruno', NULL, 'Confirmacion', 'Desvincular',     'bruno.confirmacion@uco.net.co',     'ACTIVO');
 
     INSERT INTO sigra.estudiante (id, numero_documento) VALUES
       ('00000000-0000-4000-f300-000000000001', '1000000001'),
@@ -192,7 +192,9 @@ INSERT INTO sigra.matricula (id, estudiante_id, asignatura_id, semestre_id, fech
 COMMIT;
 
 -- Resumen
-SELECT e.numero_documento, u.nombre_completo, u.correo_institucional, u.estado
+SELECT e.numero_documento,
+       concat_ws(' ', u.primer_nombre, u.segundo_nombre, u.primer_apellido, u.segundo_apellido) AS nombre_completo,
+       u.correo_institucional, u.estado
   FROM sigra.estudiante e
   JOIN sigra.usuario u ON u.id = e.id
  WHERE e.id::text LIKE '00000000-0000-4000-f300-%'

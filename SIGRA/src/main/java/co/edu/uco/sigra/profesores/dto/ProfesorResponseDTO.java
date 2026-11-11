@@ -19,7 +19,19 @@ public record ProfesorResponseDTO(
         @Schema(description = "Número de documento", example = "1098765432")
         String numeroDocumento,
 
-        @Schema(description = "Nombre completo", example = "Ana Gómez")
+        @Schema(description = "Primer nombre", example = "Ana")
+        String primerNombre,
+
+        @Schema(description = "Segundo nombre opcional", example = "María")
+        String segundoNombre,
+
+        @Schema(description = "Primer apellido", example = "Gómez")
+        String primerApellido,
+
+        @Schema(description = "Segundo apellido", example = "López")
+        String segundoApellido,
+
+        @Schema(description = "Nombre completo derivado", example = "Ana María Gómez López")
         String nombreCompleto,
 
         @Schema(description = "Correo institucional, en minúsculas", example = "ana.gomez@uco.net.co")

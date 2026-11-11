@@ -62,7 +62,9 @@ class ProfesorControllerTest {
             {
               "tipoDocumentoId": "6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05",
               "numeroDocumento": "1098765432",
-              "nombreCompleto": "Ana Gómez",
+              "primerNombre": "Ana",
+              "primerApellido": "Gómez",
+              "segundoApellido": "López",
               "correoInstitucional": "ana.gomez@uco.net.co"
             }
             """;
@@ -75,7 +77,8 @@ class ProfesorControllerTest {
 
     private static ProfesorResponseDTO respuestaDeAna(UUID id) {
         return new ProfesorResponseDTO(
-                id, ID_TIPO_DOCUMENTO, "Cédula de Ciudadanía", "1098765432", "Ana Gómez", "ana.gomez@uco.net.co",
+                id, ID_TIPO_DOCUMENTO, "Cédula de Ciudadanía", "1098765432", "Ana", null, "Gómez", "López",
+                "Ana Gómez López", "ana.gomez@uco.net.co",
                 "ACTIVO", false);
     }
 
@@ -103,7 +106,7 @@ class ProfesorControllerTest {
                     .andExpect(jsonPath("$.id").value(ID.toString()))
                     .andExpect(jsonPath("$.tipoDocumentoId").value(ID_TIPO_DOCUMENTO.toString()))
                     .andExpect(jsonPath("$.numeroDocumento").value("1098765432"))
-                    .andExpect(jsonPath("$.nombreCompleto").value("Ana Gómez"))
+                    .andExpect(jsonPath("$.nombreCompleto").value("Ana Gómez López"))
                     .andExpect(jsonPath("$.correoInstitucional").value("ana.gomez@uco.net.co"))
                     .andExpect(jsonPath("$.estado").value("ACTIVO"))
                     .andExpect(jsonPath("$.tieneAsignacionesActivas").value(false));
@@ -140,17 +143,17 @@ class ProfesorControllerTest {
         }
 
         @Test
-        @DisplayName("Nombre vacío devuelve 400 señalando el campo")
+        @DisplayName("Primer nombre vacío devuelve 400 señalando el campo")
         void nombreVacio() throws Exception {
             MvcResult resultado = mockMvc.perform(post(RUTA)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(cuerpoCon("nombreCompleto", "\"\"")))
+                            .content(cuerpoCon("primerNombre", "\"\"")))
                     .andReturn();
 
             JsonNode cuerpo = AsercionesContratoError.verificarContratoConDetalles(
                     resultado, HttpStatus.BAD_REQUEST);
 
-            assertThat(cuerpo.get("detalles").toString()).contains("nombreCompleto");
+            assertThat(cuerpo.get("detalles").toString()).contains("primerNombre");
             verifyNoInteractions(profesorService);
         }
 
@@ -160,7 +163,9 @@ class ProfesorControllerTest {
             String cuerpoSinTipo = """
                     {
                       "numeroDocumento": "1098765432",
-                      "nombreCompleto": "Ana Gómez",
+                      "primerNombre": "Ana",
+                      "primerApellido": "Gómez",
+                      "segundoApellido": "López",
                       "correoInstitucional": "ana.gomez@uco.net.co"
                     }
                     """;

@@ -85,12 +85,13 @@ BEGIN
 
     -- 3. Usuario 1 (Profesor normal para login exitoso)
     INSERT INTO sigra.usuario (
-        id, tipo_documento_id, nombre_completo, correo_institucional,
+        id, tipo_documento_id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido,
+        correo_institucional,
         password_hash, estado, intentos_fallidos, fecha_bloqueo
     ) VALUES (
         '00000000-0000-4000-e000-000000000001',
         v_tipo_doc_id,
-        'Profesor Bruno',
+        'Profesor', NULL, 'Bruno', 'S/D',
         'profesor.bruno@uco.net.co',
         v_hash,
         'ACTIVO',
@@ -103,12 +104,13 @@ BEGIN
 
     -- 4. Usuario 2 (Profesor para pruebas de intentos fallidos y bloqueo)
     INSERT INTO sigra.usuario (
-        id, tipo_documento_id, nombre_completo, correo_institucional,
+        id, tipo_documento_id, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido,
+        correo_institucional,
         password_hash, estado, intentos_fallidos, fecha_bloqueo
     ) VALUES (
         '00000000-0000-4000-e000-000000000002',
         v_tipo_doc_id,
-        'Profesor Pruebas Bloqueo',
+        'Profesor', NULL, 'Pruebas', 'Bloqueo',
         'profesor.bloqueo@uco.net.co',
         v_hash,
         'ACTIVO',

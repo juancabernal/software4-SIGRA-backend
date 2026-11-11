@@ -4,6 +4,7 @@ import co.edu.uco.sigra.common.entity.TipoDocumento;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.common.util.Correos;
+import co.edu.uco.sigra.common.util.NombresPersona;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,8 +28,17 @@ public abstract class Usuario {
     @JoinColumn(name = "tipo_documento_id", nullable = false)
     private TipoDocumento tipoDocumento;
 
-    @Column(name = "nombre_completo", nullable = false)
-    private String nombreCompleto;
+    @Column(name = "primer_nombre", nullable = false, length = 50)
+    private String primerNombre;
+
+    @Column(name = "segundo_nombre", length = 50)
+    private String segundoNombre;
+
+    @Column(name = "primer_apellido", nullable = false, length = 50)
+    private String primerApellido;
+
+    @Column(name = "segundo_apellido", nullable = false, length = 50)
+    private String segundoApellido;
 
     @Column(name = "correo_institucional", unique = true, nullable = false)
     private String correoInstitucional;
@@ -49,12 +59,20 @@ public abstract class Usuario {
     @Transient
     public abstract RolUsuario getRol();
 
-    // Garantiza que el correo se persista siempre normalizado, sin importar quién llame al repositorio.
-    // No convierte un correo nulo: la restricción nullable = false sigue rechazándolo.
+    /** Nombre para mostrar (concatenación de las partes no vacías). No se persiste. */
+    @Transient
+    public String getNombreCompleto() {
+        return NombresPersona.completo(primerNombre, segundoNombre, primerApellido, segundoApellido);
+    }
+
     @PrePersist
     @PreUpdate
-    void normalizarCorreoInstitucional() {
+    void normalizarCamposUsuario() {
         this.correoInstitucional = Correos.normalizar(this.correoInstitucional);
+        this.primerNombre = NombresPersona.blankToNull(this.primerNombre);
+        this.segundoNombre = NombresPersona.blankToNull(this.segundoNombre);
+        this.primerApellido = NombresPersona.blankToNull(this.primerApellido);
+        this.segundoApellido = NombresPersona.blankToNull(this.segundoApellido);
     }
 
     public void registrarIntentoFallido(LocalDateTime ahora, int maxIntentos) {
