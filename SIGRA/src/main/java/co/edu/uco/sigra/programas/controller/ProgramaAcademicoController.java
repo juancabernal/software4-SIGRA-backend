@@ -57,7 +57,7 @@ public class ProgramaAcademicoController {
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de programas.
     private static final String EJ_PROGRAMA_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un programa académico con el identificador " + ID_EJEMPLO + "\"}";
+                    + "\"mensaje\":\"No existe el programa académico indicado.\"}";
 
     private static final String EJ_NOMBRE_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","

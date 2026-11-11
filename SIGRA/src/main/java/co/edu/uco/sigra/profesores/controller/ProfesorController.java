@@ -52,11 +52,11 @@ public class ProfesorController {
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de profesores.
     private static final String EJ_PROFESOR_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No se encontró el profesor con id " + ID_EJEMPLO + "\"}";
+                    + "\"mensaje\":\"No se encontró el profesor indicado.\"}";
 
     private static final String EJ_TIPO_DOCUMENTO_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No se encontró el tipo de documento con id 6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05\"}";
+                    + "\"mensaje\":\"No se encontró el tipo de documento indicado.\"}";
 
     private static final String EJ_DOCUMENTO_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
@@ -72,8 +72,7 @@ public class ProfesorController {
 
     private static final String EJ_ASIGNACIONES_ACTIVAS =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
-                    + "\"mensaje\":\"No se puede inactivar el profesor " + ID_EJEMPLO
-                    + " porque tiene asignaturas activas asociadas\"}";
+                    + "\"mensaje\":\"No se puede inactivar el profesor porque tiene asignaturas activas asociadas\"}";
 
     private final ProfesorService profesorService;
 

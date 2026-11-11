@@ -215,7 +215,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(EstudianteNoEncontradoException.class)
-                    .hasMessageContaining(ID_ESTUDIANTE.toString());
+                    .hasMessageContaining("estudiante")
+                    .hasMessageNotContaining(ID_ESTUDIANTE.toString());
 
             verify(asignaturaRepository, never()).findById(any());
             verify(semestreRepository, never()).findById(any());
@@ -230,7 +231,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReferenciaNoEncontradaException.class)
-                    .hasMessageContaining(ID_ASIGNATURA.toString());
+                    .hasMessageContaining("asignatura")
+                    .hasMessageNotContaining(ID_ASIGNATURA.toString());
 
             verify(semestreRepository, never()).findById(any());
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
@@ -245,7 +247,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReferenciaNoEncontradaException.class)
-                    .hasMessageContaining(ID_SEMESTRE.toString());
+                    .hasMessageContaining("semestre")
+                    .hasMessageNotContaining(ID_SEMESTRE.toString());
 
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
         }
@@ -258,7 +261,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_ESTUDIANTE.toString());
+                    .hasMessageContaining("estudiante")
+                    .hasMessageNotContaining(ID_ESTUDIANTE.toString());
 
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
         }
@@ -271,7 +275,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_ASIGNATURA.toString());
+                    .hasMessageContaining("asignatura")
+                    .hasMessageNotContaining(ID_ASIGNATURA.toString());
 
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
         }
@@ -284,7 +289,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_ASIGNATURA.toString());
+                    .hasMessageContaining("asignatura")
+                    .hasMessageNotContaining(ID_ASIGNATURA.toString());
 
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
         }
@@ -302,8 +308,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_SEMESTRE.toString())
-                    .hasMessageContaining("no está vigente");
+                    .hasMessageContaining("no está vigente")
+                    .hasMessageNotContaining(ID_SEMESTRE.toString());
 
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
             verify(matriculaRepository, never()).save(any());
@@ -318,8 +324,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_SEMESTRE.toString())
-                    .hasMessageContaining("no está vigente");
+                    .hasMessageContaining("no está vigente")
+                    .hasMessageNotContaining(ID_SEMESTRE.toString());
 
             verify(matriculaRepository, never()).buscarPorTerna(any(), any(), any());
             verify(matriculaRepository, never()).save(any());
@@ -365,9 +371,10 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.matricular(ID_ESTUDIANTE, ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(MatriculaDuplicadaException.class)
-                    .hasMessageContaining(ID_ESTUDIANTE.toString())
-                    .hasMessageContaining(ID_ASIGNATURA.toString())
-                    .hasMessageContaining(ID_SEMESTRE.toString());
+                    .hasMessageContaining("ya está matriculado")
+                    .hasMessageNotContaining(ID_ESTUDIANTE.toString())
+                    .hasMessageNotContaining(ID_ASIGNATURA.toString())
+                    .hasMessageNotContaining(ID_SEMESTRE.toString());
 
             verify(matriculaRepository, never()).save(any());
         }
@@ -536,7 +543,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, true))
                     .isInstanceOf(MatriculaNoEncontradaException.class)
-                    .hasMessageContaining(ID_MATRICULA.toString());
+                    .hasMessageContaining("matrícula")
+                    .hasMessageNotContaining(ID_MATRICULA.toString());
 
             verify(matriculaRepository, never()).save(any());
             verifyNoInteractions(calificacionesDeMatricula);
@@ -551,7 +559,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, true))
                     .isInstanceOf(MatriculaYaInactivaException.class)
-                    .hasMessageContaining(ID_MATRICULA.toString());
+                    .hasMessageContaining("matrícula")
+                    .hasMessageNotContaining(ID_MATRICULA.toString());
 
             verify(matriculaRepository, never()).save(any());
             verifyNoInteractions(calificacionesDeMatricula);
@@ -575,8 +584,9 @@ class MatriculaServiceImplTest {
 
                 assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, false))
                         .isInstanceOf(ConfirmacionRequeridaException.class)
-                        .hasMessageContaining(ID_MATRICULA.toString())
-                        .hasMessageContaining("1");
+                        .hasMessageContaining("1")
+                        .hasMessageContaining("calificación")
+                        .hasMessageNotContaining(ID_MATRICULA.toString());
 
                 verify(matriculaRepository, never()).save(any());
             }
@@ -590,8 +600,9 @@ class MatriculaServiceImplTest {
 
                 assertThatThrownBy(() -> service.desvincular(ID_MATRICULA, false))
                         .isInstanceOf(ConfirmacionRequeridaException.class)
-                        .hasMessageContaining(ID_MATRICULA.toString())
-                        .hasMessageContaining("5");
+                        .hasMessageContaining("5")
+                        .hasMessageContaining("calificación")
+                        .hasMessageNotContaining(ID_MATRICULA.toString());
 
                 verify(matriculaRepository, never()).save(any());
             }
@@ -705,7 +716,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false))
                     .isInstanceOf(ReferenciaNoEncontradaException.class)
-                    .hasMessageContaining(ID_ASIGNATURA.toString());
+                    .hasMessageContaining("asignatura")
+                    .hasMessageNotContaining(ID_ASIGNATURA.toString());
 
             verify(semestreRepository, never()).existsById(any());
         }
@@ -718,7 +730,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.listarMatriculados(ID_ASIGNATURA, ID_SEMESTRE, false))
                     .isInstanceOf(ReferenciaNoEncontradaException.class)
-                    .hasMessageContaining(ID_SEMESTRE.toString());
+                    .hasMessageContaining("semestre")
+                    .hasMessageNotContaining(ID_SEMESTRE.toString());
         }
 
         @Test
@@ -774,7 +787,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.listarAsignaturasDeEstudiante(ID_ESTUDIANTE))
                     .isInstanceOf(EstudianteNoEncontradoException.class)
-                    .hasMessageContaining(ID_ESTUDIANTE.toString());
+                    .hasMessageContaining("estudiante")
+                    .hasMessageNotContaining(ID_ESTUDIANTE.toString());
 
             verify(matriculaRepository, never()).buscarPorEstudiante(any());
         }
@@ -910,7 +924,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_ASIGNATURA.toString());
+                    .hasMessageContaining("asignatura")
+                    .hasMessageNotContaining(ID_ASIGNATURA.toString());
 
             verify(matriculaRepository, never()).save(any());
         }
@@ -925,8 +940,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReglaDeMatriculaException.class)
-                    .hasMessageContaining(ID_SEMESTRE.toString())
-                    .hasMessageContaining("no está vigente");
+                    .hasMessageContaining("no está vigente")
+                    .hasMessageNotContaining(ID_SEMESTRE.toString());
 
             verify(matriculaRepository, never()).save(any());
         }
@@ -939,7 +954,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReferenciaNoEncontradaException.class)
-                    .hasMessageContaining(ID_ASIGNATURA.toString());
+                    .hasMessageContaining("asignatura")
+                    .hasMessageNotContaining(ID_ASIGNATURA.toString());
 
             verify(matriculaRepository, never()).save(any());
         }
@@ -953,7 +969,8 @@ class MatriculaServiceImplTest {
 
             assertThatThrownBy(() -> service.registrarYMatricular(estudianteRequestDTO(), ID_ASIGNATURA, ID_SEMESTRE))
                     .isInstanceOf(ReferenciaNoEncontradaException.class)
-                    .hasMessageContaining(ID_SEMESTRE.toString());
+                    .hasMessageContaining("semestre")
+                    .hasMessageNotContaining(ID_SEMESTRE.toString());
 
             verify(matriculaRepository, never()).save(any());
         }

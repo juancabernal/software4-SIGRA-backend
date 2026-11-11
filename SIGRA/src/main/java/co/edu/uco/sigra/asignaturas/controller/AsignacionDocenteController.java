@@ -52,15 +52,15 @@ public class AsignacionDocenteController {
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de cada dominio.
     private static final String EJ_PROFESOR_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No se encontró el profesor con id " + PROFESOR_ID_EJEMPLO + "\"}";
+                    + "\"mensaje\":\"No se encontró el profesor indicado.\"}";
 
     private static final String EJ_ASIGNATURA_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una asignatura con id " + ASIGNATURA_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la asignatura indicada.\"}";
 
     private static final String EJ_ASIGNACION_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una asignación docente con id " + ASIGNACION_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la asignación docente indicada.\"}";
 
     private static final String EJ_RESULTADO_EXITOSO =
             "{\"creadas\":[{\"id\":\"" + ASIGNACION_ID_EJEMPLO + "\",\"profesorId\":\"" + PROFESOR_ID_EJEMPLO

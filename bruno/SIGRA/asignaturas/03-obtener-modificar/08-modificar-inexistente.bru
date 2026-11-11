@@ -22,7 +22,7 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("No existe una asignatura con id");
+    expect(res.body.mensaje).to.include("No existe la asignatura indicada");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

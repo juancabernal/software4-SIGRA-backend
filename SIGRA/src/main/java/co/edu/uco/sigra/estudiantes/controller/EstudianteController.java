@@ -46,14 +46,14 @@ public class EstudianteController {
     private static final String TIPO_DOCUMENTO_EJEMPLO = "6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05";
     private static final String TS = EjemplosError.TIMESTAMP_EJEMPLO;
 
-    // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de estudiantes.
+    // Ejemplos propios del módulo; mensajes sin IDs internos (0000039).
     private static final String EJ_ESTUDIANTE_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un estudiante con id " + ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el estudiante solicitado.\"}";
 
     private static final String EJ_TIPO_DOCUMENTO_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un tipo de documento con id " + TIPO_DOCUMENTO_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el tipo de documento indicado.\"}";
 
     private static final String EJ_DOCUMENTO_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","

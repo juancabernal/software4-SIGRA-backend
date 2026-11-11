@@ -50,8 +50,8 @@ public class ResultadoAprendizajeController {
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
                     + "\"mensaje\":\"Los datos de entrada no cumplen con las validaciones requeridas\","
                     + "\"detalles\":[\"descripcion: La descripción debe tener entre 10 y 100 caracteres\"]}";
-    private static final String EJ_RA_NO_ENCONTRADO = P404 + "No existe un resultado de aprendizaje con id " + ID_EJEMPLO + "." + FIN;
-    private static final String EJ_ASIGNATURA_NO_ENCONTRADA = P404 + "No existe una asignatura con id " + ASIGNATURA_EJEMPLO + "." + FIN;
+    private static final String EJ_RA_NO_ENCONTRADO = P404 + "No existe el resultado de aprendizaje indicado." + FIN;
+    private static final String EJ_ASIGNATURA_NO_ENCONTRADA = P404 + "No existe la asignatura indicada." + FIN;
     private static final String EJ_CODIGO_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
                     + "\"mensaje\":\"Ya existe un resultado de aprendizaje con el código RA-01 en esta asignatura.\"}";

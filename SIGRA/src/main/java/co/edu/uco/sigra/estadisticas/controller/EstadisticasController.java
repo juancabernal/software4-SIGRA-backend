@@ -53,10 +53,10 @@ public class EstadisticasController {
     // Mensajes iguales a los de ResultadoAprendizajeNoEncontradoException y SemestreNoEncontradoException.
     private static final String EJ_RA_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un resultado de aprendizaje con id " + RA_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el resultado de aprendizaje indicado.\"}";
     private static final String EJ_SEMESTRE_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un semestre con id " + SEMESTRE_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el semestre indicado.\"}";
 
     private final NivelLogroService nivelLogroService;
     private final CurrentUser currentUser;

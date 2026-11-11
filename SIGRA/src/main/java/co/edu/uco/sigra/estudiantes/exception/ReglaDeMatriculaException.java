@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.exception;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class ReglaDeMatriculaException extends RuntimeException {
@@ -9,14 +10,17 @@ public class ReglaDeMatriculaException extends RuntimeException {
     }
 
     public static ReglaDeMatriculaException estudianteInactivo(UUID estudianteId) {
-        return new ReglaDeMatriculaException("El estudiante con id " + estudianteId + " no está activo.");
+        Objects.requireNonNull(estudianteId, "estudianteId");
+        return new ReglaDeMatriculaException("El estudiante no está activo.");
     }
 
     public static ReglaDeMatriculaException asignaturaNoActiva(UUID asignaturaId) {
-        return new ReglaDeMatriculaException("La asignatura con id " + asignaturaId + " no está activa.");
+        Objects.requireNonNull(asignaturaId, "asignaturaId");
+        return new ReglaDeMatriculaException("La asignatura no está activa.");
     }
 
     public static ReglaDeMatriculaException semestreNoVigente(UUID semestreId) {
-        return new ReglaDeMatriculaException("El semestre con id " + semestreId + " no está vigente.");
+        Objects.requireNonNull(semestreId, "semestreId");
+        return new ReglaDeMatriculaException("El semestre no está vigente.");
     }
 }

@@ -22,7 +22,7 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("No existe un resultado de aprendizaje con id");
+    expect(res.body.mensaje).to.include("No existe el resultado de aprendizaje indicado");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.exception;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class EstudianteNoEncontradoException extends RuntimeException {
@@ -9,6 +10,7 @@ public class EstudianteNoEncontradoException extends RuntimeException {
     }
 
     public static EstudianteNoEncontradoException porId(UUID id) {
-        return new EstudianteNoEncontradoException("No existe un estudiante con id " + id + ".");
+        Objects.requireNonNull(id, "id");
+        return new EstudianteNoEncontradoException("No existe el estudiante solicitado.");
     }
 }
