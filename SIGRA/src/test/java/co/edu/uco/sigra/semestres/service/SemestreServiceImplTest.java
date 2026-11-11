@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.semestres.service;
 
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.semestres.config.SemestreConfig;
 import co.edu.uco.sigra.semestres.dto.SemestreFechaFinRequestDTO;
 import co.edu.uco.sigra.semestres.dto.SemestreRequestDTO;
@@ -327,5 +328,38 @@ class SemestreServiceImplTest {
                     new SemestreFechaFinRequestDTO(LocalDate.of(2030, 7, 1))))
                     .isInstanceOf(SemestreNoEncontradoException.class);
         }
+    }
+
+    // ── Mantis 0000045: semestres del profesor ────────────────────────
+
+    @Test
+    void listarDelProfesorDevuelveSoloLosDelRepositorioConEstadoRecalculado() {
+        UUID profesorId = UUID.randomUUID();
+        // 2026-2 contiene a HOY pero llega guardado como INACTIVO: se recalcula y se persiste.
+        Semestre actual = semestre(COD_2026_2, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 12, 5),
+                EstadoSemestre.INACTIVO);
+        Semestre anterior = semestre(COD_2026_1, LocalDate.of(2026, 1, 20), LocalDate.of(2026, 6, 10),
+                EstadoSemestre.INACTIVO);
+        when(repository.findConAsignaturasDelProfesor(profesorId, EstadoRegistro.ACTIVO))
+                .thenReturn(List.of(actual, anterior));
+        saveDevuelveArgumento();
+
+        List<SemestreResponseDTO> lista = service.listarDelProfesor(profesorId);
+
+        assertThat(lista).extracting(SemestreResponseDTO::codigo).containsExactly(COD_2026_2, COD_2026_1);
+        assertThat(lista).extracting(SemestreResponseDTO::estado).containsExactly(ACTIVO, INACTIVO);
+        verify(repository).save(actual);
+        verify(repository, never()).findAllByOrderByFechaInicioDesc();
+    }
+
+    @Test
+    void listarDelProfesorSinAsignaturasDevuelveListaVacia() {
+        UUID profesorId = UUID.randomUUID();
+        when(repository.findConAsignaturasDelProfesor(profesorId, EstadoRegistro.ACTIVO)).thenReturn(List.of());
+
+        assertThat(service.listarDelProfesor(profesorId)).isEmpty();
+        // Sin semestres no se recalcula ni se guarda nada, y nunca se cae al listado general.
+        verify(repository, never()).save(any(Semestre.class));
+        verify(repository, never()).findAllByOrderByFechaInicioDesc();
     }
 }

@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.semestres.service.impl;
 
+import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.semestres.config.SemestreConfig;
 import co.edu.uco.sigra.semestres.dto.SemestreFechaFinRequestDTO;
 import co.edu.uco.sigra.semestres.dto.SemestreRequestDTO;
@@ -21,6 +22,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 public class SemestreServiceImpl implements SemestreService {
@@ -82,6 +84,16 @@ public class SemestreServiceImpl implements SemestreService {
                 .map(s -> actualizarEstadoSiCambio(s, hoy))
                 .filter(s -> termino.isEmpty() || s.getCodigo().toLowerCase(Locale.ROOT).contains(termino))
                 .filter(s -> estado == null || s.getEstado() == estado)
+                .map(semestreMapper::toResponseDTO)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public List<SemestreResponseDTO> listarDelProfesor(UUID profesorId) {
+        LocalDate hoy = LocalDate.now(reloj);
+        return semestreRepository.findConAsignaturasDelProfesor(profesorId, EstadoRegistro.ACTIVO).stream()
+                .map(s -> actualizarEstadoSiCambio(s, hoy))
                 .map(semestreMapper::toResponseDTO)
                 .toList();
     }
