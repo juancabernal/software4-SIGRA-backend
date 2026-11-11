@@ -16,9 +16,11 @@ Cómo se aplicó a `SemestreController` el patrón de documentación OpenAPI de 
 | Método y ruta | Rol | Códigos documentados |
 | --- | --- | --- |
 | `POST /api/v1/semestres` | ADMINISTRADOR | 201, 400, 401, 403, 409 |
-| `GET /api/v1/semestres` | ADMINISTRADOR, PROFESOR, ESTUDIANTE | 200, 401, 403 |
+| `GET /api/v1/semestres` | ADMINISTRADOR, PROFESOR, ESTUDIANTE | 200, 400, 401, 403 |
 | `GET /api/v1/semestres/{codigo}` | ADMINISTRADOR, PROFESOR, ESTUDIANTE | 200, 401, 403, 404 |
 | `PATCH /api/v1/semestres/{codigo}` | ADMINISTRADOR | 200, 400, 401, 403, 404, 409 |
+
+`GET /api/v1/semestres` acepta dos filtros opcionales y combinables: `codigo` (búsqueda parcial en el código, sin distinguir mayúsculas) y `estado` (`ACTIVO` o `INACTIVO`, calculado con la fecha actual antes de filtrar). Un `estado` distinto responde 400; sin coincidencias devuelve una lista vacía. Sin parámetros se comporta como antes.
 
 Los ejemplos de error propios (código repetido, fechas cruzadas, fecha de inicio pasada, semestre ya terminado, etc.) están como constantes en `SemestreController` con los mismos mensajes que producen las excepciones del módulo y `SemestreExceptionHandler`. `GET /{codigo}` no documenta 400: el código es texto libre y un código inexistente responde 404.
 
