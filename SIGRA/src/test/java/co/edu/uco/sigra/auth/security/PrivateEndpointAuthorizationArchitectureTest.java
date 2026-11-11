@@ -16,6 +16,7 @@ import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
 import co.edu.uco.sigra.programas.service.ProgramaService;
+import co.edu.uco.sigra.reportes.service.RendimientoRaReporteService;
 import co.edu.uco.sigra.resultadosaprendizaje.service.RendimientoResultadoAprendizajeService;
 import co.edu.uco.sigra.resultadosaprendizaje.service.ResultadoAprendizajeService;
 import co.edu.uco.sigra.semestres.service.SemestreService;
@@ -107,6 +108,9 @@ class PrivateEndpointAuthorizationArchitectureTest {
 
     @MockitoBean
     private RendimientoResultadoAprendizajeService rendimientoResultadoAprendizajeService;
+
+    @MockitoBean
+    private RendimientoRaReporteService rendimientoRaReporteService;
 
     @MockitoBean
     private SemestreService semestreService;
