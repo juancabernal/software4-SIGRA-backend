@@ -45,8 +45,10 @@ public interface AsignaturaRepository extends JpaRepository<Asignatura, UUID> {
     List<ConteoPorAsignatura> contarMatriculasDe(@Param("ids") Collection<UUID> ids,
                                                  @Param("estado") EstadoMatricula estado);
 
-    @Query("select ad.asignatura.id as asignaturaId, p.nombreCompleto as nombre from AsignacionDocente ad "
+    @Query("select ad.asignatura.id as asignaturaId, "
+            + "trim(concat(p.primerNombre, ' ', coalesce(p.segundoNombre, ''), ' ', p.primerApellido, ' ', p.segundoApellido)) as nombre "
+            + "from AsignacionDocente ad "
             + "join ad.profesor p where ad.asignatura.id in :ids and ad.estado = :estado "
-            + "order by p.nombreCompleto")
+            + "order by p.primerApellido, p.primerNombre")
     List<ProfesorDeAsignatura> profesoresDe(@Param("ids") Collection<UUID> ids, @Param("estado") EstadoRegistro estado);
 }

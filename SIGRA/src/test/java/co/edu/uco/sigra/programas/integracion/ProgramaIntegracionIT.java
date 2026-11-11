@@ -3,6 +3,7 @@ package co.edu.uco.sigra.programas.integracion;
 import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.entity.Administrador;
 import co.edu.uco.sigra.auth.entity.Usuario;
@@ -449,7 +450,7 @@ class ProgramaIntegracionIT {
     /** Guarda un usuario de la prueba (correo itg-prog-...) con el tipo de documento propio. */
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITG Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITG Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-" + UUID.randomUUID() + DOMINIO_CORREO);
         usuario.setEstado(EstadoRegistro.ACTIVO);
         return usuarioRepository.save(usuario);
@@ -459,7 +460,7 @@ class ProgramaIntegracionIT {
         Profesor p = new Profesor();
         p.setTipoDocumento(tipoDocumento);
         p.setNumeroDocumento("PR" + System.nanoTime() % 100000000L);
-        p.setNombreCompleto("ITG Profesor Programa");
+        NombresPersonaTestUtil.aplicar(p, "ITG Profesor Programa");
         p.setCorreoInstitucional(PREFIJO_CORREO + UUID.randomUUID() + DOMINIO_CORREO);
         p.setEstado(EstadoRegistro.ACTIVO);
         return profesorRepository.save(p);

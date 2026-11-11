@@ -32,7 +32,7 @@ tests {
 
   test("usuario coincide con credenciales", function () {
     expect(res.body.usuario.correoInstitucional).to.equal("profesor.bruno@uco.net.co");
-    expect(res.body.usuario.nombreCompleto).to.equal("Profesor Bruno");
+    expect(res.body.usuario.nombreCompleto).to.equal("Profesor Bruno S/D");
     expect(res.body.usuario).to.not.have.property("passwordHash");
   });
 }
