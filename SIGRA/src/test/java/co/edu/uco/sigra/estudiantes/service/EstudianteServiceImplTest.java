@@ -385,7 +385,8 @@ class EstudianteServiceImplTest {
 
             assertThatThrownBy(() -> service.consultarPorId(ID_ESTUDIANTE))
                     .isInstanceOf(EstudianteNoEncontradoException.class)
-                    .hasMessageContaining(ID_ESTUDIANTE.toString());
+                    .hasMessageContaining("estudiante")
+                    .hasMessageNotContaining(ID_ESTUDIANTE.toString());
         }
 
         @Test

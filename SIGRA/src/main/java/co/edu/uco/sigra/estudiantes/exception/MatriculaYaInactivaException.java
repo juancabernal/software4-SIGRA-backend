@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estudiantes.exception;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class MatriculaYaInactivaException extends RuntimeException {
@@ -9,6 +10,7 @@ public class MatriculaYaInactivaException extends RuntimeException {
     }
 
     public static MatriculaYaInactivaException porId(UUID id) {
-        return new MatriculaYaInactivaException("La matrícula con id " + id + " ya no está activa.");
+        Objects.requireNonNull(id, "id");
+        return new MatriculaYaInactivaException("La matrícula ya no está activa.");
     }
 }

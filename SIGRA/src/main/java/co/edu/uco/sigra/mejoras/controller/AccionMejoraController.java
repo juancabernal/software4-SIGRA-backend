@@ -57,15 +57,15 @@ public class AccionMejoraController {
     // de evaluaciones que reutiliza la conversión (RF-18).
     private static final String EJ_ACCION_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una acción de mejora con id " + ACCION_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la acción de mejora indicada.\"}";
 
     private static final String EJ_CONCLUSION_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una conclusión con id " + CONCLUSION_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la conclusión indicada.\"}";
 
     private static final String EJ_CONCLUSION_NO_VIGENTE =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
-                    + "\"mensaje\":\"La conclusión " + CONCLUSION_ID_EJEMPLO + " no está en estado VIGENTE.\"}";
+                    + "\"mensaje\":\"La conclusión no está en estado VIGENTE.\"}";
 
     private static final String EJ_ACCION_NO_CONVERTIBLE =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","
@@ -84,7 +84,7 @@ public class AccionMejoraController {
 
     private static final String EJ_ACCION_YA_CONVERTIDA =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
-                    + "\"mensaje\":\"La acción de mejora " + ACCION_ID_EJEMPLO + " ya fue convertida en evaluación.\"}";
+                    + "\"mensaje\":\"La acción de mejora ya fue convertida en evaluación.\"}";
 
     private static final String EJ_NOMBRE_EVALUACION_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","

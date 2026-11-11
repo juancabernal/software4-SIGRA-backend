@@ -25,7 +25,7 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("No existe un tipo de documento con id " + bru.getEnvVar("idInexistente"));
+    expect(res.body.mensaje).to.include("No existe el tipo de documento indicado");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {

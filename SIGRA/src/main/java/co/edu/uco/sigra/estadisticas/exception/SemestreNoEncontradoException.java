@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.estadisticas.exception;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -8,6 +9,11 @@ import java.util.UUID;
  */
 public class SemestreNoEncontradoException extends RuntimeException {
     public SemestreNoEncontradoException(UUID id) {
-        super("No existe un semestre con id " + id + ".");
+        super(mensajeSinId(id));
+    }
+
+    private static String mensajeSinId(UUID id) {
+        Objects.requireNonNull(id, "id");
+        return "No existe el semestre indicado.";
     }
 }

@@ -61,11 +61,11 @@ public class AsignaturaController {
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de asignaturas.
     private static final String EJ_ASIGNATURA_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una asignatura con id " + ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la asignatura indicada.\"}";
 
     private static final String EJ_PROGRAMA_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un programa académico con id " + PROGRAMA_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el programa académico indicado.\"}";
 
     private static final String EJ_CODIGO_DUPLICADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
@@ -88,8 +88,8 @@ public class AsignaturaController {
 
     private static final String EJ_CONFIRMACION_REQUERIDA_INACTIVAR =
             "{\"timestamp\":\"" + TS + "\",\"status\":409,\"error\":\"CONFLICT\","
-                    + "\"mensaje\":\"La asignatura con id " + ID_EJEMPLO + " tiene 2 evaluación(es) abierta(s) en "
-                    + "el semestre en curso. Debe confirmar la inactivación para continuar.\"}";
+                    + "\"mensaje\":\"La asignatura tiene 2 evaluación(es) abierta(s) en el semestre en curso. "
+                    + "Debe confirmar la inactivación para continuar.\"}";
 
     private static final String EJ_RANGO_RA_POCOS =
             "{\"timestamp\":\"" + TS + "\",\"status\":400,\"error\":\"BAD_REQUEST\","

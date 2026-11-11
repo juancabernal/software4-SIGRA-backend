@@ -20,7 +20,7 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("No existe un semestre con id");
+    expect(res.body.mensaje).to.include("No existe el semestre indicado");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {
