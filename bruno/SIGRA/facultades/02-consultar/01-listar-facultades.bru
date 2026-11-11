@@ -1,0 +1,22 @@
+meta {
+  name: 01 Listar facultades
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/facultades
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve una lista que incluye la facultad creada", function () {
+    expect(res.body).to.be.an("array");
+    expect(res.body.some(f => f.id === bru.getVar("facultadCreadaId"))).to.equal(true);
+  });
+}

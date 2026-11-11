@@ -1,0 +1,24 @@
+meta {
+  name: 01 Inactivar con programas activos
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadPorDefectoId}}/inactivar
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body.mensaje).to.include("programas activos");
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

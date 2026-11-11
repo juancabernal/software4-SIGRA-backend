@@ -11,6 +11,7 @@ import co.edu.uco.sigra.estudiantes.service.EstudianteService;
 import co.edu.uco.sigra.estudiantes.service.MatriculaService;
 import co.edu.uco.sigra.estadisticas.service.ConclusionService;
 import co.edu.uco.sigra.estadisticas.service.NivelLogroService;
+import co.edu.uco.sigra.facultades.service.FacultadService;
 import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
 import co.edu.uco.sigra.mejoras.service.AccionMejoraService;
 import co.edu.uco.sigra.profesores.service.ProfesorService;
@@ -61,6 +62,9 @@ class PrivateEndpointAuthorizationArchitectureTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private FacultadService facultadService;
 
     @MockitoBean
     private CalificacionService calificacionService;

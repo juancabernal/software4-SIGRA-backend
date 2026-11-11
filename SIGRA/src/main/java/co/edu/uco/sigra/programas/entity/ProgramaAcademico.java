@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.programas.entity;
 
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
+import co.edu.uco.sigra.facultades.entity.Facultad;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,6 +31,10 @@ public class ProgramaAcademico {
 
     @Column(nullable = false, length = 10, updatable = false)
     private String codigo;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "facultad_id", nullable = false)
+    private Facultad facultad;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

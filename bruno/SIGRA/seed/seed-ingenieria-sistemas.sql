@@ -34,8 +34,13 @@ SET client_encoding TO 'UTF8';
 BEGIN;
 
 -- 1. Programa: se reutiliza por nombre si ya existe; si no, se crea con id fijo.
-INSERT INTO sigra.programa_academico (id, nombre, codigo, estado)
-SELECT '00000000-0000-4000-d000-000000000001', 'Ingenieria de Sistemas', 'ISIS', 'ACTIVO'
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, nombre, codigo, estado, facultad_id)
+SELECT '00000000-0000-4000-d000-000000000001', 'Ingenieria de Sistemas', 'ISIS', 'ACTIVO', '00000000-0000-4000-fa00-000000000001'
  WHERE NOT EXISTS (
      SELECT 1 FROM sigra.programa_academico WHERE nombre = 'Ingenieria de Sistemas'
  );

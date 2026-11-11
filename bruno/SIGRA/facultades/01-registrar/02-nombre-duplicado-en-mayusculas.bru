@@ -1,0 +1,38 @@
+meta {
+  name: 02 Nombre duplicado en mayusculas
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/facultades
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "{{facultadCreadaNombreMayus}}"
+  }
+}
+
+script:pre-request {
+  bru.setVar("facultadCreadaNombreMayus", bru.getVar("facultadCreadaNombre").toUpperCase());
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body.mensaje).to.include(bru.getVar("facultadCreadaNombreMayus"));
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

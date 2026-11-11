@@ -79,18 +79,35 @@ CREATE TABLE IF NOT EXISTS sigra.profesor (
 CREATE INDEX IF NOT EXISTS idx_profesor_numero_documento ON sigra.profesor (numero_documento);
 
 -- -----------------------------------------------------------------------------
--- Programa académico (RF-03)
+-- Facultad (incidencia #0000036). Agrupa los programas académicos.
+-- Para bases existentes: docs/db/RF20_facultad_migration.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sigra.facultad (
+    id     UUID         NOT NULL DEFAULT gen_random_uuid(),
+    nombre VARCHAR(150) NOT NULL,
+    estado VARCHAR(20)  NOT NULL DEFAULT 'ACTIVO',
+    CONSTRAINT facultad_pkey PRIMARY KEY (id),
+    CONSTRAINT uk_facultad_nombre UNIQUE (nombre),
+    CONSTRAINT chk_facultad_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
+);
+
+-- -----------------------------------------------------------------------------
+-- Programa académico (RF-03). Pertenece a una facultad.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sigra.programa_academico (
-    id     UUID         NOT NULL DEFAULT gen_random_uuid(),
-    nombre VARCHAR(100) NOT NULL,
-    codigo VARCHAR(10)  NOT NULL,
-    estado VARCHAR(255) NOT NULL DEFAULT 'ACTIVO',
+    id          UUID         NOT NULL DEFAULT gen_random_uuid(),
+    nombre      VARCHAR(100) NOT NULL,
+    codigo      VARCHAR(10)  NOT NULL,
+    facultad_id UUID         NOT NULL,
+    estado      VARCHAR(255) NOT NULL DEFAULT 'ACTIVO',
     CONSTRAINT programa_academico_pkey PRIMARY KEY (id),
     CONSTRAINT uk_programa_codigo UNIQUE (codigo),
     CONSTRAINT uk_programa_nombre UNIQUE (nombre),
+    CONSTRAINT fk_programa_facultad FOREIGN KEY (facultad_id) REFERENCES sigra.facultad (id),
     CONSTRAINT chk_programa_estado CHECK (estado IN ('ACTIVO', 'INACTIVO'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_programa_facultad_id ON sigra.programa_academico (facultad_id);
 
 -- -----------------------------------------------------------------------------
 -- Asignatura (RF-03)

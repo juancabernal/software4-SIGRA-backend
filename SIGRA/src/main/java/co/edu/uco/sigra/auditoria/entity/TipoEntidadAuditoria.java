@@ -6,6 +6,7 @@ public enum TipoEntidadAuditoria {
     USUARIO,
     PROFESOR,
     ESTUDIANTE,
+    FACULTAD,
     PROGRAMA,
     ASIGNATURA,
     RESULTADO_APRENDIZAJE,

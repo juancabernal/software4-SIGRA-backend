@@ -1,0 +1,35 @@
+meta {
+  name: 07 Reasignar a una facultad inexistente
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/v1/programas/{{programaReasignarId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Programa Bruno Reasignado {{sufijoDestino}}",
+    "facultadId": "{{idFacultadInexistente}}"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("error con formato estandar y sin detalles tecnicos", function () {
+    expect(res.body.mensaje).to.include(bru.getEnvVar("idFacultadInexistente"));
+    const texto = JSON.stringify(res.body);
+    expect(texto).to.not.include("Exception");
+    expect(texto).to.not.include("at co.edu");
+  });
+}

@@ -1,0 +1,27 @@
+meta {
+  name: 04 Profesor no registra
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/facultades
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{tokenProfesor}}
+}
+
+body:json {
+  {
+    "nombre": "Facultad Bruno Profesor"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.error: eq FORBIDDEN
+}

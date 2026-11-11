@@ -1,6 +1,8 @@
 package co.edu.uco.sigra.programas.exception;
 
 import co.edu.uco.sigra.common.exception.ConstructorRespuestaError;
+import co.edu.uco.sigra.facultades.exception.FacultadInactivaException;
+import co.edu.uco.sigra.facultades.exception.FacultadNoEncontradaException;
 import co.edu.uco.sigra.programas.controller.ProgramaAcademicoController;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -13,14 +15,17 @@ import java.util.Map;
 
 /**
  * Manejo de errores exclusivo del módulo de programas académicos.
- * Declara solo excepciones de su dominio; la validación, el JSON ilegible y los parámetros inválidos
- * los resuelven los manejadores transversales de common/exception.
+ * Incluye las excepciones de facultad que se lanzan desde este módulo al registrar un programa.
+ * La validación, el JSON ilegible y los parámetros inválidos los resuelven los manejadores transversales.
  */
 @RestControllerAdvice(assignableTypes = ProgramaAcademicoController.class)
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ProgramaExceptionHandler {
 
-    @ExceptionHandler(ProgramaAcademicoNoEncontradoException.class)
+    @ExceptionHandler({
+            ProgramaAcademicoNoEncontradoException.class,
+            FacultadNoEncontradaException.class
+    })
     public ResponseEntity<Map<String, Object>> manejarNoEncontrado(RuntimeException ex) {
         return ConstructorRespuestaError.construir(HttpStatus.NOT_FOUND, ex.getMessage());
     }
@@ -28,7 +33,8 @@ public class ProgramaExceptionHandler {
     @ExceptionHandler({
             NombreProgramaDuplicadoException.class,
             CodigoProgramaDuplicadoException.class,
-            ProgramaConAsignaturasActivasException.class
+            ProgramaConAsignaturasActivasException.class,
+            FacultadInactivaException.class
     })
     public ResponseEntity<Map<String, Object>> manejarConflicto(RuntimeException ex) {
         return ConstructorRespuestaError.construir(HttpStatus.CONFLICT, ex.getMessage());

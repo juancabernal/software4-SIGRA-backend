@@ -55,8 +55,13 @@ DELETE FROM sigra.usuario WHERE id::text LIKE '00000000-0000-4000-e750-%';
 
 -- 2. Programa, asignatura y semestre propios. Fechas relativas a hoy para que
 -- el semestre siga ACTIVO sin importar cuando se ejecute.
-INSERT INTO sigra.programa_academico (id, nombre, codigo, estado) VALUES
-  ('00000000-0000-4000-e710-000000000001', 'Programa Bruno Nivel de Logro', 'BRU-NIV', 'ACTIVO');
+-- Facultad por defecto (la misma que crea docs/db/RF20_facultad_migration.sql).
+INSERT INTO sigra.facultad (id, nombre, estado) VALUES
+  ('00000000-0000-4000-fa00-000000000001', 'Facultad sin asignar', 'ACTIVO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sigra.programa_academico (id, nombre, codigo, estado, facultad_id) VALUES
+  ('00000000-0000-4000-e710-000000000001', 'Programa Bruno Nivel de Logro', 'BRU-NIV', 'ACTIVO', '00000000-0000-4000-fa00-000000000001');
 
 INSERT INTO sigra.asignatura (id, codigo, nombre, programa_id, estado) VALUES
   ('00000000-0000-4000-e720-000000000001', 'BRUNIV1', 'Bruno Nivel de Logro Activa', '00000000-0000-4000-e710-000000000001', 'ACTIVA');

@@ -1,0 +1,21 @@
+meta {
+  name: 04 La inactivada sigue existiendo
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/facultades?estado=INACTIVO
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("aparece entre las INACTIVAS (eliminacion logica)", function () {
+    expect(res.body.some(f => f.id === bru.getVar("facultadCreadaId"))).to.equal(true);
+  });
+}

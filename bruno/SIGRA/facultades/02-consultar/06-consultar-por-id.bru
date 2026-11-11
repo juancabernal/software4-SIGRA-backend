@@ -1,0 +1,23 @@
+meta {
+  name: 06 Consultar por id
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadCreadaId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("devuelve la facultad esperada", function () {
+    expect(res.body.id).to.equal(bru.getVar("facultadCreadaId"));
+    expect(res.body.nombre).to.equal(bru.getVar("facultadCreadaNombre"));
+    expect(res.body.estado).to.equal("ACTIVO");
+  });
+}

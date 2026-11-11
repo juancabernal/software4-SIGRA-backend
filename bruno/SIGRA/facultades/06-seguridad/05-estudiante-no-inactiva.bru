@@ -1,0 +1,20 @@
+meta {
+  name: 05 Estudiante no inactiva
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/facultades/{{facultadPorDefectoId}}/inactivar
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenEstudiante}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error: eq FORBIDDEN
+}

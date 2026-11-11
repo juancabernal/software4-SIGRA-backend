@@ -1,0 +1,21 @@
+meta {
+  name: 08 Sigue en la facultad destino
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/programas/{{programaReasignarId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("los rechazos no lo movieron", function () {
+    expect(res.body.facultadId).to.equal(bru.getVar("facultadDestinoId"));
+  });
+}
