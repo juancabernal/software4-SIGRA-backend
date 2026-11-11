@@ -566,6 +566,22 @@ Los rangos de nivel de logro los define `CatalogoNivelesLogro` (módulo de estad
 
 ---
 
+## R6 — Estudiantes con RA no alcanzados (riesgo académico)
+
+Reporte de solo lectura (incidencia 0000041) que identifica estudiantes con nivel de logro **BAJO** o **MEDIO** (mismo criterio de «insuficiente» que RF-16), agrupados por estudiante y asignatura en un semestre. Lee `nivel_logro_estudiante`; no recalcula.
+
+| Elemento | Detalle |
+| --- | --- |
+| Endpoint | `GET /api/v1/reportes/riesgo-academico?semestreId=&programaId=&asignaturaId=&minRaNoAlcanzados=` (opcionales; sin `semestreId` usa el semestre activo; `minRaNoAlcanzados` por defecto 1) |
+| Acceso | ADMINISTRADOR ve todas las asignaturas; PROFESOR solo las de asignación docente ACTIVA (asignatura ajena → 403); ESTUDIANTE → 403 |
+| Por cada fila | estudiante (nombre, correo, documento), asignatura, programa, cantidad de RA no alcanzados, severidad (`ATENCION` / `RIESGO` / `ALTO_RIESGO`), detalle de RA (código, nivel, promedio) |
+| Casos especiales | sin filas tras filtros: «Sin datos disponibles»; sin semestre activo: lista vacía con el mismo mensaje |
+| Errores | 400 (UUID inválido), 401, 403, 404; mensajes sin identificadores internos (RNF-17) |
+
+Guía OpenAPI: [`docs/documentacion_openapi/swagger-reportes.md`](docs/documentacion_openapi/swagger-reportes.md).
+
+---
+
 ## Pendientes conocidos del repositorio
 
 Estado de RF-02/RF-03 (autenticación y autorización) y lo que sigue abierto:
