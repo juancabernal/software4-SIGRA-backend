@@ -10,6 +10,8 @@ import co.edu.uco.sigra.estadisticas.entity.NivelLogroEstudiante;
 import co.edu.uco.sigra.estadisticas.repository.NivelLogroEstudianteRepository;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
+import co.edu.uco.sigra.facultades.entity.Facultad;
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.reportes.dto.EstudianteRiesgoDTO;
@@ -47,12 +49,14 @@ import static org.mockito.Mockito.when;
 class RiesgoAcademicoReporteServiceImplTest {
 
     private final UUID semestreId = UUID.randomUUID();
+    private final UUID facultadId = UUID.randomUUID();
     private final UUID programaId = UUID.randomUUID();
     private final UUID asignaturaId = UUID.randomUUID();
     private final UUID estudianteId = UUID.randomUUID();
     private final UUID profesorId = UUID.randomUUID();
 
     @Mock private AsignaturaRepository asignaturaRepository;
+    @Mock private FacultadRepository facultadRepository;
     @Mock private ProgramaAcademicoRepository programaRepository;
     @Mock private SemestreRepository semestreRepository;
     @Mock private EvaluacionService evaluacionService;
@@ -66,8 +70,8 @@ class RiesgoAcademicoReporteServiceImplTest {
     @BeforeEach
     void preparar() {
         servicio = new RiesgoAcademicoReporteServiceImpl(
-                asignaturaRepository, programaRepository, semestreRepository, evaluacionService,
-                nivelLogroEstudianteRepository);
+                asignaturaRepository, facultadRepository, programaRepository, semestreRepository,
+                evaluacionService, nivelLogroEstudianteRepository);
 
         Semestre semestre = mock(Semestre.class);
         when(semestre.getId()).thenReturn(semestreId);
@@ -75,9 +79,13 @@ class RiesgoAcademicoReporteServiceImplTest {
         when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.of(semestre));
         when(semestreRepository.findById(semestreId)).thenReturn(Optional.of(semestre));
 
+        Facultad facultad = mock(Facultad.class);
+        when(facultad.getId()).thenReturn(facultadId);
+
         ProgramaAcademico programa = mock(ProgramaAcademico.class);
         when(programa.getId()).thenReturn(programaId);
         when(programa.getNombre()).thenReturn("Ingeniería de Sistemas");
+        when(programa.getFacultad()).thenReturn(facultad);
 
         asignatura = mock(Asignatura.class);
         when(asignatura.getId()).thenReturn(asignaturaId);
@@ -85,6 +93,7 @@ class RiesgoAcademicoReporteServiceImplTest {
         when(asignatura.getNombre()).thenReturn("Programación");
         when(asignatura.getPrograma()).thenReturn(programa);
         when(asignaturaRepository.existsById(asignaturaId)).thenReturn(true);
+        when(facultadRepository.existsById(facultadId)).thenReturn(true);
         when(programaRepository.existsById(programaId)).thenReturn(true);
         when(asignaturaRepository.findAll()).thenReturn(List.of(asignatura));
 
@@ -129,7 +138,7 @@ class RiesgoAcademicoReporteServiceImplTest {
                 fila("RA-01", NivelLogro.MEDIO, 3.2),
                 fila("RA-03", NivelLogro.BAJO, 1.5)));
 
-        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, null, admin);
+        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, null, null, admin);
 
         assertThat(reporte.semestreCodigo()).isEqualTo("2026-2");
         assertThat(reporte.totalEstudiantesEnRiesgo()).isEqualTo(1);
@@ -147,7 +156,7 @@ class RiesgoAcademicoReporteServiceImplTest {
     void umbralMinimo() {
         simularFilas(List.of(fila("RA-01", NivelLogro.BAJO, 2.0)));
 
-        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, 2, admin);
+        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, null, 2, admin);
 
         assertThat(reporte.estudiantes()).isEmpty();
         assertThat(reporte.mensaje()).isEqualTo("Sin datos disponibles");
@@ -159,7 +168,7 @@ class RiesgoAcademicoReporteServiceImplTest {
     void sinSemestreActivo() {
         when(evaluacionService.consultarSemestreActivo()).thenReturn(Optional.empty());
 
-        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, null, admin);
+        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, null, null, admin);
 
         assertThat(reporte.semestreId()).isNull();
         assertThat(reporte.estudiantes()).isEmpty();
@@ -170,12 +179,31 @@ class RiesgoAcademicoReporteServiceImplTest {
     @DisplayName("Filtros inexistentes: 404 sin UUID en el mensaje")
     void filtrosInexistentes() {
         UUID otro = UUID.randomUUID();
-        assertThatThrownBy(() -> servicio.consultar(otro, null, null, null, admin))
+        assertThatThrownBy(() -> servicio.consultar(otro, null, null, null, null, admin))
                 .isInstanceOf(ReporteRecursoNoEncontradoException.class).hasMessageNotContaining(otro.toString());
-        assertThatThrownBy(() -> servicio.consultar(null, otro, null, null, admin))
+        assertThatThrownBy(() -> servicio.consultar(null, otro, null, null, null, admin))
+                .isInstanceOf(ReporteRecursoNoEncontradoException.class)
+                .hasMessageContaining("facultad")
+                .hasMessageNotContaining(otro.toString());
+        assertThatThrownBy(() -> servicio.consultar(null, null, otro, null, null, admin))
                 .isInstanceOf(ReporteRecursoNoEncontradoException.class).hasMessageNotContaining(otro.toString());
-        assertThatThrownBy(() -> servicio.consultar(null, null, otro, null, admin))
+        assertThatThrownBy(() -> servicio.consultar(null, null, null, otro, null, admin))
                 .isInstanceOf(ReporteRecursoNoEncontradoException.class).hasMessageNotContaining(otro.toString());
+    }
+
+    @Test
+    @DisplayName("Filtro por facultad reduce a asignaturas de esa facultad")
+    void filtroFacultad() {
+        UUID otraFacultad = UUID.randomUUID();
+        when(facultadRepository.existsById(otraFacultad)).thenReturn(true);
+        simularFilas(List.of(fila("RA-01", NivelLogro.BAJO, 2.0)));
+
+        RiesgoAcademicoReporteResponseDTO vacio = servicio.consultar(null, otraFacultad, null, null, null, admin);
+        assertThat(vacio.estudiantes()).isEmpty();
+
+        RiesgoAcademicoReporteResponseDTO conDatos =
+                servicio.consultar(null, facultadId, null, null, null, admin);
+        assertThat(conDatos.totalEstudiantesEnRiesgo()).isEqualTo(1);
     }
 
     @Test
@@ -184,7 +212,7 @@ class RiesgoAcademicoReporteServiceImplTest {
         UsuarioPrincipal profesor = new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR);
         when(asignaturaRepository.findAsignadasAProfesor(profesorId, EstadoRegistro.ACTIVO)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> servicio.consultar(null, null, asignaturaId, null, profesor))
+        assertThatThrownBy(() -> servicio.consultar(null, null, null, asignaturaId, null, profesor))
                 .isInstanceOf(PermisoReporteInsuficienteException.class);
     }
 
@@ -196,7 +224,7 @@ class RiesgoAcademicoReporteServiceImplTest {
                 .thenReturn(List.of(asignatura));
         simularFilas(List.of(fila("RA-01", NivelLogro.BAJO, 2.0)));
 
-        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, null, profesor);
+        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, null, null, null, profesor);
 
         assertThat(reporte.totalEstudiantesEnRiesgo()).isEqualTo(1);
         assertThat(reporte.estudiantes().getFirst().severidad()).isEqualTo(SeveridadRiesgo.ATENCION);
@@ -209,7 +237,7 @@ class RiesgoAcademicoReporteServiceImplTest {
                 fila("RA-01", NivelLogro.BAJO, 2.0),
                 fila("RA-02", NivelLogro.MEDIO, 3.1)));
 
-        EstudianteRiesgoDTO fila = servicio.consultar(null, null, null, null, admin).estudiantes().getFirst();
+        EstudianteRiesgoDTO fila = servicio.consultar(null, null, null, null, null, admin).estudiantes().getFirst();
 
         assertThat(fila.cantidadRaNoAlcanzados()).isEqualTo(2);
         assertThat(fila.severidad()).isEqualTo(SeveridadRiesgo.RIESGO);

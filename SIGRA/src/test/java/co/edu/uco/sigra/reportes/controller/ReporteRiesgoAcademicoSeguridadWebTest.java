@@ -75,7 +75,7 @@ class ReporteRiesgoAcademicoSeguridadWebTest {
     @Test
     @DisplayName("Administrador y profesor consultan el reporte")
     void administradorYProfesorAcceden() throws Exception {
-        when(reporteService.consultar(any(), any(), any(), any(), any()))
+        when(reporteService.consultar(any(), any(), any(), any(), any(), any()))
                 .thenReturn(new RiesgoAcademicoReporteResponseDTO(null, null, 0, List.of(), "Sin datos disponibles"));
         configurarToken("token-admin", RolUsuario.ADMINISTRADOR);
         configurarToken("token-profesor", RolUsuario.PROFESOR);
@@ -92,7 +92,7 @@ class ReporteRiesgoAcademicoSeguridadWebTest {
     void profesorAsignaturaAjenaEs403() throws Exception {
         UUID asignaturaId = UUID.randomUUID();
         configurarToken("token-profesor", RolUsuario.PROFESOR);
-        when(reporteService.consultar(any(), any(), eq(asignaturaId), any(), any()))
+        when(reporteService.consultar(any(), any(), any(), eq(asignaturaId), any(), any()))
                 .thenThrow(new PermisoReporteInsuficienteException());
 
         mockMvc.perform(get(RUTA).param("asignaturaId", asignaturaId.toString())

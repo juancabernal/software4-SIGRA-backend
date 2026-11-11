@@ -10,6 +10,7 @@ import co.edu.uco.sigra.estadisticas.entity.NivelLogroEstudiante;
 import co.edu.uco.sigra.estadisticas.repository.NivelLogroEstudianteRepository;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
 import co.edu.uco.sigra.evaluaciones.service.EvaluacionService;
+import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
 import co.edu.uco.sigra.reportes.dto.EstudianteRiesgoDTO;
 import co.edu.uco.sigra.reportes.dto.RaNoAlcanzadoDTO;
@@ -45,6 +46,7 @@ public class RiesgoAcademicoReporteServiceImpl implements RiesgoAcademicoReporte
     static final List<NivelLogro> NIVELES_INSUFICIENTES = List.of(NivelLogro.BAJO, NivelLogro.MEDIO);
 
     private final AsignaturaRepository asignaturaRepository;
+    private final FacultadRepository facultadRepository;
     private final ProgramaAcademicoRepository programaRepository;
     private final SemestreRepository semestreRepository;
     private final EvaluacionService evaluacionService;
@@ -52,12 +54,16 @@ public class RiesgoAcademicoReporteServiceImpl implements RiesgoAcademicoReporte
 
     @Override
     @Transactional(readOnly = true)
-    public RiesgoAcademicoReporteResponseDTO consultar(UUID semestreId, UUID programaId, UUID asignaturaId,
-                                                       Integer minRaNoAlcanzados, UsuarioPrincipal principal) {
+    public RiesgoAcademicoReporteResponseDTO consultar(UUID semestreId, UUID facultadId, UUID programaId,
+                                                       UUID asignaturaId, Integer minRaNoAlcanzados,
+                                                       UsuarioPrincipal principal) {
         verificarRol(principal);
         int umbral = minRaNoAlcanzados == null || minRaNoAlcanzados < 1 ? 1 : minRaNoAlcanzados;
 
         Optional<Semestre> semestre = resolverSemestre(semestreId);
+        if (facultadId != null && !facultadRepository.existsById(facultadId)) {
+            throw new ReporteRecursoNoEncontradoException("La facultad indicada no existe.");
+        }
         if (programaId != null && !programaRepository.existsById(programaId)) {
             throw new ReporteRecursoNoEncontradoException("El programa académico indicado no existe.");
         }
@@ -77,6 +83,12 @@ public class RiesgoAcademicoReporteServiceImpl implements RiesgoAcademicoReporte
         }
         if (programaId != null) {
             candidatas = candidatas.stream().filter(a -> a.getPrograma().getId().equals(programaId)).toList();
+        }
+        if (facultadId != null) {
+            candidatas = candidatas.stream()
+                    .filter(a -> a.getPrograma().getFacultad() != null
+                            && facultadId.equals(a.getPrograma().getFacultad().getId()))
+                    .toList();
         }
         if (candidatas.isEmpty()) {
             return vacio(semestre.get());

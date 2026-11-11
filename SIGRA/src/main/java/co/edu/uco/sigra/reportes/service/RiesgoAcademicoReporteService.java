@@ -8,6 +8,7 @@ import java.util.UUID;
 /** Reporte R6: estudiantes con RA no alcanzados (riesgo académico). Solo lectura. */
 public interface RiesgoAcademicoReporteService {
 
-    RiesgoAcademicoReporteResponseDTO consultar(UUID semestreId, UUID programaId, UUID asignaturaId,
-                                                Integer minRaNoAlcanzados, UsuarioPrincipal principal);
+    RiesgoAcademicoReporteResponseDTO consultar(UUID semestreId, UUID facultadId, UUID programaId,
+                                                UUID asignaturaId, Integer minRaNoAlcanzados,
+                                                UsuarioPrincipal principal);
 }

@@ -36,6 +36,7 @@ import java.util.UUID;
 public class ReporteRiesgoAcademicoController {
 
     private static final String SEMESTRE_EJEMPLO = "9d8c7b6a-5f4e-4d3c-b2a1-0f9e8d7c6b5a";
+    private static final String FACULTAD_EJEMPLO = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
     private static final String PROGRAMA_EJEMPLO = "5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c1d";
     private static final String ASIGNATURA_EJEMPLO = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
     private static final String EJ_NO_ENCONTRADO = "{\"timestamp\":\"" + EjemplosError.TIMESTAMP_EJEMPLO
@@ -49,7 +50,9 @@ public class ReporteRiesgoAcademicoController {
             description = "Lista estudiantes con nivel de logro BAJO o MEDIO (mismo criterio de insuficiente que "
                     + "RF-16) en el semestre, agrupados por estudiante y asignatura. Incluye detalle de RA, "
                     + "promedio y severidad (ATENCION / RIESGO / ALTO_RIESGO). Sin «semestreId» usa el semestre "
-                    + "activo. «minRaNoAlcanzados» filtra por cantidad mínima de RA insuficientes (por defecto 1)."
+                    + "activo. Los filtros «facultadId», «programaId» y «asignaturaId» son opcionales y "
+                    + "combinables. «minRaNoAlcanzados» filtra por cantidad mínima de RA insuficientes "
+                    + "(por defecto 1)."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Reporte generado (la lista puede venir vacía)",
@@ -67,7 +70,7 @@ public class ReporteRiesgoAcademicoController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = @ExampleObject(value = EjemplosError.PROHIBIDO_403))),
-            @ApiResponse(responseCode = "404", description = "El semestre, el programa o la asignatura del filtro no existen",
+            @ApiResponse(responseCode = "404", description = "El semestre, la facultad, el programa o la asignatura del filtro no existen",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RespuestaErrorDoc.class),
                             examples = @ExampleObject(value = EJ_NO_ENCONTRADO)))
@@ -77,6 +80,8 @@ public class ReporteRiesgoAcademicoController {
     public ResponseEntity<RiesgoAcademicoReporteResponseDTO> riesgoAcademico(
             @Parameter(description = "Semestre (UUID). Sin valor se usa el semestre activo", example = SEMESTRE_EJEMPLO)
             @RequestParam(required = false) UUID semestreId,
+            @Parameter(description = "Filtra por facultad (UUID)", example = FACULTAD_EJEMPLO)
+            @RequestParam(required = false) UUID facultadId,
             @Parameter(description = "Filtra por programa académico (UUID)", example = PROGRAMA_EJEMPLO)
             @RequestParam(required = false) UUID programaId,
             @Parameter(description = "Filtra por asignatura (UUID)", example = ASIGNATURA_EJEMPLO)
@@ -84,6 +89,6 @@ public class ReporteRiesgoAcademicoController {
             @Parameter(description = "Mínimo de RA no alcanzados por fila (default 1)", example = "1")
             @RequestParam(required = false) Integer minRaNoAlcanzados) {
         return ResponseEntity.ok(reporteService.consultar(
-                semestreId, programaId, asignaturaId, minRaNoAlcanzados, currentUser.required()));
+                semestreId, facultadId, programaId, asignaturaId, minRaNoAlcanzados, currentUser.required()));
     }
 }

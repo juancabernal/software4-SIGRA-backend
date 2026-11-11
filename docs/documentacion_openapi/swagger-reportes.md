@@ -15,7 +15,7 @@ Documentación de los reportes **R1** y **R6** (incidencia 0000041), siguiendo e
 | `GET /api/v1/reportes/rendimiento-ra` | ADMINISTRADOR (todo), PROFESOR (solo sus asignaturas con asignación ACTIVA) | 200, 400, 401, 403, 404 |
 | `GET /api/v1/reportes/riesgo-academico` | ADMINISTRADOR (todo), PROFESOR (solo sus asignaturas con asignación ACTIVA) | 200, 400, 401, 403, 404 |
 
-Parámetros opcionales comunes: `semestreId` (sin valor usa el semestre activo), `programaId` y `asignaturaId`, todos UUID y combinables. R6 añade `minRaNoAlcanzados` (entero ≥ 1; por defecto 1).
+Parámetros opcionales: `semestreId` (sin valor usa el semestre activo), `programaId` y `asignaturaId`, todos UUID y combinables. R6 añade además `facultadId` (UUID) y `minRaNoAlcanzados` (entero ≥ 1; por defecto 1).
 
 ## Reglas R1 — Rendimiento por RA
 
