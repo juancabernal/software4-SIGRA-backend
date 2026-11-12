@@ -297,7 +297,7 @@ class AsignaturaControllerTest {
             ArgumentCaptor<AsignaturaFiltroDTO> captor = ArgumentCaptor.forClass(AsignaturaFiltroDTO.class);
             verify(service).consultar(captor.capture(), any(UsuarioPrincipal.class));
             assertThat(captor.getValue())
-                    .isEqualTo(new AsignaturaFiltroDTO(null, ID_PROGRAMA, ID_FACULTAD, null, null, null));
+                    .isEqualTo(new AsignaturaFiltroDTO(null, ID_PROGRAMA, ID_FACULTAD, null, null, null, null));
         }
 
         @Test
@@ -385,7 +385,7 @@ class AsignaturaControllerTest {
 
             mockMvc.perform(get(URL_ID))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath(JSON_MENSAJE).value("No existe una asignatura con id " + ID + "."));
+                    .andExpect(jsonPath(JSON_MENSAJE).value("No existe la asignatura indicada."));
         }
     }
 

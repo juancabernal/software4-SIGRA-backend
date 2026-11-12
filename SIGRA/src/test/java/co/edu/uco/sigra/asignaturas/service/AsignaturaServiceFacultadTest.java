@@ -112,7 +112,7 @@ class AsignaturaServiceFacultadTest {
     }
 
     private static AsignaturaFiltroDTO filtro(UUID programaId, UUID facultadId) {
-        return new AsignaturaFiltroDTO(null, programaId, facultadId, null, null, null);
+        return new AsignaturaFiltroDTO(null, programaId, facultadId, null, null, null, null);
     }
 
     @Nested

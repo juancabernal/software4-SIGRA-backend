@@ -2,6 +2,7 @@ package co.edu.uco.sigra.integracion;
 
 import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
@@ -170,7 +171,7 @@ public abstract class BaseIntegracionSigra {
 
     protected <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto(prefijo() + " Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, prefijo() + " Usuario " + alias);
         usuario.setCorreoInstitucional(prefijo().toLowerCase() + "-" + alias + "-"
                 + UUID.randomUUID().toString().substring(0, 8) + DOMINIO_CORREO);
         return usuarioRepository.save(usuario);

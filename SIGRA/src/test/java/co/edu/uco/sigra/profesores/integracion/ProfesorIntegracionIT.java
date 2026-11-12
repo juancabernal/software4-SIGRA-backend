@@ -3,6 +3,7 @@ package co.edu.uco.sigra.profesores.integracion;
 import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
@@ -366,14 +367,14 @@ class ProfesorIntegracionIT {
                 Arguments.of(
                         "tipoDocumentoId nulo",
                         "{\"tipoDocumentoId\":null,\"numeroDocumento\":\"990000012\","
-                                + "\"nombreCompleto\":\"ITP Profesor\","
+                                + "\"primerNombre\":\"ITP\",\"primerApellido\":\"Profesor\",\"segundoApellido\":\"Prueba\","
                                 + "\"correoInstitucional\":\"itp-012@uco.net.co\"}"
                 ),
                 Arguments.of(
                         "número de documento nulo",
                         "{\"tipoDocumentoId\":\"" + tipoDoc + "\","
                                 + "\"numeroDocumento\":null,"
-                                + "\"nombreCompleto\":\"ITP Profesor\","
+                                + "\"primerNombre\":\"ITP\",\"primerApellido\":\"Profesor\",\"segundoApellido\":\"Prueba\","
                                 + "\"correoInstitucional\":\"itp-013@uco.net.co\"}"
                 ),
                 Arguments.of(
@@ -384,7 +385,7 @@ class ProfesorIntegracionIT {
                         "correo nulo",
                         "{\"tipoDocumentoId\":\"" + tipoDoc + "\","
                                 + "\"numeroDocumento\":\"990000015\","
-                                + "\"nombreCompleto\":\"ITP Profesor\","
+                                + "\"primerNombre\":\"ITP\",\"primerApellido\":\"Profesor\",\"segundoApellido\":\"Prueba\","
                                 + "\"correoInstitucional\":null}"
                 )
         );
@@ -1049,7 +1050,7 @@ class ProfesorIntegracionIT {
     /** Guarda un usuario de la prueba (correo itp-...) con el tipo de documento propio. */
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITP Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITP Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-"
                 + ThreadLocalRandom.current().nextInt(100_000, 1_000_000) + DOMINIO_CORREO);
         usuario.setEstado(EstadoRegistro.ACTIVO);
@@ -1060,7 +1061,7 @@ class ProfesorIntegracionIT {
         Profesor profesor = new Profesor();
         profesor.setTipoDocumento(tipoDocumento);
         profesor.setNumeroDocumento(numeroDocumento);
-        profesor.setNombreCompleto("ITP Profesor " + numeroDocumento);
+        NombresPersonaTestUtil.aplicar(profesor, "ITP Profesor " + numeroDocumento);
         profesor.setCorreoInstitucional(correo);
         profesor.setEstado(EstadoRegistro.ACTIVO);
         return profesorRepository.save(profesor);
@@ -1141,7 +1142,8 @@ class ProfesorIntegracionIT {
         return "{"
                 + "\"tipoDocumentoId\":\"" + tipoDocumentoId + "\","
                 + "\"numeroDocumento\":" + texto(numeroDocumento) + ","
-                + "\"nombreCompleto\":" + texto(nombreCompleto) + ","
+                + (NombresPersonaTestUtil.fragmentoJson(nombreCompleto).isEmpty()
+                        ? "" : NombresPersonaTestUtil.fragmentoJson(nombreCompleto) + ",")
                 + "\"correoInstitucional\":" + texto(correo)
                 + "}";
     }

@@ -3,6 +3,7 @@ package co.edu.uco.sigra.auth.integration;
 import co.edu.uco.sigra.facultades.repository.FacultadRepository;
 import co.edu.uco.sigra.integracion.FacultadesDePrueba;
 import co.edu.uco.sigra.asignaturas.entity.AsignacionDocente;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignacionDocenteRepository;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
@@ -235,7 +236,7 @@ class SecurityRf05IntegrationIT {
 
     private <T extends Usuario> T usuario(T usuario, String sufijo) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto(PREFIX + sufijo);
+        NombresPersonaTestUtil.aplicar(usuario, PREFIX + sufijo);
         usuario.setCorreoInstitucional(PREFIX + sufijo + UUID.randomUUID() + DOMAIN);
         usuario.setPasswordHash("hash-no-usado-en-esta-prueba");
         usuario.setEstado(EstadoRegistro.ACTIVO);

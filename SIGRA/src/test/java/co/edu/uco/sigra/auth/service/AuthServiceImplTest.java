@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.auth.service;
 
 import co.edu.uco.sigra.auth.dto.LoginRequestDTO;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.auth.dto.LoginResponseDTO;
 import co.edu.uco.sigra.auth.exception.CredencialesInvalidasException;
 import co.edu.uco.sigra.auth.exception.UsuarioBloqueadoException;
@@ -71,7 +72,7 @@ class AuthServiceImplTest {
         usuario = new Profesor();
         usuario.setId(UUID.randomUUID());
         usuario.setCorreoInstitucional(CORREO);
-        usuario.setNombreCompleto("Profesor de Prueba");
+        NombresPersonaTestUtil.aplicar(usuario, "Profesor de Prueba");
         usuario.setPasswordHash(HASH_PASSWORD);
         usuario.setEstado(EstadoRegistro.ACTIVO);
         usuario.setIntentosFallidos(0);

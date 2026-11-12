@@ -1,6 +1,7 @@
 package co.edu.uco.sigra.auth.entity;
 
 import co.edu.uco.sigra.common.entity.TipoDocumento;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import co.edu.uco.sigra.common.enums.EstadoRegistro;
 import co.edu.uco.sigra.common.enums.RolUsuario;
 import co.edu.uco.sigra.estudiantes.entity.Estudiante;
@@ -53,7 +54,7 @@ class SubtiposDeUsuarioTest {
         TipoDocumento cedula = new TipoDocumento();
         cedula.setNombre("Cédula de Ciudadanía");
 
-        usuario.setNombreCompleto("Persona de Prueba");
+        NombresPersonaTestUtil.aplicar(usuario, "Persona de Prueba");
         usuario.setCorreoInstitucional("persona.prueba@uco.net.co");
         usuario.setTipoDocumento(cedula);
 

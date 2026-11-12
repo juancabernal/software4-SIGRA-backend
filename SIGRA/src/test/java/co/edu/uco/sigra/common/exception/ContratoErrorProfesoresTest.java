@@ -82,7 +82,9 @@ class ContratoErrorProfesoresTest {
             {
               "tipoDocumentoId": "6b1f9d7e-5c3a-4f21-9e8b-2d4a7c6e1f05",
               "numeroDocumento": "1098765",
-              "nombreCompleto": "Ana Gómez",
+              "primerNombre": "Ana",
+              "primerApellido": "Gómez",
+              "segundoApellido": "López",
               "correoInstitucional": "ana.gomez@uco.net.co"
             }
             """;

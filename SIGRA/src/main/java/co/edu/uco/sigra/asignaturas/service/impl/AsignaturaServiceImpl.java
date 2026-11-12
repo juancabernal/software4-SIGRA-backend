@@ -127,6 +127,11 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         validarRangoRa(filtro.raMin(), filtro.raMax());
         Set<UUID> alcance = alcanceDe(identidad);
 
+        Set<UUID> enSemestre = filtro.semestreId() == null ? null : Set.copyOf(
+                asignaturaRepository.findIdsEnSemestre(filtro.semestreId(),
+                        identidad.rol() == RolUsuario.PROFESOR ? identidad.id() : null,
+                        EstadoRegistro.ACTIVO));
+
         Map<UUID, Long> raActivosPorAsignatura = asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)
                 .stream()
                 .collect(Collectors.toMap(ConteoRaPorAsignatura::getAsignaturaId, ConteoRaPorAsignatura::getCantidad));
@@ -139,6 +144,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
                 : asignaturaRepository.findAllDeFacultad(filtro.facultadId());
         return catalogo.stream()
                 .filter(a -> alcance == null || alcance.contains(a.getId()))
+                .filter(a -> enSemestre == null || enSemestre.contains(a.getId()))
                 .filter(a -> filtro.programaId() == null || filtro.programaId().equals(a.getPrograma().getId()))
                 .filter(a -> filtro.estado() == null || filtro.estado() == a.getEstado())
                 .filter(a -> texto == null

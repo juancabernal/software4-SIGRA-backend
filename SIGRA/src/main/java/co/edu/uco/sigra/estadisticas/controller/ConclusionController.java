@@ -53,15 +53,15 @@ public class ConclusionController {
     // Ejemplos propios del módulo; los mensajes son los que producen las excepciones de estadísticas.
     private static final String EJ_RA_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un resultado de aprendizaje con id " + RA_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el resultado de aprendizaje indicado.\"}";
 
     private static final String EJ_SEMESTRE_NO_ENCONTRADO =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe un semestre con id " + SEMESTRE_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe el semestre indicado.\"}";
 
     private static final String EJ_CONCLUSION_NO_ENCONTRADA =
             "{\"timestamp\":\"" + TS + "\",\"status\":404,\"error\":\"NOT_FOUND\","
-                    + "\"mensaje\":\"No existe una conclusión con id " + CONCLUSION_ID_EJEMPLO + ".\"}";
+                    + "\"mensaje\":\"No existe la conclusión indicada.\"}";
 
     private final ConclusionService conclusionService;
     private final CurrentUser currentUser;

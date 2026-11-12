@@ -19,6 +19,7 @@ public interface EstudianteMapper {
     Estudiante toEntity(EstudianteRequestDTO dto);
 
     @Mapping(target = "tipoDocumentoNombre", source = "tipoDocumento.nombre")
+    @Mapping(target = "nombreCompleto", expression = "java(entity.getNombreCompleto())")
     EstudianteResponseDTO toResponseDTO(Estudiante entity);
 
     @Mapping(target = "id", ignore = true)

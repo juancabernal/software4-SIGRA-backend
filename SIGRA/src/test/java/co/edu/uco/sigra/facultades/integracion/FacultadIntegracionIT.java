@@ -19,6 +19,7 @@ import co.edu.uco.sigra.profesores.entity.Profesor;
 import co.edu.uco.sigra.profesores.repository.ProfesorRepository;
 import co.edu.uco.sigra.programas.entity.ProgramaAcademico;
 import co.edu.uco.sigra.programas.repository.ProgramaAcademicoRepository;
+import co.edu.uco.sigra.testsupport.NombresPersonaTestUtil;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -629,7 +630,7 @@ class FacultadIntegracionIT {
     /** Guarda un usuario de la prueba (correo itf-fac-...) con el tipo de documento propio. */
     private <U extends Usuario> U crearUsuario(U usuario, String alias) {
         usuario.setTipoDocumento(tipoDocumento);
-        usuario.setNombreCompleto("ITF Usuario " + alias);
+        NombresPersonaTestUtil.aplicar(usuario, "ITF Usuario " + alias);
         usuario.setCorreoInstitucional(PREFIJO_CORREO + alias + "-" + UUID.randomUUID() + DOMINIO_CORREO);
         usuario.setEstado(EstadoRegistro.ACTIVO);
         return usuarioRepository.save(usuario);
@@ -639,7 +640,7 @@ class FacultadIntegracionIT {
         Profesor p = new Profesor();
         p.setTipoDocumento(tipoDocumento);
         p.setNumeroDocumento("PF" + System.nanoTime() % 100000000L);
-        p.setNombreCompleto("ITF Profesor Facultad");
+        NombresPersonaTestUtil.aplicar(p, "ITF Profesor Facultad");
         p.setCorreoInstitucional(PREFIJO_CORREO + UUID.randomUUID() + DOMINIO_CORREO);
         p.setEstado(EstadoRegistro.ACTIVO);
         return profesorRepository.save(p);

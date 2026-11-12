@@ -17,7 +17,7 @@ class UsuarioCorreoNormalizacionTest {
         Usuario profesor = new Profesor();
         profesor.setCorreoInstitucional("  Profesor.Valido@UCO.NET.CO ");
 
-        profesor.normalizarCorreoInstitucional();
+        profesor.normalizarCamposUsuario();
 
         assertThat(profesor.getCorreoInstitucional()).isEqualTo("profesor.valido@uco.net.co");
     }
@@ -27,14 +27,31 @@ class UsuarioCorreoNormalizacionTest {
         Usuario profesor = new Profesor();
         profesor.setCorreoInstitucional(null);
 
-        profesor.normalizarCorreoInstitucional();
+        profesor.normalizarCamposUsuario();
 
         assertThat(profesor.getCorreoInstitucional()).isNull();
     }
 
     @Test
+    void partesDelNombreSeRecortanYSegundoNombreVacioPasaANulo() {
+        Usuario profesor = new Profesor();
+        profesor.setPrimerNombre(" Ana ");
+        profesor.setSegundoNombre("   ");
+        profesor.setPrimerApellido(" Gómez");
+        profesor.setSegundoApellido("López ");
+
+        profesor.normalizarCamposUsuario();
+
+        assertThat(profesor.getPrimerNombre()).isEqualTo("Ana");
+        assertThat(profesor.getSegundoNombre()).isNull();
+        assertThat(profesor.getPrimerApellido()).isEqualTo("Gómez");
+        assertThat(profesor.getSegundoApellido()).isEqualTo("López");
+        assertThat(profesor.getNombreCompleto()).isEqualTo("Ana Gómez López");
+    }
+
+    @Test
     void normalizacionSeEjecutaEnPersistYUpdate() throws NoSuchMethodException {
-        var metodo = Usuario.class.getDeclaredMethod("normalizarCorreoInstitucional");
+        var metodo = Usuario.class.getDeclaredMethod("normalizarCamposUsuario");
 
         assertThat(metodo.isAnnotationPresent(PrePersist.class)).isTrue();
         assertThat(metodo.isAnnotationPresent(PreUpdate.class)).isTrue();

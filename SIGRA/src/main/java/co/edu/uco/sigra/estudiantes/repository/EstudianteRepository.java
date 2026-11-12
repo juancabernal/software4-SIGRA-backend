@@ -32,7 +32,8 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
      */
     @Query("""
             select e from Estudiante e
-            where lower(e.nombreCompleto) like concat('%', lower(:criterio), '%')
+            where lower(concat(e.primerNombre, ' ', coalesce(e.segundoNombre, ''), ' ', e.primerApellido, ' ', e.segundoApellido))
+                    like concat('%', lower(:criterio), '%')
                or lower(e.numeroDocumento) like concat('%', lower(:criterio), '%')
             """)
     List<Estudiante> buscarPorNombreODocumento(@Param("criterio") String criterio);
@@ -46,7 +47,8 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
     @Query("""
             select e from Estudiante e
             where e.estado = :estudianteEstado
-              and (lower(e.nombreCompleto) like concat('%', lower(:criterio), '%')
+              and (lower(concat(e.primerNombre, ' ', coalesce(e.segundoNombre, ''), ' ', e.primerApellido, ' ', e.segundoApellido))
+                       like concat('%', lower(:criterio), '%')
                    or lower(e.numeroDocumento) like concat('%', lower(:criterio), '%'))
             """)
     List<Estudiante> buscarActivosPorNombreODocumento(@Param("criterio") String criterio,
@@ -61,9 +63,10 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, UUID> {
               and a.estado = :asignacionEstado
               and e.estado = :estudianteEstado
             and (:criterio = ''
-                   or lower(e.nombreCompleto) like concat('%', lower(:criterio), '%')
+                   or lower(concat(e.primerNombre, ' ', coalesce(e.segundoNombre, ''), ' ', e.primerApellido, ' ', e.segundoApellido))
+                       like concat('%', lower(:criterio), '%')
                    or lower(e.numeroDocumento) like concat('%', lower(:criterio), '%'))
-            order by e.nombreCompleto
+            order by e.primerApellido, e.primerNombre
             """)
     List<Estudiante> buscarVisiblesParaProfesor(@Param("profesorId") UUID profesorId,
                                                 @Param("criterio") String criterio,

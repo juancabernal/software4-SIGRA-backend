@@ -24,7 +24,7 @@ assert {
 
 tests {
   test("mensaje esperado", function () {
-    expect(res.body.mensaje).to.include("El estudiante con id " + bru.getEnvVar("idEstudianteInactivoMatricula") + " no está activo");
+    expect(res.body.mensaje).to.include("El estudiante no está activo");
   });
 
   test("error con formato estandar y sin detalles tecnicos", function () {
