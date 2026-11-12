@@ -44,7 +44,8 @@ public interface NivelLogroEstudianteRepository extends JpaRepository<NivelLogro
             join fetch n.estudiante
             join fetch n.resultadoAprendizaje ra
             join fetch ra.asignatura a
-            join fetch a.programa
+            join fetch a.programa p
+            join fetch p.facultad
             where n.semestre.id = :semestreId
               and n.nivelLogro in :niveles
               and ra.estado = :estadoRa

@@ -1,0 +1,26 @@
+meta {
+  name: 22 facultadId que no es UUID
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?facultadId=no-es-uuid
+  body: none
+  auth: none
+}
+
+params:query {
+  facultadId: no-es-uuid
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("error estandar sin detalles tecnicos", function () {
+    expect(res.body.mensaje).to.include("facultadId");
+    expect(JSON.stringify(res.body)).to.not.include("Exception");
+  });
+}

@@ -61,6 +61,7 @@ class AsignaturaControllerTest {
     private static final String URL = "/api/v1/asignaturas";
     private static final UUID ID = UUID.randomUUID();
     private static final UUID ID_PROGRAMA = UUID.randomUUID();
+    private static final UUID ID_FACULTAD = UUID.randomUUID();
     private static final String URL_ID = URL + "/" + ID;
     private static final String CODIGO = "ISW4";
     private static final String NOMBRE = "Ingeniería de Software IV";
@@ -95,7 +96,7 @@ class AsignaturaControllerTest {
     }
 
     private static AsignaturaResponseDTO respuesta(String codigo, EstadoAsignatura estado, long cantidadRa) {
-        return new AsignaturaResponseDTO(ID, codigo, NOMBRE, ID_PROGRAMA, "Ingeniería de Sistemas", estado, cantidadRa);
+        return new AsignaturaResponseDTO(ID, codigo, NOMBRE, ID_PROGRAMA, "Ingeniería de Sistemas", ID_FACULTAD, "Facultad de Ingeniería", estado, cantidadRa);
     }
 
     private static String cuerpoRegistro(String codigo, String nombre, UUID programaId) {
@@ -277,6 +278,65 @@ class AsignaturaControllerTest {
             mockMvc.perform(get(URL).param("programaId", "no-es-uuid"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath(JSON_MENSAJE).value("El valor del parámetro 'programaId' no es válido."));
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("Envía al servicio el facultadId y la respuesta trae la facultad")
+        void conFacultad() throws Exception {
+            when(service.consultar(any(AsignaturaFiltroDTO.class), any(UsuarioPrincipal.class)))
+                    .thenReturn(List.of(respuesta(CODIGO, EstadoAsignatura.ACTIVA, 6)));
+
+            mockMvc.perform(get(URL)
+                            .param("facultadId", ID_FACULTAD.toString())
+                            .param("programaId", ID_PROGRAMA.toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].facultadId").value(ID_FACULTAD.toString()))
+                    .andExpect(jsonPath("$[0].facultadNombre").value("Facultad de Ingeniería"));
+
+            ArgumentCaptor<AsignaturaFiltroDTO> captor = ArgumentCaptor.forClass(AsignaturaFiltroDTO.class);
+            verify(service).consultar(captor.capture(), any(UsuarioPrincipal.class));
+            assertThat(captor.getValue())
+                    .isEqualTo(new AsignaturaFiltroDTO(null, ID_PROGRAMA, ID_FACULTAD, null, null, null, null));
+        }
+
+        @Test
+        @DisplayName("Un facultadId que no es UUID devuelve 400")
+        void facultadIdInvalido() throws Exception {
+            mockMvc.perform(get(URL).param("facultadId", "no-es-uuid"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath(JSON_MENSAJE).value("El valor del parámetro 'facultadId' no es válido."));
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("GET /mias envía el facultadId al servicio")
+        void misAsignaturasConFacultad() throws Exception {
+            when(service.misAsignaturas(any(UsuarioPrincipal.class), eq(ID_FACULTAD))).thenReturn(List.of());
+
+            mockMvc.perform(get(URL + "/mias").param("facultadId", ID_FACULTAD.toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+
+            verify(service).misAsignaturas(any(UsuarioPrincipal.class), eq(ID_FACULTAD));
+        }
+
+        @Test
+        @DisplayName("GET /mias sin facultadId no filtra")
+        void misAsignaturasSinFacultad() throws Exception {
+            when(service.misAsignaturas(any(UsuarioPrincipal.class), isNull())).thenReturn(List.of());
+
+            mockMvc.perform(get(URL + "/mias"))
+                    .andExpect(status().isOk());
+
+            verify(service).misAsignaturas(any(UsuarioPrincipal.class), isNull());
+        }
+
+        @Test
+        @DisplayName("GET /mias con un facultadId que no es UUID devuelve 400")
+        void misAsignaturasFacultadInvalida() throws Exception {
+            mockMvc.perform(get(URL + "/mias").param("facultadId", "abc"))
+                    .andExpect(status().isBadRequest());
             verifyNoInteractions(service);
         }
 

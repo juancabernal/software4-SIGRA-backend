@@ -1,0 +1,26 @@
+meta {
+  name: 21 Facultad con programa de otra facultad
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?facultadId={{idFacultadInexistente}}&programaId={{programaActivoId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  facultadId: {{idFacultadInexistente}}
+  programaId: {{programaActivoId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("lista vacia, no error", function () {
+    expect(res.body).to.be.an("array").that.is.empty;
+  });
+}

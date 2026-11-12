@@ -1,0 +1,33 @@
+meta {
+  name: 20 Por facultad
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/api/v1/asignaturas?facultadId={{facultadPorDefectoId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  facultadId: {{facultadPorDefectoId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("todas de la facultad pedida y con su nombre", function () {
+    expect(res.body).to.be.an("array").that.is.not.empty;
+    res.body.forEach((a) => {
+      expect(a.facultadId).to.equal(bru.getEnvVar("facultadPorDefectoId"));
+      expect(a.facultadNombre).to.equal(bru.getEnvVar("facultadPorDefectoNombre"));
+    });
+  });
+
+  test("incluye las asignaturas semilla", function () {
+    expect(res.body.map((a) => a.codigo)).to.include("BRU00");
+  });
+}

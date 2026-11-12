@@ -93,7 +93,7 @@ class AsignaturaServiceAlcanceTest {
     }
 
     private void catalogo() {
-        when(asignaturaRepository.findAll()).thenReturn(List.of(suya, ajena));
+        when(asignaturaRepository.findAllConProgramaYFacultad()).thenReturn(List.of(suya, ajena));
         when(asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)).thenReturn(List.of());
     }
 
