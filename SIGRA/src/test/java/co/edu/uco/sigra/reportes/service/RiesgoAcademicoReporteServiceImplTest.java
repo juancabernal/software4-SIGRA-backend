@@ -1,5 +1,8 @@
 package co.edu.uco.sigra.reportes.service;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import co.edu.uco.sigra.facultades.entity.Facultad;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -86,7 +89,7 @@ class RiesgoAcademicoReporteServiceImplTest {
         when(asignatura.getPrograma()).thenReturn(programa);
         when(asignaturaRepository.existsById(asignaturaId)).thenReturn(true);
         when(programaRepository.existsById(programaId)).thenReturn(true);
-        when(asignaturaRepository.findAll()).thenReturn(List.of(asignatura));
+        when(asignaturaRepository.findAllConProgramaYFacultad()).thenReturn(List.of(asignatura));
 
         estudiante = mock(Estudiante.class);
         when(estudiante.getId()).thenReturn(estudianteId);
@@ -213,5 +216,106 @@ class RiesgoAcademicoReporteServiceImplTest {
 
         assertThat(fila.cantidadRaNoAlcanzados()).isEqualTo(2);
         assertThat(fila.severidad()).isEqualTo(SeveridadRiesgo.RIESGO);
+    }
+
+    // ---------------------------------------------------------------- facultad (incidencia 0000036)
+
+    private final UUID facultadId = UUID.randomUUID();
+
+    private void conFacultad() {
+        Facultad facultad = mock(Facultad.class);
+        when(facultad.getId()).thenReturn(facultadId);
+        when(facultad.getNombre()).thenReturn("Facultad de Ingeniería");
+        ProgramaAcademico programa = asignatura.getPrograma();
+        when(programa.getFacultad()).thenReturn(facultad);
+    }
+
+    @Test
+    @DisplayName("Cada fila trae programaId, facultadId y facultadNombre")
+    void filaTraeProgramaYFacultad() {
+        conFacultad();
+        simularFilas(List.of(fila("RA-01", NivelLogro.BAJO, 2.0)));
+
+        EstudianteRiesgoDTO fila = servicio.consultar(null, null, null, null, admin).estudiantes().getFirst();
+
+        assertThat(fila.programaId()).isEqualTo(programaId);
+        assertThat(fila.programaNombre()).isEqualTo("Ingeniería de Sistemas");
+        assertThat(fila.facultadId()).isEqualTo(facultadId);
+        assertThat(fila.facultadNombre()).isEqualTo("Facultad de Ingeniería");
+    }
+
+    @Test
+    @DisplayName("Con facultadId el administrador consulta solo esa facultad en la base")
+    void administradorFiltraPorFacultad() {
+        conFacultad();
+        simularFilas(List.of(fila("RA-01", NivelLogro.BAJO, 2.0)));
+        when(asignaturaRepository.findAllDeFacultad(facultadId)).thenReturn(List.of(asignatura));
+
+        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, facultadId, null, null, admin);
+
+        assertThat(reporte.totalEstudiantesEnRiesgo()).isEqualTo(1);
+        verify(asignaturaRepository, never()).findAllConProgramaYFacultad();
+    }
+
+    @Test
+    @DisplayName("Una facultad sin asignaturas, o inexistente, da «Sin datos disponibles» y no 404")
+    void facultadSinDatos() {
+        UUID otra = UUID.randomUUID();
+        when(asignaturaRepository.findAllDeFacultad(otra)).thenReturn(List.of());
+
+        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, otra, null, null, admin);
+
+        assertThat(reporte.estudiantes()).isEmpty();
+        assertThat(reporte.mensaje()).isEqualTo("Sin datos disponibles");
+    }
+
+    @Test
+    @DisplayName("facultadId combinado con un programa de otra facultad da lista vacía")
+    void programaDeOtraFacultad() {
+        UUID otroPrograma = UUID.randomUUID();
+        when(programaRepository.existsById(otroPrograma)).thenReturn(true);
+        when(asignaturaRepository.findAllDeFacultad(facultadId)).thenReturn(List.of(asignatura));
+
+        assertThat(servicio.consultar(null, otroPrograma, facultadId, null, null, admin).estudiantes()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El profesor con facultadId solo consulta sus asignaturas de esa facultad")
+    void profesorFiltraPorFacultad() {
+        UsuarioPrincipal profesor = new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR);
+        conFacultad();
+        simularFilas(List.of(fila("RA-01", NivelLogro.BAJO, 2.0)));
+        when(asignaturaRepository.findAsignadasAProfesorEnFacultad(profesorId, EstadoRegistro.ACTIVO, facultadId))
+                .thenReturn(List.of(asignatura));
+
+        RiesgoAcademicoReporteResponseDTO reporte = servicio.consultar(null, null, facultadId, null, null, profesor);
+
+        assertThat(reporte.totalEstudiantesEnRiesgo()).isEqualTo(1);
+        verify(asignaturaRepository, never()).findAllDeFacultad(any());
+    }
+
+    @Test
+    @DisplayName("Una asignatura propia de otra facultad queda fuera (vacío), no es 403")
+    void asignaturaPropiaDeOtraFacultad() {
+        UsuarioPrincipal profesor = new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR);
+        UUID otra = UUID.randomUUID();
+        when(asignaturaRepository.findAsignadasAProfesorEnFacultad(profesorId, EstadoRegistro.ACTIVO, otra))
+                .thenReturn(List.of());
+        when(asignaturaRepository.findAsignadasAProfesor(profesorId, EstadoRegistro.ACTIVO))
+                .thenReturn(List.of(asignatura));
+
+        assertThat(servicio.consultar(null, null, otra, asignaturaId, null, profesor).estudiantes()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Con facultadId, una asignatura ajena sigue siendo 403 para el profesor")
+    void asignaturaAjenaConFacultad() {
+        UsuarioPrincipal profesor = new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR);
+        when(asignaturaRepository.findAsignadasAProfesorEnFacultad(profesorId, EstadoRegistro.ACTIVO, facultadId))
+                .thenReturn(List.of());
+        when(asignaturaRepository.findAsignadasAProfesor(profesorId, EstadoRegistro.ACTIVO)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> servicio.consultar(null, null, facultadId, asignaturaId, null, profesor))
+                .isInstanceOf(PermisoReporteInsuficienteException.class);
     }
 }

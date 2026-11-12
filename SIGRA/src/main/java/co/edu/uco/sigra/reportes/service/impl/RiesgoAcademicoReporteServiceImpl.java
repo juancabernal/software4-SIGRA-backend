@@ -52,8 +52,9 @@ public class RiesgoAcademicoReporteServiceImpl implements RiesgoAcademicoReporte
 
     @Override
     @Transactional(readOnly = true)
-    public RiesgoAcademicoReporteResponseDTO consultar(UUID semestreId, UUID programaId, UUID asignaturaId,
-                                                       Integer minRaNoAlcanzados, UsuarioPrincipal principal) {
+    public RiesgoAcademicoReporteResponseDTO consultar(UUID semestreId, UUID programaId, UUID facultadId,
+                                                       UUID asignaturaId, Integer minRaNoAlcanzados,
+                                                       UsuarioPrincipal principal) {
         verificarRol(principal);
         int umbral = minRaNoAlcanzados == null || minRaNoAlcanzados < 1 ? 1 : minRaNoAlcanzados;
 
@@ -68,9 +69,13 @@ public class RiesgoAcademicoReporteServiceImpl implements RiesgoAcademicoReporte
             return new RiesgoAcademicoReporteResponseDTO(null, null, 0, List.of(), SIN_DATOS_DISPONIBLES);
         }
 
-        List<Asignatura> candidatas = asignaturasVisibles(principal);
+        // La facultad se resuelve en la consulta (asignatura → programa → facultad), dentro del alcance del rol.
+        List<Asignatura> candidatas = asignaturasVisibles(principal, facultadId);
         if (asignaturaId != null) {
-            if (candidatas.stream().noneMatch(a -> a.getId().equals(asignaturaId))) {
+            // El permiso se comprueba sobre el alcance completo del rol: una asignatura propia pero de otra
+            // facultad no es un 403, solo queda fuera del resultado por el filtro de facultad.
+            List<Asignatura> alcance = facultadId == null ? candidatas : asignaturasVisibles(principal, null);
+            if (alcance.stream().noneMatch(a -> a.getId().equals(asignaturaId))) {
                 throw new PermisoReporteInsuficienteException();
             }
             candidatas = candidatas.stream().filter(a -> a.getId().equals(asignaturaId)).toList();
@@ -123,11 +128,15 @@ public class RiesgoAcademicoReporteServiceImpl implements RiesgoAcademicoReporte
                 .orElseThrow(() -> new ReporteRecursoNoEncontradoException("El semestre indicado no existe.")));
     }
 
-    private List<Asignatura> asignaturasVisibles(UsuarioPrincipal principal) {
+    private List<Asignatura> asignaturasVisibles(UsuarioPrincipal principal, UUID facultadId) {
         if (principal.rol() == RolUsuario.ADMINISTRADOR) {
-            return asignaturaRepository.findAll();
+            return facultadId == null
+                    ? asignaturaRepository.findAllConProgramaYFacultad()
+                    : asignaturaRepository.findAllDeFacultad(facultadId);
         }
-        return asignaturaRepository.findAsignadasAProfesor(principal.id(), EstadoRegistro.ACTIVO);
+        return facultadId == null
+                ? asignaturaRepository.findAsignadasAProfesor(principal.id(), EstadoRegistro.ACTIVO)
+                : asignaturaRepository.findAsignadasAProfesorEnFacultad(principal.id(), EstadoRegistro.ACTIVO, facultadId);
     }
 
     private List<EstudianteRiesgoDTO> agrupar(List<NivelLogroEstudiante> filas) {
@@ -165,7 +174,10 @@ public class RiesgoAcademicoReporteServiceImpl implements RiesgoAcademicoReporte
                     asignatura.getId(),
                     asignatura.getCodigo(),
                     asignatura.getNombre(),
+                    asignatura.getPrograma().getId(),
                     asignatura.getPrograma().getNombre(),
+                    asignatura.getPrograma().getFacultad() == null ? null : asignatura.getPrograma().getFacultad().getId(),
+                    asignatura.getPrograma().getFacultad() == null ? null : asignatura.getPrograma().getFacultad().getNombre(),
                     cantidad,
                     severidadDe(cantidad),
                     ras));

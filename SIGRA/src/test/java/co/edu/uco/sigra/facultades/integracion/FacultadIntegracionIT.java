@@ -76,6 +76,7 @@ class FacultadIntegracionIT {
     private static final String URL_PROGRAMAS = "/api/v1/programas";
     private static final String URL_ASIGNATURAS = "/api/v1/asignaturas";
     private static final String URL_REPORTE_R1 = "/api/v1/reportes/rendimiento-ra";
+    private static final String URL_REPORTE_R6 = "/api/v1/reportes/riesgo-academico";
     private static final String PREFIJO_NOMBRE = "ITF Facultad ";
     private static final String PREFIJO_CODIGO_PROGRAMA = "ITF-";
     private static final String PREFIJO_NOMBRE_PROGRAMA = "ITF Programa ";
@@ -530,6 +531,14 @@ class FacultadIntegracionIT {
         assertThat(facultadesReporte).allMatch(id -> id.equals(ingenieria.getId().toString()));
         MvcResult reporteInvalido = enviar(get(URL_REPORTE_R1 + "?facultadId=abc"), tokenProfesor, null);
         assertThat(reporteInvalido.getResponse().getStatus()).isEqualTo(400);
+
+        // El reporte R6 (riesgo académico) también acepta el filtro.
+        MvcResult riesgo = enviar(get(URL_REPORTE_R6 + "?facultadId=" + ingenieria.getId()), tokenProfesor, null);
+        assertThat(riesgo.getResponse().getStatus()).isEqualTo(200);
+        List<String> facultadesRiesgo = JsonPath.read(cuerpo(riesgo), "$.estudiantes[*].facultadId");
+        assertThat(facultadesRiesgo).allMatch(id -> id.equals(ingenieria.getId().toString()));
+        MvcResult riesgoInvalido = enviar(get(URL_REPORTE_R6 + "?facultadId=abc"), tokenProfesor, null);
+        assertThat(riesgoInvalido.getResponse().getStatus()).isEqualTo(400);
 
         // La seguridad de programas y facultades no cambia: el profesor sigue sin acceso.
         assertEstado("GET /programas como profesor", 403, enviar(get(URL_PROGRAMAS), tokenProfesor, null));
