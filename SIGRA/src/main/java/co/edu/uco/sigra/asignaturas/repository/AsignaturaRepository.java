@@ -18,36 +18,6 @@ public interface AsignaturaRepository extends JpaRepository<Asignatura, UUID> {
     boolean existsByCodigo(String codigo);
     boolean existsByPrograma_IdAndEstado(UUID programaId, EstadoAsignatura estado);
 
-    /** Mismo criterio temporal que SemestreRepository.findConAsignaturasDelProfesor.
-     * Sin profesor, incluye también actividad académica sin asignación docente activa.
-     */
-    @Query("""
-            select a.id from Asignatura a
-            where exists (
-                select s.id from Semestre s where s.id = :semestreId and (
-                    exists (
-                        select ad.id from AsignacionDocente ad
-                        where ad.asignatura = a and ad.estado = :estado
-                          and (:profesorId is null or ad.profesor.id = :profesorId)
-                          and (ad.fechaAsignacion <= s.fechaFin
-                               or exists (select e.id from Evaluacion e
-                                          where e.semestre = s and e.resultadoAprendizaje.asignatura = a)
-                               or exists (select m.id from Matricula m
-                                          where m.semestre = s and m.asignatura = a))
-                    )
-                    or (:profesorId is null and (
-                        exists (select e.id from Evaluacion e
-                                where e.semestre = s and e.resultadoAprendizaje.asignatura = a)
-                        or exists (select m.id from Matricula m
-                                   where m.semestre = s and m.asignatura = a)
-                    ))
-                )
-            )
-            """)
-    List<UUID> findIdsEnSemestre(@Param("semestreId") UUID semestreId,
-                                 @Param("profesorId") UUID profesorId,
-                                 @Param("estado") EstadoRegistro estado);
-
     @Query("select r.asignatura.id as asignaturaId, count(r) as cantidad from ResultadoAprendizaje r "
             + "where r.estado = :estado group by r.asignatura.id")
     List<ConteoRaPorAsignatura> contarRaPorAsignatura(@Param("estado") EstadoRegistro estado);

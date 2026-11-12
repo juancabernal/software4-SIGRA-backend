@@ -13,14 +13,8 @@ public record AsignaturaFiltroDTO(
         UUID programaId,
         EstadoAsignatura estado,
         Integer raMin,
-        Integer raMax,
-        UUID semestreId
+        Integer raMax
 ) {
-    public AsignaturaFiltroDTO(String texto, UUID programaId, EstadoAsignatura estado,
-                              Integer raMin, Integer raMax) {
-        this(texto, programaId, estado, raMin, raMax, null);
-    }
-
     public AsignaturaFiltroDTO {
         texto = ReglasEntrada.normalizarTexto(texto);
     }
