@@ -40,6 +40,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -127,10 +128,8 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         validarRangoRa(filtro.raMin(), filtro.raMax());
         Set<UUID> alcance = alcanceDe(identidad);
 
-        Set<UUID> enSemestre = filtro.semestreId() == null ? null : Set.copyOf(
-                asignaturaRepository.findIdsEnSemestre(filtro.semestreId(),
-                        identidad.rol() == RolUsuario.PROFESOR ? identidad.id() : null,
-                        EstadoRegistro.ACTIVO));
+        Set<UUID> enSemestre = filtro.semestreId() == null ? null
+                : asignaturasEnSemestre(filtro.semestreId(), identidad);
 
         Map<UUID, Long> raActivosPorAsignatura = asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)
                 .stream()
@@ -228,6 +227,19 @@ public class AsignaturaServiceImpl implements AsignaturaService {
      * Asignaturas visibles para la identidad: el ADMINISTRADOR ve todas. El PROFESOR solo ve las
      * suyas con asignación docente ACTIVA; un ESTUDIANTE no consulta el catálogo.
      */
+    /** Une consultas simples y aplica el alcance del docente en consultar().
+     * La actividad histórica cuenta aunque la asignación sea posterior al semestre,
+     * igual que en el listado de semestres propios.
+     */
+    private Set<UUID> asignaturasEnSemestre(UUID semestreId, UsuarioPrincipal identidad) {
+        UUID profesorId = identidad.rol() == RolUsuario.PROFESOR ? identidad.id() : null;
+        Set<UUID> ids = new HashSet<>(asignaturaRepository.findIdsConAsignacionEnSemestre(
+                semestreId, profesorId, EstadoRegistro.ACTIVO));
+        ids.addAll(asignaturaRepository.findIdsConEvaluacionesEnSemestre(semestreId));
+        ids.addAll(asignaturaRepository.findIdsConMatriculasEnSemestre(semestreId));
+        return ids;
+    }
+
     private Set<UUID> alcanceDe(UsuarioPrincipal identidad) {
         if (identidad == null) {
             throw new PermisoInsuficienteException();

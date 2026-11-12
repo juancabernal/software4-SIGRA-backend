@@ -106,7 +106,7 @@ class AsignaturaServiceConsultaTest {
     void filtraPorSemestreSinPerderFiltroDeEstado() {
         catalogoCompleto();
         UUID semestreId = UUID.randomUUID();
-        when(asignaturaRepository.findIdsEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
+        when(asignaturaRepository.findIdsConAsignacionEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
                 .thenReturn(List.of(software.getId(), arquitectura.getId()));
 
         var resultado = service.consultar(new AsignaturaFiltroDTO(
@@ -119,7 +119,7 @@ class AsignaturaServiceConsultaTest {
     void semestreSinAsignaturasDevuelveListaVacia() {
         catalogoCompleto();
         UUID semestreId = UUID.randomUUID();
-        when(asignaturaRepository.findIdsEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
+        when(asignaturaRepository.findIdsConAsignacionEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
                 .thenReturn(List.of());
 
         assertThat(service.consultar(new AsignaturaFiltroDTO(
