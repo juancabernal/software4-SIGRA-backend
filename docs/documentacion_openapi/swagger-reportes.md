@@ -33,3 +33,13 @@ Parámetros opcionales comunes: `semestreId` (sin valor usa el semestre activo),
 - Agrupa por estudiante × asignatura; severidad: `ATENCION` (1), `RIESGO` (2), `ALTO_RIESGO` (≥ 3).
 - Lista vacía → `mensaje` «Sin datos disponibles».
 - Misma política de 403/404 que R1.
+
+## R2 — Matrículas por programa y semestre
+
+| Método y ruta | Rol | Códigos documentados |
+| --- | --- | --- |
+| `GET /api/v1/reportes/matriculas-programa-semestre` | ADMINISTRADOR | 200, 400, 401, 403, 404 |
+
+Parámetros opcionales: `semestreId`, `programaId` y `facultadId` (UUID). Se combinan con AND y se devuelven en la respuesta. Un `semestreId` o `programaId` inexistente produce 404; un `facultadId` inexistente produce 200 con filas vacías y resumen en cero.
+
+La respuesta contiene un `resumen` y `filas` agrupadas por semestre y programa. Cada fila incluye código, fecha de inicio y estado del semestre, código y nombre del programa, facultad y los conteos de matrículas totales, activas, desvinculadas, estudiantes y asignaturas. `estudiantesDistintos` se calcula con una consulta independiente. El reporte no expone datos personales.

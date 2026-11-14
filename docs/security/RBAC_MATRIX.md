@@ -52,6 +52,7 @@ La tabla documenta los mappings de negocio actuales, incluido el login público.
 | 44 | `PATCH /api/v1/evaluaciones/{id}/inactivar` | — | ✓ | — | Mismo alcance docente |
 | 45 | `PATCH /api/v1/evaluaciones/{id}/reactivar` | — | ✓ | — | Mismo alcance docente |
 | 46 | `GET /api/v1/asignaturas/{asignaturaId}/resultados-aprendizaje/rendimiento` | ✓ | ✓ | — | Profesor solo con asignación docente ACTIVA sobre la asignatura (`@securityAuthorization.hasActiveAssignment`); calcula sobre el semestre activo |
+| 47 | `GET /api/v1/reportes/matriculas-programa-semestre` | ✓ | — | — | Reporte agregado R2, solo conteos |
 
 ## Identidad y datos
 
