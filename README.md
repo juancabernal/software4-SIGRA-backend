@@ -155,6 +155,7 @@ Queda fuera del alcance del MVP: uso de IA para el análisis, carga de rúbricas
 | --- | --- | --- | --- |
 | Juan Camilo Bernal | Acciones de mejora y conversión a evaluación: registro solo con conclusión vigente, validación de % al convertir | RF-17, RF-18 | `mejoras` |
 | Santiago Torres | Consultas y reportes por rol: vista del profesor, RA por asignatura, logro por programa, vista del estudiante | RF-20, RF-21a/b, RF-22 | `reportes` |
+| Tomás Gómez | Reporte agregado de matrículas por programa y semestre | R2 | `reportes` |
 
 ### Responsabilidades transversales
 
@@ -563,6 +564,21 @@ Reporte de solo lectura (incidencia 0000041) que muestra el nivel de logro por r
 | Errores | 400 (UUID inválido), 401, 403, 404 (semestre, programa o asignatura inexistentes); los mensajes no incluyen identificadores internos (RNF-17) |
 
 Los rangos de nivel de logro los define `CatalogoNivelesLogro` (módulo de estadísticas); el reporte no los redefine. Guía OpenAPI: [`docs/documentacion_openapi/swagger-reportes.md`](docs/documentacion_openapi/swagger-reportes.md).
+
+---
+
+## R2 — Matrículas por programa y semestre
+
+Reporte de solo lectura para coordinación académica, con conteos agregados sin datos personales.
+
+| Elemento | Detalle |
+| --- | --- |
+| Endpoint | `GET /api/v1/reportes/matriculas-programa-semestre?semestreId=&programaId=&facultadId=` |
+| Acceso | ADMINISTRADOR; PROFESOR y ESTUDIANTE → 403 |
+| Resultado | Filas por semestre y programa: matrículas totales, activas, desvinculadas, estudiantes y asignaturas |
+| Errores | 400 (UUID inválido), 401, 403, 404 para semestre o programa inexistente; facultad inexistente produce 200 vacío |
+
+El resumen calcula los estudiantes distintos con una consulta independiente. Guía OpenAPI: [`docs/documentacion_openapi/swagger-reportes.md`](docs/documentacion_openapi/swagger-reportes.md).
 
 ---
 
