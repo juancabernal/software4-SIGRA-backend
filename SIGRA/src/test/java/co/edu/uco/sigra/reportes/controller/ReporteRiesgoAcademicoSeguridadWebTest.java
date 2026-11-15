@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.reportes.controller;
 
+import static org.mockito.Mockito.verify;
 import co.edu.uco.sigra.auth.entity.Usuario;
 import co.edu.uco.sigra.auth.repository.UsuarioRepository;
 import co.edu.uco.sigra.auth.security.CurrentUser;
@@ -107,6 +108,31 @@ class ReporteRiesgoAcademicoSeguridadWebTest {
         configurarToken("token-admin", RolUsuario.ADMINISTRADOR);
 
         mockMvc.perform(get(RUTA).param("programaId", "no-es-uuid")
+                        .header("Authorization", "Bearer token-admin"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(reporteService);
+    }
+
+    @Test
+    @DisplayName("El facultadId llega al servicio")
+    void facultadIdLlegaAlServicio() throws Exception {
+        UUID facultadId = UUID.randomUUID();
+        configurarToken("token-profesor", RolUsuario.PROFESOR);
+        when(reporteService.consultar(any(), any(), eq(facultadId), any(), any(), any()))
+                .thenReturn(new RiesgoAcademicoReporteResponseDTO(null, null, 0, List.of(), "Sin datos disponibles"));
+
+        mockMvc.perform(get(RUTA).param("facultadId", facultadId.toString())
+                        .header("Authorization", "Bearer token-profesor"))
+                .andExpect(status().isOk());
+        verify(reporteService).consultar(any(), any(), eq(facultadId), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Un facultadId que no es UUID devuelve 400")
+    void facultadIdInvalidoEs400() throws Exception {
+        configurarToken("token-admin", RolUsuario.ADMINISTRADOR);
+
+        mockMvc.perform(get(RUTA).param("facultadId", "no-es-uuid")
                         .header("Authorization", "Bearer token-admin"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(reporteService);

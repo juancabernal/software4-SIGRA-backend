@@ -17,6 +17,10 @@ public record AsignaturaRendimientoReporteDTO(
         UUID programaId,
         @Schema(description = "Nombre del programa académico", example = "Ingeniería de Sistemas")
         String programaNombre,
+        @Schema(description = "Identificador de la facultad del programa", example = "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f")
+        UUID facultadId,
+        @Schema(description = "Nombre de la facultad del programa", example = "Facultad de Ingeniería")
+        String facultadNombre,
         @Schema(description = "RA activos de la asignatura, ordenados por código")
         List<RaRendimientoReporteDTO> resultados
 ) {

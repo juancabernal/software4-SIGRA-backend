@@ -18,4 +18,13 @@ public interface HistorialAuditoriaRepository extends Repository<HistorialAudito
     Page<HistorialAuditoria> findByTipoEntidadAndFechaHoraBetween(TipoEntidadAuditoria tipoEntidad,
                                                                   LocalDateTime desde, LocalDateTime hasta,
                                                                   Pageable pagina);
+
+    Page<HistorialAuditoria> findByUsuarioIdAndFechaHoraBetween(UUID usuarioId, LocalDateTime desde,
+                                                                LocalDateTime hasta, Pageable pagina);
+
+    Page<HistorialAuditoria> findByUsuarioIdAndTipoEntidadAndFechaHoraBetween(UUID usuarioId,
+                                                                              TipoEntidadAuditoria tipoEntidad,
+                                                                              LocalDateTime desde,
+                                                                              LocalDateTime hasta,
+                                                                              Pageable pagina);
 }

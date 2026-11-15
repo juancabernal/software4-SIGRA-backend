@@ -36,6 +36,22 @@ Cómo se aplicó a `EstudianteController` el patrón de documentación OpenAPI d
 
 Si un mismo código tiene varias causas (por ejemplo, un 409 por documento repetido o por correo repetido), usa varios `@ExampleObject` con `name` y `summary`.
 
+## Proceso académico del estudiante
+
+Estos endpoints son de solo lectura y solo aceptan el rol `ESTUDIANTE`. La identidad se toma
+del token JWT; no reciben `estudianteId` y nunca devuelven información de otro estudiante.
+
+| Método y ruta | Respuesta |
+| --- | --- |
+| `GET /api/v1/estudiantes/me/materias` | Lista de `MiMateriaDTO` para matrículas `EN_CURSO` y `PROGRAMADA`, agrupadas en ese orden y ordenadas por nombre de asignatura. |
+| `GET /api/v1/estudiantes/me/materias/{matriculaId}` | `MiMateriaDetalleDTO` de una matrícula propia; devuelve 400 si el UUID es inválido y 404 si no pertenece al registro académico propio. |
+| `GET /api/v1/estudiantes/me/progreso` | Lista de `MiMateriaDetalleDTO` para materias `EN_CURSO`. |
+| `GET /api/v1/estudiantes/me/historial` | Lista de `MiMateriaDTO` para materias `CURSADA` y `DESVINCULADA`. |
+
+El detalle incluye resultados de aprendizaje y evaluaciones de la asignatura y semestre de la
+matrícula. `SIN_EVALUAR` representa una ausencia de cálculo o un nivel nulo; no es un valor
+persistido. El nivel mostrado corresponde al último cálculo disponible del sistema.
+
 ## Qué códigos documentar
 
 Se documentan los códigos que el endpoint **realmente puede devolver**; no se agrega un 400 o un 404 a un endpoint que no los produce.

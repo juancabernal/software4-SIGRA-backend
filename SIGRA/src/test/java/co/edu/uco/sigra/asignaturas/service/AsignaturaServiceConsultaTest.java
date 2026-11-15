@@ -106,7 +106,7 @@ class AsignaturaServiceConsultaTest {
     void filtraPorSemestreSinPerderFiltroDeEstado() {
         catalogoCompleto();
         UUID semestreId = UUID.randomUUID();
-        when(asignaturaRepository.findIdsEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
+        when(asignaturaRepository.findIdsConAsignacionEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
                 .thenReturn(List.of(software.getId(), arquitectura.getId()));
 
         var resultado = service.consultar(new AsignaturaFiltroDTO(
@@ -119,7 +119,7 @@ class AsignaturaServiceConsultaTest {
     void semestreSinAsignaturasDevuelveListaVacia() {
         catalogoCompleto();
         UUID semestreId = UUID.randomUUID();
-        when(asignaturaRepository.findIdsEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
+        when(asignaturaRepository.findIdsConAsignacionEnSemestre(semestreId, null, EstadoRegistro.ACTIVO))
                 .thenReturn(List.of());
 
         assertThat(service.consultar(new AsignaturaFiltroDTO(
@@ -162,7 +162,7 @@ class AsignaturaServiceConsultaTest {
 
     /** Catálogo de prueba: Software (6 RA), Arquitectura (3 RA), Bases de Datos y Cálculo sin RA activos. */
     private void catalogoCompleto() {
-        when(asignaturaRepository.findAll()).thenReturn(List.of(software, arquitectura, basesDeDatos, calculo));
+        when(asignaturaRepository.findAllConProgramaYFacultad()).thenReturn(List.of(software, arquitectura, basesDeDatos, calculo));
         when(asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO))
                 .thenReturn(List.of(conteo(software, 6), conteo(arquitectura, 3)));
     }
@@ -303,7 +303,7 @@ class AsignaturaServiceConsultaTest {
     @Test
     @DisplayName("Sin asignaturas registradas devuelve una lista vacía")
     void sinAsignaturas() {
-        when(asignaturaRepository.findAll()).thenReturn(List.of());
+        when(asignaturaRepository.findAllConProgramaYFacultad()).thenReturn(List.of());
         when(asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)).thenReturn(List.of());
 
         assertThat(service.consultar(sinFiltros())).isEmpty();

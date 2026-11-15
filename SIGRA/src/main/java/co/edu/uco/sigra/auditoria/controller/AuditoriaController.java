@@ -118,4 +118,27 @@ public class AuditoriaController {
             @Max(value = TAMANO_MAXIMO, message = "El tamaño de página no puede superar 100") int tamano) {
         return ResponseEntity.ok(auditoriaService.consultar(desde, hasta, tipoEntidad, pagina, tamano));
     }
+
+    @Operation(summary = "Consultar mi historial de auditoría",
+            description = "Devuelve, del más reciente al más antiguo, los eventos registrados por el usuario autenticado "
+                    + "(sus propias acciones), con los mismos filtros de fecha y tipo de entidad que el historial general. "
+                    + "Solo lectura. Rol requerido: PROFESOR.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de eventos propios"),
+            @ApiResponse(responseCode = "400", description = "Rango de fechas o paginación inválidos"),
+            @ApiResponse(responseCode = "401", description = "Falta el token o es inválido"),
+            @ApiResponse(responseCode = "403", description = "El usuario no tiene el rol PROFESOR")
+    })
+    @GetMapping("/mis-eventos")
+    @PreAuthorize("hasRole('PROFESOR')")
+    public ResponseEntity<PaginaAuditoriaDTO> consultarPropios(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) TipoEntidadAuditoria tipoEntidad,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "La página no puede ser negativa") int pagina,
+            @RequestParam(defaultValue = "20")
+            @Min(value = 1, message = "El tamaño de página debe ser al menos 1")
+            @Max(value = TAMANO_MAXIMO, message = "El tamaño de página no puede superar 100") int tamano) {
+        return ResponseEntity.ok(auditoriaService.consultarPropios(desde, hasta, tipoEntidad, pagina, tamano));
+    }
 }
