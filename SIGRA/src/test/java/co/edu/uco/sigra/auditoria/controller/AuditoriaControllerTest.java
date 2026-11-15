@@ -103,4 +103,21 @@ class AuditoriaControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensaje").value(new RangoFechasInvalidoException().getMessage()));
     }
+
+    @Test
+    @DisplayName("mis-eventos: pasa filtros y paginación al servicio de eventos propios")
+    void misEventos() throws Exception {
+        when(service.consultarPropios(any(), any(), any(), anyInt(), anyInt())).thenReturn(pagina());
+
+        mockMvc.perform(get(URL + "/mis-eventos")
+                        .param("desde", "2026-10-01")
+                        .param("tipoEntidad", "CALIFICACION")
+                        .param("pagina", "1")
+                        .param("tamano", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElementos").value(1));
+
+        verify(service).consultarPropios(LocalDate.of(2026, 10, 1), null, TipoEntidadAuditoria.CALIFICACION, 1, 10);
+        verify(service, never()).consultar(any(), any(), any(), anyInt(), anyInt());
+    }
 }
