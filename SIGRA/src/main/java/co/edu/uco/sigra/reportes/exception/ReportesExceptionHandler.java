@@ -20,6 +20,11 @@ public class ReportesExceptionHandler {
         return ErrorResponseBuilder.build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), null);
     }
 
+    @ExceptionHandler(RangoReporteInvalidoException.class)
+    public ResponseEntity<Map<String, Object>> manejarRangoInvalido(RangoReporteInvalidoException ex) {
+        return ErrorResponseBuilder.build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), null);
+    }
+
     @ExceptionHandler(PermisoReporteInsuficienteException.class)
     public ResponseEntity<Map<String, Object>> manejarSinPermiso(PermisoReporteInsuficienteException ex) {
         return ErrorResponseBuilder.build(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), null);
