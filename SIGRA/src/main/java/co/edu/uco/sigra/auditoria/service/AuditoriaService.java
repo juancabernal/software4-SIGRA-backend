@@ -17,4 +17,8 @@ public interface AuditoriaService {
 
     PaginaAuditoriaDTO consultar(LocalDate desde, LocalDate hasta, TipoEntidadAuditoria tipoEntidad,
                                  int pagina, int tamano);
+
+    /** Eventos registrados por el usuario autenticado (su propio historial), con los mismos filtros. */
+    PaginaAuditoriaDTO consultarPropios(LocalDate desde, LocalDate hasta, TipoEntidadAuditoria tipoEntidad,
+                                        int pagina, int tamano);
 }

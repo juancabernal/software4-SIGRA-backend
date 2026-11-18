@@ -38,6 +38,7 @@ public class ReporteRendimientoRaController {
     private static final String SEMESTRE_EJEMPLO = "9d8c7b6a-5f4e-4d3c-b2a1-0f9e8d7c6b5a";
     private static final String PROGRAMA_EJEMPLO = "5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c1d";
     private static final String ASIGNATURA_EJEMPLO = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+    private static final String FACULTAD_EJEMPLO = "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f";
     private static final String EJ_NO_ENCONTRADO = "{\"timestamp\":\"" + EjemplosError.TIMESTAMP_EJEMPLO
             + "\",\"status\":404,\"error\":\"NOT_FOUND\",\"mensaje\":\"La asignatura indicada no existe.\"}";
 
@@ -51,7 +52,9 @@ public class ReporteRendimientoRaController {
                     + "mismos cálculos del módulo de estadísticas. Sin calificaciones el RA queda «Sin evaluar»; con "
                     + "1 o 2 calificaciones por estudiante, «Sin datos suficientes para calcular»; si no hay "
                     + "asignaturas que mostrar, el mensaje es «Sin datos disponibles». Sin «semestreId» usa el semestre "
-                    + "activo. Los filtros «programaId» y «asignaturaId» son opcionales y combinables."
+                    + "activo. Los filtros «programaId», «facultadId» y «asignaturaId» son opcionales y se combinan "
+                    + "con AND: un programa de otra facultad, o una facultad sin datos, da la lista vacía. Cada "
+                    + "asignatura trae la facultad de su programa."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Reporte generado (las asignaturas pueden venir vacías)",
@@ -81,8 +84,11 @@ public class ReporteRendimientoRaController {
             @RequestParam(required = false) UUID semestreId,
             @Parameter(description = "Filtra por programa académico (UUID)", example = PROGRAMA_EJEMPLO)
             @RequestParam(required = false) UUID programaId,
+            @Parameter(description = "Filtra por la facultad del programa (UUID)", example = FACULTAD_EJEMPLO)
+            @RequestParam(required = false) UUID facultadId,
             @Parameter(description = "Filtra por asignatura (UUID)", example = ASIGNATURA_EJEMPLO)
             @RequestParam(required = false) UUID asignaturaId) {
-        return ResponseEntity.ok(reporteService.consultar(semestreId, programaId, asignaturaId, currentUser.required()));
+        return ResponseEntity.ok(reporteService.consultar(semestreId, programaId, facultadId, asignaturaId,
+                currentUser.required()));
     }
 }

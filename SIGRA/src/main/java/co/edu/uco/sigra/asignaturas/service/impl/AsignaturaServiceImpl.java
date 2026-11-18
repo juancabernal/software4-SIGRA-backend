@@ -40,6 +40,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -127,14 +128,22 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         validarRangoRa(filtro.raMin(), filtro.raMax());
         Set<UUID> alcance = alcanceDe(identidad);
 
+        Set<UUID> enSemestre = filtro.semestreId() == null ? null
+                : asignaturasEnSemestre(filtro.semestreId(), identidad);
+
         Map<UUID, Long> raActivosPorAsignatura = asignaturaRepository.contarRaPorAsignatura(EstadoRegistro.ACTIVO)
                 .stream()
                 .collect(Collectors.toMap(ConteoRaPorAsignatura::getAsignaturaId, ConteoRaPorAsignatura::getCantidad));
         String texto = filtro.texto() == null ? null : normalizar(filtro.texto());
 
-        // El catálogo de asignaturas es pequeño, así que se filtra en memoria.
-        return asignaturaRepository.findAll().stream()
+        // La facultad se resuelve en la consulta (join asignatura → programa → facultad), que además trae
+        // programa y facultad cargados. El resto del catálogo, que es pequeño, se filtra en memoria.
+        List<Asignatura> catalogo = filtro.facultadId() == null
+                ? asignaturaRepository.findAllConProgramaYFacultad()
+                : asignaturaRepository.findAllDeFacultad(filtro.facultadId());
+        return catalogo.stream()
                 .filter(a -> alcance == null || alcance.contains(a.getId()))
+                .filter(a -> enSemestre == null || enSemestre.contains(a.getId()))
                 .filter(a -> filtro.programaId() == null || filtro.programaId().equals(a.getPrograma().getId()))
                 .filter(a -> filtro.estado() == null || filtro.estado() == a.getEstado())
                 .filter(a -> texto == null
@@ -218,6 +227,19 @@ public class AsignaturaServiceImpl implements AsignaturaService {
      * Asignaturas visibles para la identidad: el ADMINISTRADOR ve todas. El PROFESOR solo ve las
      * suyas con asignación docente ACTIVA; un ESTUDIANTE no consulta el catálogo.
      */
+    /** Une consultas simples y aplica el alcance del docente en consultar().
+     * La actividad histórica cuenta aunque la asignación sea posterior al semestre,
+     * igual que en el listado de semestres propios.
+     */
+    private Set<UUID> asignaturasEnSemestre(UUID semestreId, UsuarioPrincipal identidad) {
+        UUID profesorId = identidad.rol() == RolUsuario.PROFESOR ? identidad.id() : null;
+        Set<UUID> ids = new HashSet<>(asignaturaRepository.findIdsConAsignacionEnSemestre(
+                semestreId, profesorId, EstadoRegistro.ACTIVO));
+        ids.addAll(asignaturaRepository.findIdsConEvaluacionesEnSemestre(semestreId));
+        ids.addAll(asignaturaRepository.findIdsConMatriculasEnSemestre(semestreId));
+        return ids;
+    }
+
     private Set<UUID> alcanceDe(UsuarioPrincipal identidad) {
         if (identidad == null) {
             throw new PermisoInsuficienteException();
@@ -251,13 +273,17 @@ public class AsignaturaServiceImpl implements AsignaturaService {
 
     @Override
     @Transactional
-    public List<MiAsignaturaDTO> misAsignaturas(UsuarioPrincipal identidad) {
+    public List<MiAsignaturaDTO> misAsignaturas(UsuarioPrincipal identidad, UUID facultadId) {
         if (identidad == null) {
             throw new PermisoInsuficienteException();
         }
         List<Asignatura> asignaturas = switch (identidad.rol()) {
-            case PROFESOR -> asignaturaRepository.findAsignadasAProfesor(identidad.id(), EstadoRegistro.ACTIVO);
-            case ESTUDIANTE -> asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoMatricula.ACTIVA);
+            case PROFESOR -> facultadId == null
+                    ? asignaturaRepository.findAsignadasAProfesor(identidad.id(), EstadoRegistro.ACTIVO)
+                    : asignaturaRepository.findAsignadasAProfesorEnFacultad(identidad.id(), EstadoRegistro.ACTIVO, facultadId);
+            case ESTUDIANTE -> facultadId == null
+                    ? asignaturaRepository.findMatriculadasPorEstudiante(identidad.id(), EstadoMatricula.ACTIVA)
+                    : asignaturaRepository.findMatriculadasPorEstudianteEnFacultad(identidad.id(), EstadoMatricula.ACTIVA, facultadId);
             default -> throw new PermisoInsuficienteException();
         };
         if (asignaturas.isEmpty()) {
@@ -275,11 +301,20 @@ public class AsignaturaServiceImpl implements AsignaturaService {
         return asignaturas.stream()
                 .sorted(Comparator.comparing(Asignatura::getNombre, String.CASE_INSENSITIVE_ORDER))
                 .map(a -> new MiAsignaturaDTO(a.getId(), a.getCodigo(), a.getNombre(), a.getPrograma().getId(),
-                        a.getPrograma().getNombre(), a.getEstado(), ra.getOrDefault(a.getId(), 0L),
+                        a.getPrograma().getNombre(), idFacultad(a), nombreFacultad(a), a.getEstado(),
+                        ra.getOrDefault(a.getId(), 0L),
                         estudiantes.getOrDefault(a.getId(), 0L),
                         profesores.getOrDefault(a.getId(), List.of()).stream()
                                 .sorted(String.CASE_INSENSITIVE_ORDER).toList()))
                 .toList();
+    }
+
+    private static UUID idFacultad(Asignatura asignatura) {
+        return asignatura.getPrograma().getFacultad() == null ? null : asignatura.getPrograma().getFacultad().getId();
+    }
+
+    private static String nombreFacultad(Asignatura asignatura) {
+        return asignatura.getPrograma().getFacultad() == null ? null : asignatura.getPrograma().getFacultad().getNombre();
     }
 
     private static Map<UUID, Long> porAsignatura(List<ConteoPorAsignatura> conteos) {

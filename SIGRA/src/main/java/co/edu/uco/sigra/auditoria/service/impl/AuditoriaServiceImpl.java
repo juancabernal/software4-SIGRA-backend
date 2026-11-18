@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -77,6 +78,23 @@ public class AuditoriaServiceImpl implements AuditoriaService {
     @Transactional(readOnly = true)
     public PaginaAuditoriaDTO consultar(LocalDate desde, LocalDate hasta, TipoEntidadAuditoria tipoEntidad,
                                         int pagina, int tamano) {
+        return consultarDe(null, desde, hasta, tipoEntidad, pagina, tamano);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginaAuditoriaDTO consultarPropios(LocalDate desde, LocalDate hasta, TipoEntidadAuditoria tipoEntidad,
+                                               int pagina, int tamano) {
+        UsuarioPrincipal principal = principalActual();
+        if (principal == null) {
+            throw new AccessDeniedException("Se requiere una sesión válida para consultar el historial propio.");
+        }
+        return consultarDe(principal.id(), desde, hasta, tipoEntidad, pagina, tamano);
+    }
+
+    /** Consulta común: con {@code usuarioId} nulo trae todo el historial; con valor, solo sus eventos. */
+    private PaginaAuditoriaDTO consultarDe(UUID usuarioId, LocalDate desde, LocalDate hasta,
+                                           TipoEntidadAuditoria tipoEntidad, int pagina, int tamano) {
         if (desde != null && hasta != null && desde.isAfter(hasta)) {
             throw new RangoFechasInvalidoException();
         }
@@ -85,9 +103,17 @@ public class AuditoriaServiceImpl implements AuditoriaService {
         Pageable solicitud = PageRequest.of(pagina, tamano,
                 Sort.by(Sort.Order.desc("fechaHora"), Sort.Order.desc("id")));
 
-        Page<HistorialAuditoria> resultado = tipoEntidad == null
-                ? repositorio.findByFechaHoraBetween(inicio, fin, solicitud)
-                : repositorio.findByTipoEntidadAndFechaHoraBetween(tipoEntidad, inicio, fin, solicitud);
+        Page<HistorialAuditoria> resultado;
+        if (usuarioId == null) {
+            resultado = tipoEntidad == null
+                    ? repositorio.findByFechaHoraBetween(inicio, fin, solicitud)
+                    : repositorio.findByTipoEntidadAndFechaHoraBetween(tipoEntidad, inicio, fin, solicitud);
+        } else {
+            resultado = tipoEntidad == null
+                    ? repositorio.findByUsuarioIdAndFechaHoraBetween(usuarioId, inicio, fin, solicitud)
+                    : repositorio.findByUsuarioIdAndTipoEntidadAndFechaHoraBetween(usuarioId, tipoEntidad, inicio,
+                            fin, solicitud);
+        }
 
         return new PaginaAuditoriaDTO(resultado.getContent().stream().map(mapper::toDTO).toList(),
                 resultado.getNumber(), resultado.getSize(), resultado.getTotalElements(),

@@ -15,7 +15,9 @@ Documentación de los reportes **R1** y **R6** (incidencia 0000041), siguiendo e
 | `GET /api/v1/reportes/rendimiento-ra` | ADMINISTRADOR (todo), PROFESOR (solo sus asignaturas con asignación ACTIVA) | 200, 400, 401, 403, 404 |
 | `GET /api/v1/reportes/riesgo-academico` | ADMINISTRADOR (todo), PROFESOR (solo sus asignaturas con asignación ACTIVA) | 200, 400, 401, 403, 404 |
 
-Parámetros opcionales comunes: `semestreId` (sin valor usa el semestre activo), `programaId` y `asignaturaId`, todos UUID y combinables. R6 añade `minRaNoAlcanzados` (entero ≥ 1; por defecto 1).
+Parámetros opcionales comunes: `semestreId` (sin valor usa el semestre activo), `programaId`, `facultadId` y `asignaturaId`, todos UUID y combinables con AND. R6 añade `minRaNoAlcanzados` (entero ≥ 1; por defecto 1).
+
+**Facultad (incidencia 0000036).** `facultadId` filtra por la facultad del programa de cada asignatura: una facultad sin datos, inexistente o combinada con un `programaId` de otra facultad devuelve la lista vacía con «Sin datos disponibles» (no 404); un valor que no es UUID responde 400. Respeta el alcance del profesor: una `asignaturaId` propia de otra facultad queda fuera del resultado, y una ajena sigue siendo 403. R1 agrega `facultadId` y `facultadNombre` a cada asignatura; R6 agrega `programaId`, `facultadId` y `facultadNombre` a cada fila de estudiante.
 
 ## Reglas R1 — Rendimiento por RA
 
@@ -31,3 +33,13 @@ Parámetros opcionales comunes: `semestreId` (sin valor usa el semestre activo),
 - Agrupa por estudiante × asignatura; severidad: `ATENCION` (1), `RIESGO` (2), `ALTO_RIESGO` (≥ 3).
 - Lista vacía → `mensaje` «Sin datos disponibles».
 - Misma política de 403/404 que R1.
+
+## R2 — Matrículas por programa y semestre
+
+| Método y ruta | Rol | Códigos documentados |
+| --- | --- | --- |
+| `GET /api/v1/reportes/matriculas-programa-semestre` | ADMINISTRADOR | 200, 400, 401, 403, 404 |
+
+Parámetros opcionales: `semestreId`, `programaId` y `facultadId` (UUID). Se combinan con AND y se devuelven en la respuesta. Un `semestreId` o `programaId` inexistente produce 404; un `facultadId` inexistente produce 200 con filas vacías y resumen en cero.
+
+La respuesta contiene un `resumen` y `filas` agrupadas por semestre y programa. Cada fila incluye código, fecha de inicio y estado del semestre, código y nombre del programa, facultad y los conteos de matrículas totales, activas, desvinculadas, estudiantes y asignaturas. `estudiantesDistintos` se calcula con una consulta independiente. El reporte no expone datos personales.

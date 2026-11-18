@@ -112,8 +112,10 @@ jacocoTestCoverageVerification {
 					'co.edu.uco.sigra.auth.service*',   // autenticación
 					'co.edu.uco.sigra.auth.controller',
 					'co.edu.uco.sigra.auth.security',   // RBAC (filtro JWT, CurrentUser, respuestas 401/403)
-					'co.edu.uco.sigra.config'
-					// Nivel de logro: agregar 'co.edu.uco.sigra.estadisticas.service*' cuando exista RF-14.
+					'co.edu.uco.sigra.config',
+					// RF-14 (calculo de nivel de logro) y RF-16 (generacion de conclusiones):
+					// el SRS los nombra como modulos obligatorios del RNF-20 (a). Hallazgo H-08.
+					'co.edu.uco.sigra.estadisticas.service*'
 			]
 			limit {
 				counter = 'INSTRUCTION'

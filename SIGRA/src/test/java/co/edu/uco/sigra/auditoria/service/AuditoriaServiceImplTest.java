@@ -192,4 +192,61 @@ class AuditoriaServiceImplTest {
             verifyNoInteractions(repositorio);
         }
     }
+
+    @Nested
+    @DisplayName("consultarPropios (historial del profesor)")
+    class ConsultarPropios {
+
+        private final UUID profesor = UUID.randomUUID();
+
+        private void iniciarSesion() {
+            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                    new UsuarioPrincipal(profesor, RolUsuario.PROFESOR), null, List.of()));
+        }
+
+        @Test
+        @DisplayName("Sin filtro de entidad: consulta solo por el usuario de la sesión")
+        void soloEventosDelUsuario() {
+            iniciarSesion();
+            when(repositorio.findByUsuarioIdAndFechaHoraBetween(any(), any(), any(), any()))
+                    .thenAnswer(inv -> new PageImpl<>(List.of(), inv.getArgument(3, Pageable.class), 0));
+
+            service.consultarPropios(null, null, null, 0, 20);
+
+            verify(repositorio).findByUsuarioIdAndFechaHoraBetween(eq(profesor), any(), any(), any());
+            verify(repositorio, never()).findByFechaHoraBetween(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Con tipo de entidad: filtra por usuario y por tipo")
+        void conTipoDeEntidad() {
+            iniciarSesion();
+            when(repositorio.findByUsuarioIdAndTipoEntidadAndFechaHoraBetween(any(), any(), any(), any(), any()))
+                    .thenAnswer(inv -> new PageImpl<>(List.of(), inv.getArgument(4, Pageable.class), 0));
+
+            service.consultarPropios(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 20),
+                    TipoEntidadAuditoria.CALIFICACION, 0, 10);
+
+            verify(repositorio).findByUsuarioIdAndTipoEntidadAndFechaHoraBetween(eq(profesor),
+                    eq(TipoEntidadAuditoria.CALIFICACION), eq(LocalDateTime.of(2026, 10, 1, 0, 0)),
+                    eq(LocalDateTime.of(2026, 10, 20, 23, 59, 59, 999_999_000)), any());
+        }
+
+        @Test
+        @DisplayName("Sin sesión: AccessDeniedException y no consulta el repositorio")
+        void sinSesion() {
+            assertThatThrownBy(() -> service.consultarPropios(null, null, null, 0, 20))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            verifyNoInteractions(repositorio);
+        }
+
+        @Test
+        @DisplayName("Fecha inicial posterior a la final: RangoFechasInvalidoException")
+        void rangoInvertido() {
+            iniciarSesion();
+            assertThatThrownBy(() -> service.consultarPropios(LocalDate.of(2026, 10, 21),
+                    LocalDate.of(2026, 10, 20), null, 0, 10)).isInstanceOf(RangoFechasInvalidoException.class);
+            verifyNoInteractions(repositorio);
+        }
+    }
 }

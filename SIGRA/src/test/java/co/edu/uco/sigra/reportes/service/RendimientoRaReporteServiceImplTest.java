@@ -1,5 +1,6 @@
 package co.edu.uco.sigra.reportes.service;
 
+import co.edu.uco.sigra.facultades.entity.Facultad;
 import co.edu.uco.sigra.asignaturas.entity.Asignatura;
 import co.edu.uco.sigra.asignaturas.repository.AsignaturaRepository;
 import co.edu.uco.sigra.auth.security.UsuarioPrincipal;
@@ -91,7 +92,7 @@ class RendimientoRaReporteServiceImplTest {
         when(asignatura.getPrograma()).thenReturn(programa);
         when(asignaturaRepository.existsById(asignaturaId)).thenReturn(true);
         when(programaRepository.existsById(programaId)).thenReturn(true);
-        when(asignaturaRepository.findAll()).thenReturn(List.of(asignatura));
+        when(asignaturaRepository.findAllConProgramaYFacultad()).thenReturn(List.of(asignatura));
 
         ResultadoAprendizaje ra = mock(ResultadoAprendizaje.class);
         when(ra.getId()).thenReturn(raId);
@@ -223,7 +224,7 @@ class RendimientoRaReporteServiceImplTest {
         assertThat(servicio.consultar(null, null, null, profesor).asignaturas()).isEmpty();
         assertThatThrownBy(() -> servicio.consultar(null, null, asignaturaId, profesor))
                 .isInstanceOf(PermisoReporteInsuficienteException.class);
-        verify(asignaturaRepository, never()).findAll();
+        verify(asignaturaRepository, never()).findAllConProgramaYFacultad();
     }
 
     @Test
@@ -238,5 +239,104 @@ class RendimientoRaReporteServiceImplTest {
 
         assertThat(reporte.asignaturas()).hasSize(1);
         assertThat(unicoRa(reporte).nivelLogro()).isEqualTo(NivelLogro.MEDIO);
+    }
+
+    // ---------------------------------------------------------------- facultad (incidencia 0000036)
+
+    private final UUID facultadId = UUID.randomUUID();
+
+    private void conFacultad() {
+        Facultad facultad = mock(Facultad.class);
+        when(facultad.getId()).thenReturn(facultadId);
+        when(facultad.getNombre()).thenReturn("Facultad de Ingeniería");
+        ProgramaAcademico programa = asignatura.getPrograma();
+        when(programa.getFacultad()).thenReturn(facultad);
+    }
+
+    @Test
+    @DisplayName("Cada asignatura del reporte trae la facultad de su programa")
+    void asignaturaTraeLaFacultad() {
+        conFacultad();
+        simular(3.5, 12, 4, 0);
+
+        RendimientoRaReporteResponseDTO reporte = servicio.consultar(null, null, null, null, admin);
+
+        assertThat(reporte.asignaturas().get(0).facultadId()).isEqualTo(facultadId);
+        assertThat(reporte.asignaturas().get(0).facultadNombre()).isEqualTo("Facultad de Ingeniería");
+    }
+
+    @Test
+    @DisplayName("Con facultadId el administrador consulta solo esa facultad en la base")
+    void administradorFiltraPorFacultad() {
+        conFacultad();
+        simular(3.5, 12, 4, 0);
+        when(asignaturaRepository.findAllDeFacultad(facultadId)).thenReturn(List.of(asignatura));
+
+        RendimientoRaReporteResponseDTO reporte = servicio.consultar(null, null, facultadId, null, admin);
+
+        assertThat(reporte.asignaturas()).hasSize(1);
+        verify(asignaturaRepository, never()).findAllConProgramaYFacultad();
+    }
+
+    @Test
+    @DisplayName("Una facultad sin asignaturas, o inexistente, da «Sin datos disponibles» y no 404")
+    void facultadSinDatos() {
+        UUID otra = UUID.randomUUID();
+        when(asignaturaRepository.findAllDeFacultad(otra)).thenReturn(List.of());
+
+        RendimientoRaReporteResponseDTO reporte = servicio.consultar(null, null, otra, null, admin);
+
+        assertThat(reporte.asignaturas()).isEmpty();
+        assertThat(reporte.mensaje()).isEqualTo("Sin datos disponibles");
+    }
+
+    @Test
+    @DisplayName("facultadId combinado con un programa de otra facultad da lista vacía")
+    void programaDeOtraFacultad() {
+        UUID otroPrograma = UUID.randomUUID();
+        when(programaRepository.existsById(otroPrograma)).thenReturn(true);
+        when(asignaturaRepository.findAllDeFacultad(facultadId)).thenReturn(List.of(asignatura));
+
+        assertThat(servicio.consultar(null, otroPrograma, facultadId, null, admin).asignaturas()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("El profesor con facultadId solo consulta sus asignaturas de esa facultad")
+    void profesorFiltraPorFacultad() {
+        UsuarioPrincipal profesor = new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR);
+        conFacultad();
+        simular(3.5, 12, 4, 0);
+        when(asignaturaRepository.findAsignadasAProfesorEnFacultad(profesorId, EstadoRegistro.ACTIVO, facultadId))
+                .thenReturn(List.of(asignatura));
+
+        RendimientoRaReporteResponseDTO reporte = servicio.consultar(null, null, facultadId, null, profesor);
+
+        assertThat(reporte.asignaturas()).hasSize(1);
+        verify(asignaturaRepository, never()).findAllDeFacultad(any());
+    }
+
+    @Test
+    @DisplayName("Una asignatura propia de otra facultad queda fuera (vacío), no es 403")
+    void asignaturaPropiaDeOtraFacultad() {
+        UsuarioPrincipal profesor = new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR);
+        UUID otra = UUID.randomUUID();
+        when(asignaturaRepository.findAsignadasAProfesorEnFacultad(profesorId, EstadoRegistro.ACTIVO, otra))
+                .thenReturn(List.of());
+        when(asignaturaRepository.findAsignadasAProfesor(profesorId, EstadoRegistro.ACTIVO))
+                .thenReturn(List.of(asignatura));
+
+        assertThat(servicio.consultar(null, null, otra, asignaturaId, profesor).asignaturas()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Con facultadId, una asignatura ajena sigue siendo 403 para el profesor")
+    void asignaturaAjenaConFacultad() {
+        UsuarioPrincipal profesor = new UsuarioPrincipal(profesorId, RolUsuario.PROFESOR);
+        when(asignaturaRepository.findAsignadasAProfesorEnFacultad(profesorId, EstadoRegistro.ACTIVO, facultadId))
+                .thenReturn(List.of());
+        when(asignaturaRepository.findAsignadasAProfesor(profesorId, EstadoRegistro.ACTIVO)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> servicio.consultar(null, null, facultadId, asignaturaId, profesor))
+                .isInstanceOf(PermisoReporteInsuficienteException.class);
     }
 }

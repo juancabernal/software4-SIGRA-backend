@@ -30,8 +30,14 @@ public record EstudianteRiesgoDTO(
         String asignaturaCodigo,
         @Schema(description = "Nombre de la asignatura")
         String asignaturaNombre,
+        @Schema(description = "Identificador del programa académico")
+        UUID programaId,
         @Schema(description = "Nombre del programa académico")
         String programaNombre,
+        @Schema(description = "Identificador de la facultad del programa", example = "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f")
+        UUID facultadId,
+        @Schema(description = "Nombre de la facultad del programa", example = "Facultad de Ingeniería")
+        String facultadNombre,
         @Schema(description = "Cantidad de RA con nivel BAJO o MEDIO")
         int cantidadRaNoAlcanzados,
         @Schema(description = "Severidad según la cantidad de RA no alcanzados")
