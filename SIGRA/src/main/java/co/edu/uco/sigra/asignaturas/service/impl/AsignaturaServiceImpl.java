@@ -143,6 +143,7 @@ public class AsignaturaServiceImpl implements AsignaturaService {
                 : asignaturaRepository.findAllDeFacultad(filtro.facultadId());
         return catalogo.stream()
                 .filter(a -> alcance == null || alcance.contains(a.getId()))
+                .filter(a -> enSemestre == null || enSemestre.contains(a.getId()))
                 .filter(a -> filtro.programaId() == null || filtro.programaId().equals(a.getPrograma().getId()))
                 .filter(a -> filtro.estado() == null || filtro.estado() == a.getEstado())
                 .filter(a -> texto == null
