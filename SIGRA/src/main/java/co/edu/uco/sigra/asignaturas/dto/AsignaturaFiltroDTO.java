@@ -16,8 +16,7 @@ public record AsignaturaFiltroDTO(
         UUID facultadId,
         EstadoAsignatura estado,
         Integer raMin,
-        Integer raMax,
-        UUID semestreId
+        Integer raMax
 ) {
     public AsignaturaFiltroDTO {
         texto = ReglasEntrada.normalizarTexto(texto);
